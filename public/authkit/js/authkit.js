@@ -1,0 +1,3 @@
+(() => {
+    // AuthKit JS placeholder
+})();

@@ -1,0 +1,17 @@
+### `LICENSE`
+Use MIT since your composer already says MIT.
+
+### `CHANGELOG.md`
+Even if small:
+
+```md
+# Changelog
+
+## Unreleased
+
+- Initial AuthKit package structure
+- Email verification flows
+- Password reset flows
+- Two-factor authentication flows
+- Rate limiting support
+- Blade UI and theme foundation

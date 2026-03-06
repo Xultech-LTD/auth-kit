@@ -1,0 +1,4 @@
+:root { color-scheme: light; }
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #0b1220; color: #e5e7eb; }
+input { border-radius: 10px; border: 1px solid #24324d; background: #0f172a; color: #e5e7eb; }
+button { border-radius: 10px; border: 1px solid #2b3a57; background: #111c33; color: #e5e7eb; cursor: pointer; }
