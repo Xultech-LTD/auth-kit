@@ -1,4 +1,5 @@
 # AuthKit
+![Tests](https://github.com/Xultech-LTD/auth-kit/actions/workflows/tests.yml/badge.svg)
 
 Reusable Laravel auth kit package with Blade UI, themes, email verification, two-factor authentication, password reset, and rate limiting.
 
