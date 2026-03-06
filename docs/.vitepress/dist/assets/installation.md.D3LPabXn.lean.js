@@ -1,1 +1,0 @@
-import{_ as t,o as a,c as e}from"./chunks/framework.ieioR3lw.js";const d=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"installation.md","filePath":"installation.md"}'),n={name:"installation.md"};function o(s,i,r,c,l,p){return a(),e("div")}const m=t(n,[["render",o]]);export{d as __pageData,m as default};

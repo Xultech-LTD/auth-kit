@@ -1,1 +1,0 @@
-import{_ as t,o as e,c as a}from"./chunks/framework.ieioR3lw.js";const m=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"extending-authkit.md","filePath":"extending-authkit.md"}'),n={name:"extending-authkit.md"};function i(r,o,s,c,d,p){return e(),a("div")}const f=t(n,[["render",i]]);export{m as __pageData,f as default};
