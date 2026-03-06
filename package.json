@@ -1,6 +1,33 @@
 {
   "private": true,
   "devDependencies": {
-    "playwright": "^1.58.2"
-  }
+    "playwright": "^1.58.2",
+    "vitepress": "^0.1.1"
+  },
+  "name": "auth-kit",
+  "version": "1.0.0",
+  "description": "![Tests](https://github.com/Xultech-LTD/auth-kit/actions/workflows/tests.yml/badge.svg)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "dependencies": {
+    "playwright-core": "^1.58.2"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Xultech-LTD/auth-kit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Xultech-LTD/auth-kit/issues"
+  },
+  "homepage": "https://github.com/Xultech-LTD/auth-kit#readme"
 }
