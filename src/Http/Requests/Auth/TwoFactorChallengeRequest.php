@@ -3,8 +3,8 @@
 namespace Xul\AuthKit\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
 use Xul\AuthKit\Support\AuthKitSessionKeys;
-use Xul\AuthKit\Support\Resolvers\FormSchemaResolver;
 use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
 
 final class TwoFactorChallengeRequest extends FormRequest
@@ -47,8 +47,8 @@ final class TwoFactorChallengeRequest extends FormRequest
      */
     public function rules(): array
     {
-        $schema = FormSchemaResolver::resolve('two_factor_challenge');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -60,7 +60,7 @@ final class TwoFactorChallengeRequest extends FormRequest
             context: 'two_factor_challenge',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['rules'] ?? []);
@@ -73,8 +73,8 @@ final class TwoFactorChallengeRequest extends FormRequest
      */
     public function messages(): array
     {
-        $schema = FormSchemaResolver::resolve('two_factor_challenge');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -86,7 +86,7 @@ final class TwoFactorChallengeRequest extends FormRequest
             context: 'two_factor_challenge',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['messages'] ?? []);
@@ -99,8 +99,8 @@ final class TwoFactorChallengeRequest extends FormRequest
      */
     public function attributes(): array
     {
-        $schema = FormSchemaResolver::resolve('two_factor_challenge');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -112,10 +112,18 @@ final class TwoFactorChallengeRequest extends FormRequest
             context: 'two_factor_challenge',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['attributes'] ?? []);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function schema(): array
+    {
+        return app(FormSchemaResolverContract::class)->resolve('two_factor_challenge');
     }
 
     /**
@@ -126,22 +134,23 @@ final class TwoFactorChallengeRequest extends FormRequest
      */
     protected function defaultAttributes(array $schema): array
     {
-        $labels = (array) ($schema['labels'] ?? []);
+        $fields = (array) ($schema['fields'] ?? []);
         $out = [];
 
-        foreach ($labels as $k => $v) {
-            if (is_string($k) && $k !== '' && is_string($v) && $v !== '') {
-                $out[$k] = $v;
+        foreach ($fields as $name => $field) {
+            if (!is_string($name) || $name === '' || !is_array($field)) {
+                continue;
+            }
+
+            $label = $field['label'] ?? null;
+
+            if (is_string($label) && trim($label) !== '') {
+                $out[$name] = trim($label);
             }
         }
 
-        if (!isset($out['challenge'])) {
-            $out['challenge'] = 'Challenge';
-        }
-
-        if (!isset($out['code'])) {
-            $out['code'] = 'Authentication code';
-        }
+        $out['challenge'] = $out['challenge'] ?? 'Challenge';
+        $out['code'] = $out['code'] ?? 'Authentication code';
 
         return $out;
     }
@@ -154,20 +163,9 @@ final class TwoFactorChallengeRequest extends FormRequest
      */
     protected function defaultRules(array $fields): array
     {
-        $rules = [];
-
-        if (in_array('challenge', $fields, true)) {
-            $rules['challenge'] = ['required', 'string'];
-        } else {
-            $rules['challenge'] = ['required', 'string'];
-        }
-
-        if (in_array('code', $fields, true)) {
-            $rules['code'] = ['required', 'string'];
-        } else {
-            $rules['code'] = ['required', 'string'];
-        }
-
-        return $rules;
+        return [
+            'challenge' => ['required', 'string'],
+            'code' => ['required', 'string'],
+        ];
     }
 }

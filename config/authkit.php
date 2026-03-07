@@ -325,7 +325,7 @@ return [
      * Consumers may provide rule providers for each form context (login, register, password reset, etc.).
      *
      * How it works:
-     * - AuthKit builds sensible default rules from the form schema.
+     * - AuthKit builds sensible default rules from the form schema and flow defaults.
      * - If a provider is configured for a context, AuthKit calls it and uses its output.
      *
      * Notes:
@@ -342,7 +342,10 @@ return [
          * - login
          * - register
          * - two_factor_challenge
+         * - two_factor_recovery
+         * - two_factor_resend
          * - email_verification_token
+         * - email_verification_send
          * - password_forgot
          * - password_reset
          * - password_reset_token
@@ -366,43 +369,153 @@ return [
     /**
      * Form schema configuration.
      *
-     * Schemas define the fields AuthKit expects for each form context, as well as basic UI metadata.
-     * Consumers can change identity fields (email vs username) and remove or add fields by overriding
-     * schema configuration, while keeping AuthKit routes and controllers intact.
+     * AuthKit form schemas are the canonical definition of a form's fields.
+     * Each field is now self-contained and carries its own rendering metadata.
      *
-     * Notes:
-     * - Schemas are used by FormRequests (validation) immediately.
-     * - Schemas may later be used by views to render fields dynamically.
-     * - "fields" is the ordered list of inputs expected in the request.
+     * Design goals:
+     * - Let consumers add, remove, reorder, or replace fields entirely from config.
+     * - Support all common field types used by HTML forms and richer UI abstractions.
+     * - Support static and dynamic option sources (arrays, enums, classes, models).
+     * - Keep page structure in Blade, while keeping field structure in config.
+     *
+     * Important notes:
+     * - These schemas are now the package standard; legacy split schemas are no longer supported.
+     * - Validation still remains flow-aware; FormRequests may enforce required business constraints
+     *   even when consumers customize UI metadata.
+     * - Resolvers normalize these definitions before rendering or validation support consumes them.
+     *
+     * Top-level supported keys per form:
+     * - submit: Button metadata for the primary submit action.
+     * - fields: Ordered map of field-name => field definition.
+     *
+     * Recommended field definition keys:
+     * - label
+     * - type
+     * - required
+     * - placeholder
+     * - help
+     * - autocomplete
+     * - inputmode
+     * - value
+     * - value_resolver
+     * - checked
+     * - multiple
+     * - rows
+     * - accept
+     * - options
+     * - attributes
+     * - wrapper
+     * - component
+     * - render
+     *
+     * Supported field types include:
+     * - Scalar inputs:
+     *   text, email, password, hidden, number, tel, url, search, date,
+     *   datetime-local, time, month, week, color, file
+     * - Rich text:
+     *   textarea
+     * - Boolean / single-choice:
+     *   checkbox, radio
+     * - Multi-choice / grouped:
+     *   select, multiselect, radio_group, checkbox_group
+     * - Semantic / extensible:
+     *   otp, custom
+     *
+     * Supported option sources for option-bearing fields:
+     * - array : Inline items defined directly in config.
+     * - enum  : PHP enum class cases normalized into [value, label] items.
+     * - class : Custom provider class resolved from the container.
+     * - model : Eloquent model-backed options for simple DB-driven choices.
+     *
+     * Option source shape examples:
+     *
+     * Array:
+     * 'options' => [
+     *     'source' => 'array',
+     *     'items' => [
+     *         ['value' => 'sms', 'label' => 'SMS'],
+     *         ['value' => 'email', 'label' => 'Email'],
+     *     ],
+     * ]
+     *
+     * Enum:
+     * 'options' => [
+     *     'source' => 'enum',
+     *     'class' => \App\Enums\AccountType::class,
+     * ]
+     *
+     * Class:
+     * 'options' => [
+     *     'source' => 'class',
+     *     'class' => \App\Support\Auth\CountryOptionsProvider::class,
+     * ]
+     *
+     * Model:
+     * 'options' => [
+     *     'source' => 'model',
+     *     'model' => \App\Models\Country::class,
+     *     'label_by' => 'name',
+     *     'value_by' => 'id',
+     *     'order_by' => 'name',
+     * ]
+     *
+     * Value precedence (recommended resolver behavior):
+     * 1. old() input from the previous request
+     * 2. runtime page/controller-supplied value
+     * 3. value_resolver result
+     * 4. static config value
+     * 5. null
      */
     'schemas' => [
 
         /**
          * Login form schema.
          *
-         * Default matches the current login blade:
-         * - email
+         * Default flow:
+         * - identity field (email by default)
          * - password
          * - remember
+         *
+         * Notes:
+         * - Consumers may replace "email" with another identity field if their application uses
+         *   username, phone, or another credential, provided the backend flow is updated accordingly.
+         * - The identity configuration above remains the canonical identity reference for auth logic.
          */
         'login' => [
-            'fields' => ['email', 'password', 'remember'],
-            'labels' => [
-                'email' => 'Email',
-                'password' => 'Password',
-                'remember' => 'Remember me',
+            'submit' => [
+                'label' => 'Continue',
             ],
-            'inputs' => [
+            'fields' => [
                 'email' => [
+                    'label' => 'Email',
                     'type' => 'email',
+                    'required' => true,
+                    'placeholder' => 'Enter your email',
                     'autocomplete' => 'email',
+                    'inputmode' => 'email',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => 'margin-bottom:12px;',
+                    ],
                 ],
                 'password' => [
+                    'label' => 'Password',
                     'type' => 'password',
+                    'required' => true,
                     'autocomplete' => 'current-password',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => 'margin-bottom:12px;',
+                    ],
                 ],
                 'remember' => [
+                    'label' => 'Remember me',
                     'type' => 'checkbox',
+                    'checked' => true,
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => 'margin-bottom:16px;',
+                    ],
                 ],
             ],
         ],
@@ -410,36 +523,65 @@ return [
         /**
          * Register form schema.
          *
-         * Default matches the current register blade:
+         * Default flow:
          * - name
          * - email
          * - password
          * - password_confirmation
+         *
+         * Notes:
+         * - Consumers may extend this form with additional fields such as role, account type,
+         *   terms acceptance, phone number, country, etc.
+         * - Where additional choice-based fields are added, options may be sourced from arrays,
+         *   enums, provider classes, or simple Eloquent model lookups.
          */
         'register' => [
-            'fields' => ['name', 'email', 'password', 'password_confirmation'],
-            'labels' => [
-                'name' => 'Name',
-                'email' => 'E-mail',
-                'password' => 'Password',
-                'password_confirmation' => 'Confirm password',
+            'submit' => [
+                'label' => 'Create account',
             ],
-            'inputs' => [
+            'fields' => [
                 'name' => [
+                    'label' => 'Name',
                     'type' => 'text',
+                    'required' => true,
+                    'placeholder' => 'Enter your name',
                     'autocomplete' => 'name',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => 'margin-bottom:12px;',
+                    ],
                 ],
                 'email' => [
+                    'label' => 'E-mail',
                     'type' => 'email',
+                    'required' => true,
+                    'placeholder' => 'Enter your email',
                     'autocomplete' => 'email',
+                    'inputmode' => 'email',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => 'margin-bottom:12px;',
+                    ],
                 ],
                 'password' => [
+                    'label' => 'Password',
                     'type' => 'password',
+                    'required' => true,
                     'autocomplete' => 'new-password',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => 'margin-bottom:12px;',
+                    ],
                 ],
                 'password_confirmation' => [
+                    'label' => 'Confirm password',
                     'type' => 'password',
+                    'required' => true,
                     'autocomplete' => 'new-password',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => 'margin-bottom:16px;',
+                    ],
                 ],
             ],
         ],
@@ -447,30 +589,65 @@ return [
         /**
          * Two-factor challenge form schema.
          *
-         * Default matches the current two-factor blade:
-         * - challenge
+         * Default flow:
+         * - challenge (usually hydrated implicitly from session or context)
          * - code
+         *
+         * Notes:
+         * - The visible default input is "code".
+         * - The challenge value is typically carried implicitly via session or runtime context,
+         *   but remains part of the canonical request payload for validation and action handling.
+         * - Consumers may later replace "code" with a richer OTP component via the "component" key.
          */
         'two_factor_challenge' => [
-            'labels' => [
-                'code' => 'Authentication code',
+            'submit' => [
+                'label' => 'Verify',
             ],
-            'inputs' => [
+            'fields' => [
+                'challenge' => [
+                    'label' => 'Challenge',
+                    'type' => 'hidden',
+                    'render' => false,
+                    'value' => null,
+                    'attributes' => [],
+                ],
                 'code' => [
-                    'type' => 'text',
+                    'label' => 'Authentication code',
+                    'type' => 'otp',
+                    'required' => true,
+                    'placeholder' => 'Enter your authentication code',
                     'autocomplete' => 'one-time-code',
+                    'inputmode' => 'numeric',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => 'margin-bottom:12px;',
+                    ],
                 ],
             ],
         ],
 
+        /**
+         * Two-factor resend form schema.
+         *
+         * Default flow:
+         * - email
+         *
+         * Notes:
+         * - This is typically rendered as a hidden email field because the user is already in a
+         *   known pending login flow.
+         * - Consumers may switch this to another identity field if their resend flow is not email-based.
+         */
         'two_factor_resend' => [
-            'fields' => ['email'],
-            'labels' => [
-                'email' => 'E-mail',
+            'submit' => [
+                'label' => 'Resend code',
             ],
-            'inputs' => [
+            'fields' => [
                 'email' => [
+                    'label' => 'E-mail',
                     'type' => 'hidden',
+                    'required' => true,
+                    'autocomplete' => 'email',
+                    'attributes' => [],
                 ],
             ],
         ],
@@ -478,24 +655,46 @@ return [
         /**
          * Two-factor recovery form schema.
          *
-         * Default intended for recovery code entry:
-         * - challenge
+         * Default flow:
+         * - challenge (implicit or hidden context)
          * - recovery_code
-         * - remember (optional)
+         * - remember
+         *
+         * Notes:
+         * - Recovery codes are typically treated as manual one-time inputs and should be normalized
+         *   before verification.
          */
         'two_factor_recovery' => [
-            'fields' => ['recovery_code', 'remember'],
-            'labels' => [
-                'recovery_code' => 'Recovery code',
-                'remember' => 'Remember me',
+            'submit' => [
+                'label' => 'Continue',
             ],
-            'inputs' => [
+            'fields' => [
+                'challenge' => [
+                    'label' => 'Challenge',
+                    'type' => 'hidden',
+                    'render' => false,
+                    'value' => null,
+                    'attributes' => [],
+                ],
                 'recovery_code' => [
+                    'label' => 'Recovery code',
                     'type' => 'text',
+                    'required' => true,
+                    'placeholder' => 'Enter one of your saved recovery codes',
                     'autocomplete' => 'one-time-code',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => 'margin-bottom:12px;',
+                    ],
                 ],
                 'remember' => [
+                    'label' => 'Remember me',
                     'type' => 'checkbox',
+                    'checked' => false,
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => 'margin-bottom:16px;',
+                    ],
                 ],
             ],
         ],
@@ -503,23 +702,37 @@ return [
         /**
          * Email verification token form schema.
          *
-         * Default matches the current email verification token blade:
+         * Default flow:
          * - email
          * - token
+         *
+         * Notes:
+         * - This applies when email verification is configured to use a token/code driver.
+         * - The email is usually passed into the page context and submitted as a hidden field.
          */
         'email_verification_token' => [
-            'fields' => ['email', 'token'],
-            'labels' => [
-                'token' => 'Verification code',
+            'submit' => [
+                'label' => 'Verify email',
             ],
-            'inputs' => [
+            'fields' => [
                 'email' => [
+                    'label' => 'E-mail',
                     'type' => 'hidden',
+                    'required' => true,
+                    'autocomplete' => 'email',
+                    'attributes' => [],
                 ],
                 'token' => [
-                    'type' => 'text',
-                    'inputmode' => 'numeric',
+                    'label' => 'Verification code',
+                    'type' => 'otp',
+                    'required' => true,
+                    'placeholder' => 'Enter the verification code',
                     'autocomplete' => 'one-time-code',
+                    'inputmode' => 'numeric',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => 'margin-top:12px;',
+                    ],
                 ],
             ],
         ],
@@ -527,18 +740,24 @@ return [
         /**
          * Email verification resend schema.
          *
-         * Default matches the email verification notice blade:
+         * Default flow:
          * - email
+         *
+         * Notes:
+         * - This form is typically rendered from the verification notice page and uses the already
+         *   known pending verification email context.
          */
         'email_verification_send' => [
-            'fields' => ['email'],
-            'labels' => [
-                'email' => 'E-mail',
+            'submit' => [
+                'label' => 'Didn’t receive it? Resend.',
             ],
-            'inputs' => [
+            'fields' => [
                 'email' => [
+                    'label' => 'E-mail',
                     'type' => 'hidden',
+                    'required' => true,
                     'autocomplete' => 'email',
+                    'attributes' => [],
                 ],
             ],
         ],
@@ -546,18 +765,27 @@ return [
         /**
          * Forgot password form schema.
          *
-         * Default matches the current forgot password blade:
+         * Default flow:
          * - email
+         *
+         * Notes:
+         * - The default password reset request flow uses an email identity.
+         * - Consumers with alternate identity-driven reset flows may replace this with a different
+         *   field definition and corresponding backend logic.
          */
         'password_forgot' => [
-            'fields' => ['email'],
-            'labels' => [
-                'email' => 'E-mail',
+            'submit' => [
+                'label' => 'Send reset link',
             ],
-            'inputs' => [
+            'fields' => [
                 'email' => [
+                    'label' => 'E-mail',
                     'type' => 'email',
+                    'required' => true,
+                    'placeholder' => 'Enter your email',
                     'autocomplete' => 'email',
+                    'inputmode' => 'email',
+                    'attributes' => [],
                 ],
             ],
         ],
@@ -565,32 +793,52 @@ return [
         /**
          * Reset password form schema (link driver).
          *
-         * Default matches the current reset password blade:
+         * Default flow:
          * - email
          * - token
          * - password
          * - password_confirmation
+         *
+         * Notes:
+         * - This schema is intended for reset-link flows where the reset token has already been
+         *   delivered via URL and is carried into the form as a hidden value.
          */
         'password_reset' => [
-            'fields' => ['email', 'token', 'password', 'password_confirmation'],
-            'labels' => [
-                'password' => 'New password',
-                'password_confirmation' => 'Confirm password',
+            'submit' => [
+                'label' => 'Reset password',
             ],
-            'inputs' => [
+            'fields' => [
                 'email' => [
+                    'label' => 'E-mail',
                     'type' => 'hidden',
+                    'required' => true,
+                    'attributes' => [],
                 ],
                 'token' => [
+                    'label' => 'Reset token',
                     'type' => 'hidden',
+                    'required' => true,
+                    'attributes' => [],
                 ],
                 'password' => [
+                    'label' => 'New password',
                     'type' => 'password',
+                    'required' => true,
                     'autocomplete' => 'new-password',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => null,
+                    ],
                 ],
                 'password_confirmation' => [
+                    'label' => 'Confirm password',
                     'type' => 'password',
+                    'required' => true,
                     'autocomplete' => 'new-password',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => 'margin-top:12px;',
+                    ],
                 ],
             ],
         ],
@@ -598,35 +846,58 @@ return [
         /**
          * Reset password token entry schema (token driver).
          *
-         * Default matches the current password reset token entry blade:
+         * Default flow:
          * - email
          * - token
          * - password
          * - password_confirmation
+         *
+         * Notes:
+         * - This schema is intended for token/code-based reset flows where the user must manually
+         *   provide the reset code before choosing a new password.
          */
         'password_reset_token' => [
-            'fields' => ['email', 'token', 'password', 'password_confirmation'],
-            'labels' => [
-                'token' => 'Reset code',
-                'password' => 'New password',
-                'password_confirmation' => 'Confirm password',
+            'submit' => [
+                'label' => 'Reset password',
             ],
-            'inputs' => [
+            'fields' => [
                 'email' => [
+                    'label' => 'E-mail',
                     'type' => 'hidden',
+                    'required' => true,
+                    'attributes' => [],
                 ],
                 'token' => [
-                    'type' => 'text',
-                    'inputmode' => 'numeric',
+                    'label' => 'Reset code',
+                    'type' => 'otp',
+                    'required' => true,
+                    'placeholder' => 'Enter the reset code',
                     'autocomplete' => 'one-time-code',
+                    'inputmode' => 'numeric',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => null,
+                    ],
                 ],
                 'password' => [
+                    'label' => 'New password',
                     'type' => 'password',
+                    'required' => true,
                     'autocomplete' => 'new-password',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => 'margin-top:12px;',
+                    ],
                 ],
                 'password_confirmation' => [
+                    'label' => 'Confirm password',
                     'type' => 'password',
+                    'required' => true,
                     'autocomplete' => 'new-password',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'style' => 'margin-top:12px;',
+                    ],
                 ],
             ],
         ],
@@ -1160,12 +1431,11 @@ return [
         /**
          * Privacy configuration.
          *
-         * Password reset flows are a common vector for **user enumeration attacks**,
+         * Password reset flows are a common vector for user enumeration attacks,
          * where an attacker attempts to discover whether an email/account exists
          * in the system by observing different responses.
          *
          * When privacy protection is enabled, AuthKit will:
-         *
          * - Always return the same response message from the "forgot password" endpoint,
          *   regardless of whether a user exists.
          * - Only generate tokens and dispatch reset events when a real user exists,
@@ -1182,13 +1452,13 @@ return [
              * Whether AuthKit should hide whether a user exists during reset requests.
              *
              * When enabled:
-             * - The controller/action will **always return the same response message**
+             * - The controller/action will always return the same response message
              *   even if no account matches the provided email.
              * - Reset tokens and events are only generated if the user actually exists.
              *
              * When disabled:
              * - The response may indicate whether an account exists.
-             * - This may be helpful during development but is **not recommended** for production.
+             * - This may be helpful during development but is not recommended for production.
              */
             'hide_user_existence' => true,
 
@@ -1320,7 +1590,7 @@ return [
         'totp' => [
             'digits' => 6,
             'period' => 30,
-            'window' => 1, // allow +/- N steps for clock drift
+            'window' => 1,
             'algo' => 'sha1',
         ],
 
@@ -1359,7 +1629,7 @@ return [
             /**
              * Store recovery codes as hashes instead of plaintext.
              *
-             * When enabled, "setTwoFactorRecoveryCodes" should receive *raw* codes,
+             * When enabled, "setTwoFactorRecoveryCodes" should receive raw codes,
              * but the model will store only hashes.
              */
             'hash_recovery_codes' => true,
@@ -1385,7 +1655,7 @@ return [
      *
      * How it works:
      * - AuthKit registers RateLimiter names during boot (e.g. "authkit.auth.login").
-     * - Routes reference a limiter *key* (e.g. "login") and resolve the limiter name via this config.
+     * - Routes reference a limiter key (e.g. "login") and resolve the limiter name via this config.
      * - Each limiter can apply one or more buckets (per IP, per identity, per challenge).
      *
      * Notes:
@@ -1646,6 +1916,8 @@ return [
      * Notes:
      * - Values are Blade view component references (anonymous components).
      * - The package will add more components over time; this is a stable foundation.
+     * - Additional components may be introduced internally for radio groups,
+     *   checkbox groups, multiselects, OTP fields, or custom field dispatching.
      */
     'components' => [
 

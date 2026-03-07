@@ -3,7 +3,7 @@
 namespace Xul\AuthKit\Http\Requests\EmailVerification;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Xul\AuthKit\Support\Resolvers\FormSchemaResolver;
+use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
 use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
 
 final class EmailVerificationTokenRequest extends FormRequest
@@ -30,8 +30,8 @@ final class EmailVerificationTokenRequest extends FormRequest
      */
     public function rules(): array
     {
-        $schema = FormSchemaResolver::resolve('email_verification_token');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -43,7 +43,7 @@ final class EmailVerificationTokenRequest extends FormRequest
             context: 'email_verification_token',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['rules'] ?? []);
@@ -54,8 +54,8 @@ final class EmailVerificationTokenRequest extends FormRequest
      */
     public function messages(): array
     {
-        $schema = FormSchemaResolver::resolve('email_verification_token');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -67,7 +67,7 @@ final class EmailVerificationTokenRequest extends FormRequest
             context: 'email_verification_token',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['messages'] ?? []);
@@ -78,8 +78,8 @@ final class EmailVerificationTokenRequest extends FormRequest
      */
     public function attributes(): array
     {
-        $schema = FormSchemaResolver::resolve('email_verification_token');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -91,10 +91,18 @@ final class EmailVerificationTokenRequest extends FormRequest
             context: 'email_verification_token',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['attributes'] ?? []);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function schema(): array
+    {
+        return app(FormSchemaResolverContract::class)->resolve('email_verification_token');
     }
 
     /**
@@ -103,12 +111,18 @@ final class EmailVerificationTokenRequest extends FormRequest
      */
     protected function defaultAttributes(array $schema): array
     {
-        $labels = (array) ($schema['labels'] ?? []);
+        $fields = (array) ($schema['fields'] ?? []);
         $out = [];
 
-        foreach ($labels as $k => $v) {
-            if (is_string($k) && $k !== '' && is_string($v) && $v !== '') {
-                $out[$k] = $v;
+        foreach ($fields as $name => $field) {
+            if (!is_string($name) || $name === '' || !is_array($field)) {
+                continue;
+            }
+
+            $label = $field['label'] ?? null;
+
+            if (is_string($label) && trim($label) !== '') {
+                $out[$name] = trim($label);
             }
         }
 
@@ -121,12 +135,9 @@ final class EmailVerificationTokenRequest extends FormRequest
      */
     protected function defaultRules(array $fields): array
     {
-        $rules = [];
-
-        // Always require email + token for token verification.
-        $rules['email'] = ['required', 'string', 'email'];
-        $rules['token'] = ['required', 'string'];
-
-        return $rules;
+        return [
+            'email' => ['required', 'string', 'email'],
+            'token' => ['required', 'string'],
+        ];
     }
 }

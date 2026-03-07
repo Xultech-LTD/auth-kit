@@ -2,18 +2,37 @@
 
 namespace Xul\AuthKit\Support\Resolvers;
 
-final class FormSchemaResolver
+use Xul\AuthKit\Contracts\Forms\FieldComponentResolverContract;
+use Xul\AuthKit\Contracts\Forms\FieldOptionsResolverContract;
+use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
+
+final class FormSchemaResolver implements FormSchemaResolverContract
 {
+    public function __construct(
+        protected FieldOptionsResolverContract $optionsResolver,
+        protected FieldComponentResolverContract $componentResolver,
+    ) {
+    }
+
     /**
-     * Resolve a form schema by context key.
+     * Resolve a form schema by context.
      *
-     * Schemas define the fields AuthKit expects for each form context, and basic UI metadata.
-     * Consumers may override schemas in config without publishing package files.
-     *
-     * @param  string  $context  Schema context key (e.g. "login", "register").
+     * @param  string  $context
      * @return array<string, mixed>
      */
-    public static function resolve(string $context): array
+    public function resolve(string $context): array
+    {
+        return $this->resolveWithRuntime($context, []);
+    }
+
+    /**
+     * Resolve a form schema by context with runtime values.
+     *
+     * @param  string  $context
+     * @param  array<string, mixed>  $runtime
+     * @return array<string, mixed>
+     */
+    public function resolveWithRuntime(string $context, array $runtime = []): array
     {
         $schema = config("authkit.schemas.{$context}");
 
@@ -21,28 +40,43 @@ final class FormSchemaResolver
             $schema = [];
         }
 
-        $fields = data_get($schema, 'fields', []);
+        $submit = is_array($schema['submit'] ?? null) ? $schema['submit'] : [];
+        $rawFields = is_array($schema['fields'] ?? null) ? $schema['fields'] : [];
 
-        if (!is_array($fields)) {
-            $fields = [];
-        }
+        $fields = [];
 
-        $labels = data_get($schema, 'labels', []);
+        foreach ($rawFields as $name => $field) {
+            if (!is_string($name) || $name === '' || !is_array($field)) {
+                continue;
+            }
 
-        if (!is_array($labels)) {
-            $labels = [];
-        }
+            $resolvedField = FieldDefinitionResolver::resolve($name, $field);
 
-        $inputs = data_get($schema, 'inputs', []);
+            $resolvedField['options'] = $this->optionsResolver->resolve($resolvedField, $runtime);
+            $resolvedField['value'] = FieldValueResolver::resolve($resolvedField, $runtime);
+            $resolvedField['checked'] = FieldValueResolver::resolveChecked($resolvedField, $runtime);
+            $resolvedField['component'] = $this->componentResolver->resolve($resolvedField);
 
-        if (!is_array($inputs)) {
-            $inputs = [];
+            $fields[$name] = $resolvedField;
         }
 
         return [
-            'fields' => array_values(array_filter($fields, static fn ($v) => is_string($v) && $v !== '')),
-            'labels' => $labels,
-            'inputs' => $inputs,
+            'name' => $context,
+            'submit' => [
+                'label' => $this->normalizeSubmitLabel($submit['label'] ?? null),
+            ],
+            'fields' => $fields,
         ];
+    }
+
+    protected function normalizeSubmitLabel(mixed $label): string
+    {
+        if (!is_string($label)) {
+            return 'Continue';
+        }
+
+        $label = trim($label);
+
+        return $label !== '' ? $label : 'Continue';
     }
 }

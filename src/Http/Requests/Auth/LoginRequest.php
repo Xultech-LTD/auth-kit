@@ -3,7 +3,7 @@
 namespace Xul\AuthKit\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Xul\AuthKit\Support\Resolvers\FormSchemaResolver;
+use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
 use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
 
 final class LoginRequest extends FormRequest
@@ -38,18 +38,12 @@ final class LoginRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules for the request.
-     *
-     * Rules are built from:
-     * - authkit.schemas.login (default schema)
-     * - optional rules provider override: authkit.validation.providers.login
-     *
      * @return array<string, mixed>
      */
     public function rules(): array
     {
-        $schema = FormSchemaResolver::resolve('login');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -61,21 +55,19 @@ final class LoginRequest extends FormRequest
             context: 'login',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['rules'] ?? []);
     }
 
     /**
-     * Get custom messages for validator errors.
-     *
      * @return array<string, string>
      */
     public function messages(): array
     {
-        $schema = FormSchemaResolver::resolve('login');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -87,21 +79,19 @@ final class LoginRequest extends FormRequest
             context: 'login',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['messages'] ?? []);
     }
 
     /**
-     * Get custom attributes for validator errors.
-     *
      * @return array<string, string>
      */
     public function attributes(): array
     {
-        $schema = FormSchemaResolver::resolve('login');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -113,10 +103,18 @@ final class LoginRequest extends FormRequest
             context: 'login',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['attributes'] ?? []);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function schema(): array
+    {
+        return app(FormSchemaResolverContract::class)->resolve('login');
     }
 
     /**
@@ -127,12 +125,18 @@ final class LoginRequest extends FormRequest
      */
     protected function defaultAttributes(array $schema): array
     {
-        $labels = (array) ($schema['labels'] ?? []);
+        $fields = (array) ($schema['fields'] ?? []);
         $out = [];
 
-        foreach ($labels as $k => $v) {
-            if (is_string($k) && $k !== '' && is_string($v) && $v !== '') {
-                $out[$k] = $v;
+        foreach ($fields as $name => $field) {
+            if (!is_string($name) || $name === '' || !is_array($field)) {
+                continue;
+            }
+
+            $label = $field['label'] ?? null;
+
+            if (is_string($label) && trim($label) !== '') {
+                $out[$name] = trim($label);
             }
         }
 
@@ -140,8 +144,6 @@ final class LoginRequest extends FormRequest
     }
 
     /**
-     * Build sensible default rules based on schema fields.
-     *
      * @param  array<int, string>  $fields
      * @return array<string, mixed>
      */
@@ -151,17 +153,8 @@ final class LoginRequest extends FormRequest
 
         $identityField = (string) data_get(config('authkit.identity.login', []), 'field', 'email');
 
-        if (in_array($identityField, $fields, true)) {
-            $rules[$identityField] = ['required', 'string'];
-        } else {
-            $rules[$identityField] = ['required', 'string'];
-        }
-
-        if (in_array('password', $fields, true)) {
-            $rules['password'] = ['required', 'string'];
-        } else {
-            $rules['password'] = ['required', 'string'];
-        }
+        $rules[$identityField] = ['required', 'string'];
+        $rules['password'] = ['required', 'string'];
 
         if (in_array('remember', $fields, true)) {
             $rules['remember'] = ['sometimes', 'boolean'];

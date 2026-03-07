@@ -26,6 +26,12 @@ use Xul\AuthKit\Support\PendingEmailVerification;
 use Xul\AuthKit\Support\PendingLogin;
 use Xul\AuthKit\Support\PendingPasswordReset;
 use Xul\AuthKit\Support\TwoFactor\TwoFactorManager;
+use Xul\AuthKit\Contracts\Forms\FieldComponentResolverContract;
+use Xul\AuthKit\Contracts\Forms\FieldOptionsResolverContract;
+use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
+use Xul\AuthKit\Support\Resolvers\FieldComponentResolver;
+use Xul\AuthKit\Support\Resolvers\FieldOptionsResolver;
+use Xul\AuthKit\Support\Resolvers\FormSchemaResolver;
 
 final class AuthKitServiceProvider extends ServiceProvider
 {
@@ -220,6 +226,21 @@ final class AuthKitServiceProvider extends ServiceProvider
             }
 
             return $instance;
+        });
+
+        $this->app->singleton(FieldOptionsResolverContract::class, function ($app) {
+            return new FieldOptionsResolver();
+        });
+
+        $this->app->singleton(FieldComponentResolverContract::class, function ($app) {
+            return new FieldComponentResolver();
+        });
+
+        $this->app->singleton(FormSchemaResolverContract::class, function ($app) {
+            return new FormSchemaResolver(
+                $app->make(FieldOptionsResolverContract::class),
+                $app->make(FieldComponentResolverContract::class),
+            );
         });
 
         $this->app->singleton(TwoFactorManager::class, function ($app) {

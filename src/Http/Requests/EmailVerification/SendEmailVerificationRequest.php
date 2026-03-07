@@ -3,20 +3,9 @@
 namespace Xul\AuthKit\Http\Requests\EmailVerification;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Xul\AuthKit\Support\Resolvers\FormSchemaResolver;
+use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
 use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
 
-/**
- * SendEmailVerificationRequest
- *
- * Validates the resend verification request.
- *
- * Schema:
- * - authkit.schemas.email_verification_send
- *
- * Optional rules override:
- * - authkit.validation.providers.email_verification_send
- */
 final class SendEmailVerificationRequest extends FormRequest
 {
     public function authorize(): bool
@@ -41,8 +30,8 @@ final class SendEmailVerificationRequest extends FormRequest
      */
     public function rules(): array
     {
-        $schema = FormSchemaResolver::resolve('email_verification_send');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -54,7 +43,7 @@ final class SendEmailVerificationRequest extends FormRequest
             context: 'email_verification_send',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['rules'] ?? []);
@@ -65,8 +54,8 @@ final class SendEmailVerificationRequest extends FormRequest
      */
     public function messages(): array
     {
-        $schema = FormSchemaResolver::resolve('email_verification_send');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -78,7 +67,7 @@ final class SendEmailVerificationRequest extends FormRequest
             context: 'email_verification_send',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['messages'] ?? []);
@@ -89,8 +78,8 @@ final class SendEmailVerificationRequest extends FormRequest
      */
     public function attributes(): array
     {
-        $schema = FormSchemaResolver::resolve('email_verification_send');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -102,10 +91,18 @@ final class SendEmailVerificationRequest extends FormRequest
             context: 'email_verification_send',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['attributes'] ?? []);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function schema(): array
+    {
+        return app(FormSchemaResolverContract::class)->resolve('email_verification_send');
     }
 
     /**
@@ -114,12 +111,18 @@ final class SendEmailVerificationRequest extends FormRequest
      */
     protected function defaultAttributes(array $schema): array
     {
-        $labels = (array) ($schema['labels'] ?? []);
+        $fields = (array) ($schema['fields'] ?? []);
         $out = [];
 
-        foreach ($labels as $k => $v) {
-            if (is_string($k) && $k !== '' && is_string($v) && $v !== '') {
-                $out[$k] = $v;
+        foreach ($fields as $name => $field) {
+            if (!is_string($name) || $name === '' || !is_array($field)) {
+                continue;
+            }
+
+            $label = $field['label'] ?? null;
+
+            if (is_string($label) && trim($label) !== '') {
+                $out[$name] = trim($label);
             }
         }
 
@@ -132,10 +135,8 @@ final class SendEmailVerificationRequest extends FormRequest
      */
     protected function defaultRules(array $fields): array
     {
-        $rules = [];
-
-        $rules['email'] = ['required', 'string', 'email'];
-
-        return $rules;
+        return [
+            'email' => ['required', 'string', 'email'],
+        ];
     }
 }

@@ -3,7 +3,7 @@
 namespace Xul\AuthKit\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Xul\AuthKit\Support\Resolvers\FormSchemaResolver;
+use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
 use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
 
 /**
@@ -29,6 +29,7 @@ final class TwoFactorResendRequest extends FormRequest
         $email = (string) $this->input('email', '');
 
         $normalize = (string) data_get(config('authkit.identity.login', []), 'normalize', null);
+
         if ($normalize === 'lower') {
             $email = mb_strtolower($email);
         }
@@ -45,8 +46,8 @@ final class TwoFactorResendRequest extends FormRequest
      */
     public function rules(): array
     {
-        $schema = FormSchemaResolver::resolve('two_factor_resend');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -58,7 +59,7 @@ final class TwoFactorResendRequest extends FormRequest
             context: 'two_factor_resend',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['rules'] ?? []);
@@ -69,8 +70,8 @@ final class TwoFactorResendRequest extends FormRequest
      */
     public function messages(): array
     {
-        $schema = FormSchemaResolver::resolve('two_factor_resend');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -82,7 +83,7 @@ final class TwoFactorResendRequest extends FormRequest
             context: 'two_factor_resend',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['messages'] ?? []);
@@ -93,8 +94,8 @@ final class TwoFactorResendRequest extends FormRequest
      */
     public function attributes(): array
     {
-        $schema = FormSchemaResolver::resolve('two_factor_resend');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -106,10 +107,18 @@ final class TwoFactorResendRequest extends FormRequest
             context: 'two_factor_resend',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['attributes'] ?? []);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function schema(): array
+    {
+        return app(FormSchemaResolverContract::class)->resolve('two_factor_resend');
     }
 
     /**
@@ -118,12 +127,18 @@ final class TwoFactorResendRequest extends FormRequest
      */
     protected function defaultAttributes(array $schema): array
     {
-        $labels = (array) ($schema['labels'] ?? []);
+        $fields = (array) ($schema['fields'] ?? []);
         $out = [];
 
-        foreach ($labels as $k => $v) {
-            if (is_string($k) && $k !== '' && is_string($v) && $v !== '') {
-                $out[$k] = $v;
+        foreach ($fields as $name => $field) {
+            if (!is_string($name) || $name === '' || !is_array($field)) {
+                continue;
+            }
+
+            $label = $field['label'] ?? null;
+
+            if (is_string($label) && trim($label) !== '') {
+                $out[$name] = trim($label);
             }
         }
 

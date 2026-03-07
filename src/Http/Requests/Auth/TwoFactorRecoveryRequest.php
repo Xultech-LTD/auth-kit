@@ -3,8 +3,8 @@
 namespace Xul\AuthKit\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
 use Xul\AuthKit\Support\AuthKitSessionKeys;
-use Xul\AuthKit\Support\Resolvers\FormSchemaResolver;
 use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
 
 final class TwoFactorRecoveryRequest extends FormRequest
@@ -47,8 +47,8 @@ final class TwoFactorRecoveryRequest extends FormRequest
      */
     public function rules(): array
     {
-        $schema = FormSchemaResolver::resolve('two_factor_recovery');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -60,7 +60,7 @@ final class TwoFactorRecoveryRequest extends FormRequest
             context: 'two_factor_recovery',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['rules'] ?? []);
@@ -73,8 +73,8 @@ final class TwoFactorRecoveryRequest extends FormRequest
      */
     public function messages(): array
     {
-        $schema = FormSchemaResolver::resolve('two_factor_recovery');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -86,7 +86,7 @@ final class TwoFactorRecoveryRequest extends FormRequest
             context: 'two_factor_recovery',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['messages'] ?? []);
@@ -99,8 +99,8 @@ final class TwoFactorRecoveryRequest extends FormRequest
      */
     public function attributes(): array
     {
-        $schema = FormSchemaResolver::resolve('two_factor_recovery');
-        $fields = (array) ($schema['fields'] ?? []);
+        $schema = $this->schema();
+        $fields = array_keys((array) ($schema['fields'] ?? []));
 
         $defaults = [
             'rules' => $this->defaultRules($fields),
@@ -112,10 +112,18 @@ final class TwoFactorRecoveryRequest extends FormRequest
             context: 'two_factor_recovery',
             request: $this,
             schema: $schema,
-            defaults: $defaults
+            defaults: $defaults,
         );
 
         return (array) ($payload['attributes'] ?? []);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function schema(): array
+    {
+        return app(FormSchemaResolverContract::class)->resolve('two_factor_recovery');
     }
 
     /**
@@ -126,12 +134,18 @@ final class TwoFactorRecoveryRequest extends FormRequest
      */
     protected function defaultAttributes(array $schema): array
     {
-        $labels = (array) ($schema['labels'] ?? []);
+        $fields = (array) ($schema['fields'] ?? []);
         $out = [];
 
-        foreach ($labels as $k => $v) {
-            if (is_string($k) && $k !== '' && is_string($v) && $v !== '') {
-                $out[$k] = $v;
+        foreach ($fields as $name => $field) {
+            if (!is_string($name) || $name === '' || !is_array($field)) {
+                continue;
+            }
+
+            $label = $field['label'] ?? null;
+
+            if (is_string($label) && trim($label) !== '') {
+                $out[$name] = trim($label);
             }
         }
 
@@ -146,19 +160,10 @@ final class TwoFactorRecoveryRequest extends FormRequest
      */
     protected function defaultRules(array $fields): array
     {
-        $rules = [];
-
-        if (in_array('challenge', $fields, true)) {
-            $rules['challenge'] = ['required', 'string', 'min:8'];
-        } else {
-            $rules['challenge'] = ['required', 'string', 'min:8'];
-        }
-
-        if (in_array('recovery_code', $fields, true)) {
-            $rules['recovery_code'] = ['required', 'string', 'min:4'];
-        } else {
-            $rules['recovery_code'] = ['required', 'string', 'min:4'];
-        }
+        $rules = [
+            'challenge' => ['required', 'string', 'min:8'],
+            'recovery_code' => ['required', 'string', 'min:4'],
+        ];
 
         if (in_array('remember', $fields, true)) {
             $rules['remember'] = ['sometimes', 'boolean'];
