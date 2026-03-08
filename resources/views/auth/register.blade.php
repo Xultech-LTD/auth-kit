@@ -3,10 +3,15 @@
  * Page: Register
  *
  * Registration page composed using AuthKit components.
+ *
+ * Responsibilities:
+ * - Resolves the register form schema.
+ * - Renders page-level shell and actions.
+ * - Delegates field rendering to the schema-driven field collection component.
  */
 --}}
 
-{{-- Configuration & Route Resolution --}}
+{{-- Configuration, Route Resolution & Schema --}}
 @php
     $c = (array) config('authkit.components', []);
     $apiNames = (array) config('authkit.route_names.api', []);
@@ -16,108 +21,47 @@
     $ajaxAttr = (string) config('authkit.forms.ajax.attribute', 'data-authkit-ajax');
     $isAjax = $formsMode === 'ajax';
 
-    $registerRoute = (string) ($apiNames['register'] ?? 'authkit.api.auth.register');
+    $registerAction = (string) ($apiNames['register'] ?? 'authkit.api.auth.register');
     $loginRoute = (string) ($webNames['login'] ?? 'authkit.web.login');
+
+    $schema = app(\Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract::class)->resolve('register');
+
+    $fields = is_array($schema['fields'] ?? null) ? $schema['fields'] : [];
+    $submit = is_array($schema['submit'] ?? null) ? $schema['submit'] : [];
+    $submitLabel = (string) ($submit['label'] ?? 'Create account');
+
+    $fieldsComponent = (string) data_get($c, 'fields', 'authkit::form.fields');
 @endphp
 
-{{-- Layout Wrapper --}}
 <x-dynamic-component :component="data_get($c, 'layout')" title="Register">
-
-    {{-- Container --}}
     <x-dynamic-component :component="data_get($c, 'container')">
-
-        {{-- Card --}}
         <x-dynamic-component :component="data_get($c, 'card')">
 
-            {{-- Auth Header --}}
             <x-dynamic-component
                     :component="data_get($c, 'auth_header')"
                     title="Create account"
                     subtitle="Register to continue."
             />
 
-            {{-- Global Validation Errors --}}
             <x-dynamic-component :component="data_get($c, 'errors')" />
 
-            {{-- Registration Form --}}
-            <form method="post" action="{{ route($registerRoute) }}" @if($isAjax) {{ $ajaxAttr }}="1" @endif>
+            <form method="post" action="{{ route($registerAction) }}" @if($isAjax) {{ $ajaxAttr }}="1" @endif>
             @csrf
 
-            {{-- Name Field --}}
-            <div style="margin-bottom:12px;">
-                <x-dynamic-component :component="data_get($c, 'label')" for="name">
-                    Name
+            <x-dynamic-component
+                    :component="$fieldsComponent"
+                    :fields="$fields"
+            />
+
+            <div style="margin-top:16px;">
+                <x-dynamic-component :component="data_get($c, 'button')">
+                    {{ $submitLabel }}
                 </x-dynamic-component>
-
-                <x-dynamic-component
-                        :component="data_get($c, 'input')"
-                        name="name"
-                        id="name"
-                        autocomplete="name"
-                />
-
-                <x-dynamic-component :component="data_get($c, 'error')" name="name" />
             </div>
-
-            {{-- Email Field --}}
-            <div style="margin-bottom:12px;">
-                <x-dynamic-component :component="data_get($c, 'label')" for="email">
-                    Email
-                </x-dynamic-component>
-
-                <x-dynamic-component
-                        :component="data_get($c, 'input')"
-                        name="email"
-                        id="email"
-                        type="email"
-                        autocomplete="email"
-                />
-
-                <x-dynamic-component :component="data_get($c, 'error')" name="email" />
-            </div>
-
-            {{-- Password Field --}}
-            <div style="margin-bottom:12px;">
-                <x-dynamic-component :component="data_get($c, 'label')" for="password">
-                    Password
-                </x-dynamic-component>
-
-                <x-dynamic-component
-                        :component="data_get($c, 'input')"
-                        name="password"
-                        id="password"
-                        type="password"
-                        autocomplete="new-password"
-                />
-
-                <x-dynamic-component :component="data_get($c, 'error')" name="password" />
-            </div>
-
-            {{-- Password Confirmation Field --}}
-            <div style="margin-bottom:16px;">
-                <x-dynamic-component :component="data_get($c, 'label')" for="password_confirmation">
-                    Confirm password
-                </x-dynamic-component>
-
-                <x-dynamic-component
-                        :component="data_get($c, 'input')"
-                        name="password_confirmation"
-                        id="password_confirmation"
-                        type="password"
-                        autocomplete="new-password"
-                />
-            </div>
-
-            {{-- Submit Button --}}
-            <x-dynamic-component :component="data_get($c, 'button')">
-                Create account
-            </x-dynamic-component>
             </form>
 
-            {{-- Divider --}}
             <x-dynamic-component :component="data_get($c, 'divider')" />
 
-            {{-- Footer --}}
             <x-dynamic-component :component="data_get($c, 'auth_footer')">
                 Already have an account?
                 <x-dynamic-component :component="data_get($c, 'link')" :href="route($loginRoute)">

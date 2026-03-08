@@ -1,12 +1,17 @@
-{{-- 
+{{--
 /**
  * Page: Login
  *
  * Login page composed using AuthKit components.
+ *
+ * Responsibilities:
+ * - Resolves the login form schema.
+ * - Renders page-level shell and actions.
+ * - Delegates field rendering to the schema-driven field collection component.
  */
 --}}
 
-{{-- Configuration & Route Resolution --}}
+{{-- Configuration, Route Resolution & Schema --}}
 @php
     $c = (array) config('authkit.components', []);
     $apiNames = (array) config('authkit.route_names.api', []);
@@ -19,92 +24,54 @@
     $loginAction = (string) ($apiNames['login'] ?? 'authkit.api.auth.login');
     $registerPage = (string) ($webNames['register'] ?? 'authkit.web.register');
     $forgottenPage = (string) ($webNames['password_forgot'] ?? 'authkit.web.password.forgot');
+
+    $schema = app(\Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract::class)->resolve('login');
+
+    $fields = is_array($schema['fields'] ?? null) ? $schema['fields'] : [];
+    $submit = is_array($schema['submit'] ?? null) ? $schema['submit'] : [];
+    $submitLabel = (string) ($submit['label'] ?? 'Continue');
+
+    $fieldsComponent = (string) data_get($c, 'fields', 'authkit::form.fields');
 @endphp
 
-{{-- Layout Wrapper --}}
 <x-dynamic-component :component="data_get($c, 'layout')" title="Login">
-
-    {{-- Container --}}
     <x-dynamic-component :component="data_get($c, 'container')">
-
-        {{-- Card --}}
         <x-dynamic-component :component="data_get($c, 'card')">
 
-            {{-- Auth Header --}}
             <x-dynamic-component
                     :component="data_get($c, 'auth_header')"
                     title="Welcome back"
                     subtitle="Login to continue."
             />
 
-            {{-- Global Validation Errors --}}
             <x-dynamic-component :component="data_get($c, 'errors')" />
 
-            {{-- Login Form --}}
             <form method="post" action="{{ route($loginAction) }}" @if($isAjax) {{ $ajaxAttr }}="1" @endif>
             @csrf
 
-            {{-- Email Field --}}
-            <div style="margin-bottom:12px;">
-                <x-dynamic-component :component="data_get($c, 'label')" for="email">
-                    Email
-                </x-dynamic-component>
+            <x-dynamic-component
+                    :component="$fieldsComponent"
+                    :fields="$fields"
+            />
 
+            <div style="margin-top:6px; text-align:right;">
                 <x-dynamic-component
-                        :component="data_get($c, 'input')"
-                        name="email"
-                        id="email"
-                        type="email"
-                        autocomplete="email"
-                />
-
-                <x-dynamic-component :component="data_get($c, 'error')" name="email" />
-            </div>
-
-            {{-- Password Field --}}
-            <div style="margin-bottom:12px;">
-                <x-dynamic-component :component="data_get($c, 'label')" for="password">
-                    Password
-                </x-dynamic-component>
-
-                <x-dynamic-component
-                        :component="data_get($c, 'input')"
-                        name="password"
-                        id="password"
-                        type="password"
-                        autocomplete="current-password"
-                />
-
-                <x-dynamic-component :component="data_get($c, 'error')" name="password" />
-
-                {{-- Forgot Password Link --}}
-                <div style="margin-top:6px; text-align:right;">
-                    <x-dynamic-component
-                            :component="data_get($c, 'link')"
-                            :href="route($forgottenPage)"
-                    >
-                        Forgot your password?
-                    </x-dynamic-component>
-                </div>
-            </div>
-
-            {{-- Remember Me --}}
-            <div style="margin-bottom:16px;">
-                <x-dynamic-component :component="data_get($c, 'checkbox')" name="remember" :checked="true">
-                    Remember me
+                        :component="data_get($c, 'link')"
+                        :href="route($forgottenPage)"
+                >
+                    Forgot your password?
                 </x-dynamic-component>
             </div>
 
-            {{-- Submit Button --}}
-            <x-dynamic-component :component="data_get($c, 'button')">
-                Continue
-            </x-dynamic-component>
+            <div style="margin-top:16px;">
+                <x-dynamic-component :component="data_get($c, 'button')">
+                    {{ $submitLabel }}
+                </x-dynamic-component>
+            </div>
             </form>
 
-            {{-- Divider --}}
             <x-dynamic-component :component="data_get($c, 'divider')" />
 
-            {{-- Footer --}}
             <x-dynamic-component :component="data_get($c, 'auth_footer')">
                 Don’t have an account?
                 <x-dynamic-component :component="data_get($c, 'link')" :href="route($registerPage)">

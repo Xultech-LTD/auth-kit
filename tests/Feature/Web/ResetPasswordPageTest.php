@@ -30,7 +30,10 @@ it('renders the reset password page when pending reset exists and token is valid
 
     $this->get($url)
         ->assertOk()
-        ->assertSee('Reset your password');
+        ->assertSee('Reset your password')
+        ->assertSee('New password')
+        ->assertSee('Confirm password')
+        ->assertSee('Reset password');
 });
 
 it('redirects from the reset password page when token is invalid', function () {

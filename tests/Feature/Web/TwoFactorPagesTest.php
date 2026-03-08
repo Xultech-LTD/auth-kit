@@ -125,7 +125,10 @@ it('renders the two-factor recovery page when challenge exists in session', func
     $this->withSession([AuthKitSessionKeys::TWO_FACTOR_CHALLENGE => $challenge])
         ->get(route($routeName))
         ->assertOk()
-        ->assertSee('Use a recovery code');
+        ->assertSee('Use a recovery code')
+        ->assertSee('Recovery code')
+        ->assertSee('Remember me')
+        ->assertSee('Continue');
 });
 
 /**
@@ -175,5 +178,8 @@ it('renders the two-factor recovery page with a valid query challenge', function
 
     $this->get(route($routeName, ['c' => $challenge]))
         ->assertOk()
-        ->assertSee('Use a recovery code');
+        ->assertSee('Use a recovery code')
+        ->assertSee('Recovery code')
+        ->assertSee('Remember me')
+        ->assertSee('Continue');
 });

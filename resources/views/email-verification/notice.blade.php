@@ -7,10 +7,14 @@
  * Data:
  * - $email: Email address in verification context.
  * - $driver: Verification driver (link|token).
+ *
+ * Responsibilities:
+ * - Renders notice/status UI for pending email verification.
+ * - Resolves the resend-verification form schema with runtime email context.
+ * - Delegates field rendering to the schema-driven field collection component.
  */
 --}}
 
-{{-- Configuration & Route Resolution --}}
 @php
     $c = (array) config('authkit.components', []);
     $apiNames = (array) config('authkit.route_names.api', []);
@@ -20,62 +24,65 @@
     $ajaxAttr = (string) config('authkit.forms.ajax.attribute', 'data-authkit-ajax');
     $isAjax = $formsMode === 'ajax';
 
+    $email = (string) ($email ?? '');
+    $driver = (string) ($driver ?? config('authkit.email_verification.driver', 'link'));
+
     $sendVerification = (string) ($apiNames['send_verification'] ?? 'authkit.api.email.verification.send');
     $tokenPage = (string) ($webNames['verify_token_page'] ?? 'authkit.web.email.verify.token');
 
     $status = (string) session('status', session('message', ''));
     $error = (string) session('error', '');
+
+    $schema = app(\Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract::class)
+        ->resolveWithRuntime('email_verification_send', [
+            'email' => $email,
+        ]);
+
+    $fields = is_array($schema['fields'] ?? null) ? $schema['fields'] : [];
+    $submit = is_array($schema['submit'] ?? null) ? $schema['submit'] : [];
+    $submitLabel = (string) ($submit['label'] ?? 'Didn’t receive it? Resend.');
+
+    $fieldsComponent = (string) data_get($c, 'fields', 'authkit::form.fields');
 @endphp
 
-{{-- Layout Wrapper --}}
 <x-dynamic-component :component="data_get($c, 'layout')" title="Verify your email">
-
-    {{-- Container --}}
     <x-dynamic-component :component="data_get($c, 'container')">
-
-        {{-- Card --}}
         <x-dynamic-component :component="data_get($c, 'card')">
 
-            {{-- Auth Header --}}
             <x-dynamic-component
                     :component="data_get($c, 'auth_header')"
                     title="Verify your email"
                     subtitle="We need to confirm your email address before you can continue."
             />
 
-            {{-- Status Alert --}}
             @if ($status !== '')
                 <x-dynamic-component :component="data_get($c, 'alert')">
                     {{ $status }}
                 </x-dynamic-component>
             @endif
 
-            {{-- Error Alert --}}
             @if ($error !== '')
                 <x-dynamic-component :component="data_get($c, 'alert')">
                     {{ $error }}
                 </x-dynamic-component>
             @endif
 
-            {{-- Verification Context --}}
-            @if (is_string($email) && $email !== '')
+            @if ($email !== '')
                 <div style="margin:12px 0;opacity:.85;">
                     We sent a verification message to <strong>{{ $email }}</strong>
                 </div>
-            @endif
 
-            @if (is_string($email) && $email !== '')
-                {{-- Resend Verification Form --}}
                 <form method="post" action="{{ route($sendVerification) }}" @if($isAjax) {{ $ajaxAttr }}="1" @endif>
-                    @csrf
+                @csrf
 
-                    {{-- Email Field --}}
-                    <input type="hidden" name="email" value="{{ (string) $email }}"/>
+                <x-dynamic-component
+                        :component="$fieldsComponent"
+                        :fields="$fields"
+                />
 
-                    {{-- Submit Button --}}
-                    <x-dynamic-component :component="data_get($c, 'button')">
-                        Didn’t receive it? Resend.
-                    </x-dynamic-component>
+                <x-dynamic-component :component="data_get($c, 'button')">
+                    {{ $submitLabel }}
+                </x-dynamic-component>
                 </form>
             @else
                 <x-dynamic-component :component="data_get($c, 'alert')">
@@ -83,16 +90,14 @@
                 </x-dynamic-component>
             @endif
 
-            {{-- Token Driver Secondary Action --}}
-            @if (($driver ?? 'link') === 'token')
+            @if ($driver === 'token')
                 <x-dynamic-component :component="data_get($c, 'divider')" />
 
-                {{-- Footer / Enter Code Link --}}
                 <x-dynamic-component :component="data_get($c, 'auth_footer')">
                     Prefer entering a code instead?
                     <x-dynamic-component
                             :component="data_get($c, 'link')"
-                            :href="route($tokenPage, ['email' => (string) $email])"
+                            :href="route($tokenPage, ['email' => $email])"
                     >
                         Enter verification code
                     </x-dynamic-component>

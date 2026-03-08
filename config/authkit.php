@@ -791,6 +791,31 @@ return [
         ],
 
         /**
+         * Forgot password resend schema.
+         *
+         * Default flow:
+         * - email
+         *
+         * Notes:
+         * - This schema is intended for the confirmation page where the email address
+         *   is already known and should be resubmitted as hidden context.
+         */
+        'password_forgot_resend' => [
+            'submit' => [
+                'label' => 'Resend reset link',
+            ],
+            'fields' => [
+                'email' => [
+                    'label' => 'E-mail',
+                    'type' => 'hidden',
+                    'required' => true,
+                    'autocomplete' => 'email',
+                    'attributes' => [],
+                ],
+            ],
+        ],
+
+        /**
          * Reset password form schema (link driver).
          *
          * Default flow:
@@ -1937,12 +1962,28 @@ return [
 
         /**
          * Form primitives.
+         *
+         * These components are the base renderers used for normalized schema fields.
+         * Field-to-component mapping is typically resolved by the field component resolver,
+         * which may choose a component automatically based on the field type unless a field
+         * explicitly overrides its component.
+         *
+         * Notes:
+         * - input: General-purpose renderer for scalar input types such as text, email,
+         *   password, hidden, number, tel, url, search, date, and similar controls.
+         * - select: Used for select-like controls, including select and multiselect.
+         * - textarea: Used for multiline text inputs.
+         * - checkbox: Used for checkbox-style boolean inputs.
+         * - otp: Dedicated renderer for one-time passcode / verification-code style inputs.
+         *   This is intentionally separate from the generic input component so consumers
+         *   can provide a specialized OTP UI without changing page templates or schemas.
          */
         'label' => 'authkit::form.label',
         'input' => 'authkit::form.input',
         'select' => 'authkit::form.select',
         'textarea' => 'authkit::form.textarea',
         'checkbox' => 'authkit::form.checkbox',
+        'otp' => 'authkit::form.otp',
 
         /**
          * Form feedback.
@@ -1957,5 +1998,22 @@ return [
         'button' => 'authkit::button',
         'link' => 'authkit::link',
         'divider' => 'authkit::divider',
+
+        /**
+         * Schema-driven field rendering.
+         *
+         * These higher-level components are responsible for rendering one or more
+         * normalized schema fields using the configured primitive components above.
+         *
+         * Typical responsibilities:
+         * - field: Render a single resolved field, including wrapper, label, control,
+         *   help text, and inline validation feedback where appropriate.
+         * - fields: Render an ordered collection of resolved fields for a form context.
+         *
+         * This layer allows page templates to remain focused on page composition
+         * while field-level rendering logic stays centralized and reusable.
+         */
+        'field' => 'authkit::form.field',
+        'fields' => 'authkit::form.fields',
     ],
 ];

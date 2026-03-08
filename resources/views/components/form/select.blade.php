@@ -6,7 +6,7 @@
  *
  * Purpose:
  * - Renders a standard <select> element.
- * - Works with old() fallback for preserving submitted values.
+ * - Supports single and multiple selection modes.
  *
  * Styling:
  * - No inline styling is applied.
@@ -17,12 +17,14 @@
  * - Consumers may disable package styling using "unstyled".
  *
  * Slots:
- * - $slot: <option> elements.
+ * - $slot: <option> and/or <optgroup> elements.
  *
  * Props:
  * - name: Select name (required).
  * - id: Optional id (defaults to name).
- * - value: Default selected value (fallback if old() not present).
+ * - value: Default selected value (reserved for compatibility; option selection is typically handled by rendered options).
+ * - multiple: Whether the select allows multiple values.
+ * - required: Whether the select is required.
  * - variant: Optional visual variant (default|error|success|etc).
  * - unstyled: When true, prevents default package classes from being applied.
  */
@@ -32,13 +34,15 @@
     'name',
     'id' => null,
     'value' => null,
+    'multiple' => false,
+    'required' => false,
     'variant' => 'default',
     'unstyled' => false,
 ])
 
 @php
     $selectId = is_string($id) && $id !== '' ? $id : $name;
-    $selected = old($name, $value);
+    $selectName = $multiple ? $name.'[]' : $name;
 
     $baseClass = 'authkit-select';
     $variantClass = $variant !== '' ? "authkit-select--{$variant}" : '';
@@ -48,7 +52,9 @@
 {{-- Select Element --}}
 <select
         id="{{ $selectId }}"
-        name="{{ $name }}"
+        name="{{ $selectName }}"
+        @if($multiple) multiple @endif
+        @if($required) required @endif
         {{ $attributes->merge(['class' => $class]) }}
 >
     {{ $slot }}

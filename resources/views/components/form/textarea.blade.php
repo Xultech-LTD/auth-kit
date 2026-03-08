@@ -21,6 +21,9 @@
  * - id: Optional id (defaults to name).
  * - value: Default value (fallback if old() not present).
  * - rows: Number of rows (default: 4).
+ * - placeholder: Optional placeholder text.
+ * - autocomplete: Optional autocomplete attribute.
+ * - required: Whether the textarea is required.
  * - variant: Optional visual variant (default|error|success|etc).
  * - unstyled: When true, prevents default package classes from being applied.
  */
@@ -31,6 +34,9 @@
     'id' => null,
     'value' => null,
     'rows' => 4,
+    'placeholder' => null,
+    'autocomplete' => null,
+    'required' => false,
     'variant' => 'default',
     'unstyled' => false,
 ])
@@ -48,5 +54,8 @@
         id="{{ $textareaId }}"
         name="{{ $name }}"
         rows="{{ (int) $rows }}"
-    {{ $attributes->merge(['class' => $class]) }}
+        @if($placeholder) placeholder="{{ $placeholder }}" @endif
+        @if($autocomplete) autocomplete="{{ $autocomplete }}" @endif
+        @if($required) required @endif
+        {{ $attributes->merge(['class' => $class]) }}
 >{{ old($name, $value) }}</textarea>

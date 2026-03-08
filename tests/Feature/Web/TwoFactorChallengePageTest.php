@@ -25,7 +25,10 @@ it('renders the two-factor challenge page when a valid challenge exists in sessi
         ->withSession([AuthKitSessionKeys::TWO_FACTOR_CHALLENGE => $challenge])
         ->get(route($routeName))
         ->assertOk()
-        ->assertSee('Two-factor verification');
+        ->assertSee('Two-factor verification')
+        ->assertSee('Authentication code')
+        ->assertSee('Verify')
+        ->assertSee('Use a recovery code');
 });
 
 /**

@@ -24,6 +24,7 @@
  * - name: Input name (required).
  * - id: Optional id (defaults to name).
  * - checked: Default checked state (bool).
+ * - value: Submitted checkbox value.
  * - unstyled: When true, prevents default package classes from being applied.
  */
 --}}
@@ -32,6 +33,7 @@
     'name',
     'id' => null,
     'checked' => false,
+    'value' => '1',
     'unstyled' => false,
 ])
 
@@ -52,7 +54,7 @@
             id="{{ $checkboxId }}"
             name="{{ $name }}"
             type="checkbox"
-            value="1"
+            value="{{ $value }}"
             @if($isChecked) checked @endif
             {{ $attributes->merge(['class' => $inputClass]) }}
     >
