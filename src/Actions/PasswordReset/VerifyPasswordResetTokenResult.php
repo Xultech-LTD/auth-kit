@@ -16,18 +16,21 @@ final class VerifyPasswordResetTokenResult
     /**
      * @param bool $ok
      * @param string $message
+     * @param string|null $redirectUrl
      */
     public function __construct(
-        public bool $ok,
-        public string $message
+        public bool    $ok,
+        public string  $message,
+        public ?string $redirectUrl = null,
     ) {}
 
     /**
+     * @param null $redirectUrl
      * @return self
      */
-    public static function success(): self
+    public static function success($redirectUrl = null): self
     {
-        return new self(true, 'Reset token verified.');
+        return new self(true, 'Reset token verified.', $redirectUrl);
     }
 
     /**

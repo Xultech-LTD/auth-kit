@@ -34,8 +34,6 @@ final class LoginController
 
             if ($challenge !== '') {
                 $request->session()->put(AuthKitSessionKeys::TWO_FACTOR_CHALLENGE, $challenge);
-
-
             }
         }
 

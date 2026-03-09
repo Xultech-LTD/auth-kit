@@ -45,6 +45,7 @@ final class VerifyPasswordResetTokenController
         $payload = [
             'ok' => $result->ok,
             'message' => $result->message,
+            'redirect_url' => $result->redirectUrl,
         ];
 
         $status = $result->ok ? 200 : 422;
@@ -68,9 +69,10 @@ final class VerifyPasswordResetTokenController
             );
         }
 
+        $loginRoute = (string) data_get(config('authkit.route_names.web', []), 'login', 'authkit.web.login');
+
         return $this->toRouteWithStatus(
-            routeName: $tokenPageRoute,
-            parameters: ['email' => $email],
+            routeName: $loginRoute,
             message: $result->message
         );
     }

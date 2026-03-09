@@ -41,6 +41,12 @@ final class SendEmailVerificationController
 
         $result = $action->execute((string) ($data['email'] ?? ''));
 
+        $noticeRoute = (string) data_get(
+            config('authkit.route_names.web', []),
+            'verify_notice',
+            'authkit.web.email.verify.notice'
+        );
+
         if (ResponseResolver::expectsJson($request)) {
             if (! $result->ok) {
                 return $this->ok([
@@ -53,14 +59,9 @@ final class SendEmailVerificationController
                 'ok' => true,
                 'message' => $result->message,
                 'driver' => $result->driver,
+                'redirect_url' => $result->redirectUrl
             ], 200);
         }
-
-        $noticeRoute = (string) data_get(
-            config('authkit.route_names.web', []),
-            'verify_notice',
-            'authkit.web.email.verify.notice'
-        );
 
         if (! $result->ok) {
             return $this->toRouteWithError(

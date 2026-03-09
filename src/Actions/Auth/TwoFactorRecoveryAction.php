@@ -130,12 +130,20 @@ final class TwoFactorRecoveryAction
         event(new AuthKitTwoFactorRecovered($user, $guardName, $remember, $driver->key()));
         event(new AuthKitLoggedIn($user, $guardName, $remember));
 
+        $redirectRoute = data_get(config('authkit.login', []), 'redirect_route');
+        $dashboardRoute = (string) data_get(config('authkit.login', []), 'dashboard_route', 'dashboard');
+
+        $target = is_string($redirectRoute) && $redirectRoute !== ''
+            ? $redirectRoute
+            : $dashboardRoute;
+
         return [
             'ok' => true,
             'status' => 200,
             'message' => 'Recovered and logged in.',
             'two_factor_recovered' => true,
             'user_id' => (string) $user->getAuthIdentifier(),
+            'redirect_url' => route($target)
         ];
     }
 

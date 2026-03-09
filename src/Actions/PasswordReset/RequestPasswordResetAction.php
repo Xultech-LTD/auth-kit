@@ -104,6 +104,19 @@ final class RequestPasswordResetAction
             ? 'A password reset code has been sent.'
             : 'A password reset link has been sent.';
 
-        return PasswordResetRequestResult::sent($driver, $message);
+        $mode = (string) data_get(config('authkit.password_reset.post_request', []), 'mode', 'sent_page');
+
+        $route = null;
+
+        if ($mode === 'token_page') {
+            $tokenRoute = (string) data_get(
+                config('authkit.password_reset.post_request', []),
+                'token_route',
+                'authkit.web.password.reset.token'
+            );
+
+            $route = route($tokenRoute, ['email' => $email]);
+        }
+        return PasswordResetRequestResult::sent($driver, $message, $route);
     }
 }

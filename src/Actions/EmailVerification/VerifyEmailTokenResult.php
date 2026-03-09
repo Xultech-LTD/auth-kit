@@ -11,17 +11,18 @@ final class VerifyEmailTokenResult
 {
     public function __construct(
         public bool $ok,
-        public string $message
+        public string $message,
+        public ?string $redirectUrl = null
     ) {}
 
-    public static function verified(): self
+    public static function verified( string $redirectUrl=null): self
     {
-        return new self(true, 'Email verified successfully.');
+        return new self(true, 'Email verified successfully.', $redirectUrl);
     }
 
-    public static function alreadyVerified(): self
+    public static function alreadyVerified( string $redirectUrl=null): self
     {
-        return new self(true, 'Email is already verified.');
+        return new self(true, 'Email is already verified.', $redirectUrl);
     }
 
     public static function failed(string $message): self

@@ -14,14 +14,16 @@ namespace Xul\AuthKit\Actions\PasswordReset;
 final class PasswordResetRequestResult
 {
     /**
-     * @param bool   $ok
+     * @param bool $ok
      * @param string $message
      * @param string $driver
+     * @param string|null $redirectUrl
      */
     public function __construct(
-        public bool $ok,
-        public string $message,
-        public string $driver = ''
+        public bool    $ok,
+        public string  $message,
+        public string  $driver = '',
+        public ?string $redirectUrl = null,
     ) {}
 
     /**
@@ -29,9 +31,9 @@ final class PasswordResetRequestResult
      *
      * Used for privacy-safe flows to avoid revealing whether the user exists.
      */
-    public static function sent(string $driver, string $message): self
+    public static function sent(string $driver, string $message, string $redirectUrl = null): self
     {
-        return new self(true, $message, $driver);
+        return new self(true, $message, $driver, $redirectUrl);
     }
 
     /**

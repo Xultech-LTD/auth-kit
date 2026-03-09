@@ -96,7 +96,23 @@ final class VerifyEmailTokenAction
 
         $this->loginAfterVerify($user);
 
-        return VerifyEmailTokenResult::verified();
+        $mode = (string) data_get(config('authkit.email_verification.post_verify', []), 'mode', 'redirect');
+
+        $target = ($mode === 'success_page') ? (string) ($webNames['verify_success'] ?? 'authkit.web.email.verify.success') :
+            (string) (data_get(config('authkit.email_verification.post_verify', []), 'redirect_route') ?? '');
+
+        $loginAfterVerify = (bool) data_get(config('authkit.email_verification.post_verify', []), 'login_after_verify', false);
+
+        if ($loginAfterVerify) {
+            $redirectRoute = data_get(config('authkit.login', []), 'redirect_route');
+            $dashboardRoute = (string)data_get(config('authkit.login', []), 'dashboard_route', 'dashboard');
+
+            $target = is_string($redirectRoute) && $redirectRoute !== ''
+                ? $redirectRoute
+                : $dashboardRoute;
+        }
+
+        return VerifyEmailTokenResult::verified(route($target));
     }
 
     /**

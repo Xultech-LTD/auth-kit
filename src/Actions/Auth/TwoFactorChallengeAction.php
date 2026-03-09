@@ -159,6 +159,8 @@ final class TwoFactorChallengeAction
 
         $ok = $driver->verify($user, $code);
 
+        $twoFactorRoute = (string) data_get(config('authkit.route_names.web', []), 'two_factor_challenge', 'authkit.web.twofactor.challenge');
+
         if (!$ok) {
             if ($strategy === 'consume') {
                 $this->session->forget(AuthKitSessionKeys::TWO_FACTOR_CHALLENGE);
@@ -204,12 +206,20 @@ final class TwoFactorChallengeAction
             remember: $remember
         ));
 
+        $redirectRoute = data_get(config('authkit.login', []), 'redirect_route');
+        $dashboardRoute = (string) data_get(config('authkit.login', []), 'dashboard_route', 'dashboard');
+
+        $target = is_string($redirectRoute) && $redirectRoute !== ''
+            ? $redirectRoute
+            : $dashboardRoute;
+
         return [
             'ok' => true,
             'status' => 200,
             'message' => 'Two-factor verified.',
             'two_factor_required' => false,
             'user_id' => $user->getAuthIdentifier(),
+            'redirect_url' => route($target)
         ];
     }
 }

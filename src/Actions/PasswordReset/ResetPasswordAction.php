@@ -66,6 +66,21 @@ final class ResetPasswordAction
 
         $this->updater->update($user, $newPasswordRaw, $refresh);
 
-        return ResetPasswordResult::success($user);
+        $mode = (string) data_get(config('authkit.password_reset.post_reset', []), 'mode', 'success_page');
+
+        $route = null;
+
+        if ($mode === 'redirect') {
+            $redirectRoute = (string) (data_get(config('authkit.password_reset.post_reset', []), 'redirect_route') ?? '');
+            $loginFallback = (string) data_get(config('authkit.password_reset.post_reset', []), 'login_route', 'authkit.web.login');
+
+            $target = $redirectRoute !== ''
+                ? $redirectRoute
+                : $loginFallback;
+
+            $route = route($target);
+        }
+
+        return ResetPasswordResult::success($user, $route);
     }
 }

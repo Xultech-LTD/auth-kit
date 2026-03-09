@@ -69,6 +69,8 @@ final class VerifyPasswordResetTokenAction
             return VerifyPasswordResetTokenResult::invalidToken();
         }
 
-        return VerifyPasswordResetTokenResult::success();
+        $loginRoute = (string) data_get(config('authkit.route_names.web', []), 'login', 'authkit.web.login');
+
+        return VerifyPasswordResetTokenResult::success(route($loginRoute));
     }
 }

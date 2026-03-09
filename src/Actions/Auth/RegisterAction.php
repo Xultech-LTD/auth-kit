@@ -84,12 +84,15 @@ final class RegisterAction
             url: $url
         ));
 
+        $route = (string) config('authkit.route_names.web.verify_notice', 'authkit.web.email.verify.notice');
+
         return [
             'ok' => true,
             'message' => 'Account created. Please verify your email.',
             'user_id' => $user->getAuthIdentifier(),
             'email' => $email,
             'redirect_params' => ['email' => $email],
+            'redirect_url' => route($route, ['email' => $email])
         ];
     }
 

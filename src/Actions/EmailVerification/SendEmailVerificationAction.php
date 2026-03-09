@@ -89,6 +89,12 @@ final class SendEmailVerificationAction
             ? $this->buildSignedLinkUrl($user, $email, $ttl, $token)
             : null;
 
+        $noticeRoute = (string) data_get(
+            config('authkit.route_names.web', []),
+            'verify_notice',
+            'authkit.web.email.verify.notice'
+        );
+
         event(new AuthKitEmailVerificationRequired(
             user: $user,
             email: $email,
@@ -98,7 +104,7 @@ final class SendEmailVerificationAction
             url: $url
         ));
 
-        return SendEmailVerificationResult::sent($driver);
+        return SendEmailVerificationResult::sent($driver, route($noticeRoute, ['email' => (string) ($data['email'] ?? '')]));
     }
 
     /**

@@ -34,6 +34,7 @@ final class VerifyEmailTokenController
         $payload = [
             'ok' => $result->ok,
             'message' => $result->message,
+            'redirect_url' => $result->redirectUrl,
         ];
 
         if (ResponseResolver::expectsJson($request)) {

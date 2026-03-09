@@ -20,20 +20,23 @@ final class ResetPasswordResult
      * @param bool $ok
      * @param string $message
      * @param Authenticatable|null $user
+     * @param string|null $redirectUrl
      */
     public function __construct(
         public bool $ok,
         public string $message,
-        public ?Authenticatable $user = null
+        public ?Authenticatable $user = null,
+        public ?string $redirectUrl = null,
     ) {}
 
     /**
      * @param Authenticatable|null $user
+     * @param string|null $redirectUrl
      * @return self
      */
-    public static function success(?Authenticatable $user = null): self
+    public static function success(?Authenticatable $user = null, ?string $redirectUrl = null): self
     {
-        return new self(true, 'Password reset successful.', $user);
+        return new self(true, 'Password reset successful.', $user, $redirectUrl);
     }
 
     /**

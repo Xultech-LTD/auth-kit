@@ -133,12 +133,15 @@ final class LoginAction
                 ));
             }
 
+            $route = (string) config('authkit.route_names.web.verify_notice', 'authkit.web.email.verify.notice');
+
             return [
                 'ok' => false,
                 'status' => 403,
                 'message' => 'Email verification required.',
                 'email_verification_required' => true,
                 'redirect_params' => $email !== '' ? ['email' => $email] : [],
+                'redirect_url' =>  route($route, ['email' => $email])
             ];
         }
 
@@ -193,12 +196,20 @@ final class LoginAction
             remember: $remember
         ));
 
+        $redirectRoute = data_get(config('authkit.login', []), 'redirect_route');
+        $dashboardRoute = (string) data_get(config('authkit.login', []), 'dashboard_route', 'authkit.web.dashboard.web');
+
+        $target = is_string($redirectRoute) && $redirectRoute !== ''
+            ? $redirectRoute
+            : $dashboardRoute;
+
         return [
             'ok' => true,
             'status' => 200,
             'message' => 'Logged in.',
             'two_factor_required' => false,
             'user_id' => $user->getAuthIdentifier(),
+            'redirect_url' => route($target)
         ];
     }
 

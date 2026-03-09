@@ -221,6 +221,8 @@ return [
             'password_reset' => 'authkit.web.password.reset',
             'password_reset_token_page' => 'authkit.web.password.reset.token',
             'password_reset_success' => 'authkit.web.password.reset.success',
+
+            'dashboard_web' => 'authkit.web.dashboard.web',
         ],
 
         /**
@@ -295,6 +297,8 @@ return [
             'password_reset_token_page' => \Xul\AuthKit\Http\Controllers\Web\PasswordReset\PasswordResetTokenViewController::class,
             'password_reset' => \Xul\AuthKit\Http\Controllers\Web\PasswordReset\ResetPasswordViewController::class,
             'password_reset_success' => \Xul\AuthKit\Http\Controllers\Web\PasswordReset\ResetPasswordSuccessViewController::class,
+
+            'dashboard_web' => \Xul\AuthKit\Http\Controllers\Web\Auth\DashboardController::class,
         ],
 
         /**
@@ -949,7 +953,7 @@ return [
          *
          * Consumers should set this to their app dashboard/home route.
          */
-        'dashboard_route' => 'dashboard',
+        'dashboard_route' => 'authkit.web.dashboard.web',
     ],
 
     /**
@@ -1173,7 +1177,7 @@ return [
              *
              * If null, AuthKit uses the login route name.
              */
-            'redirect_route' => null,
+            'redirect_route' => 'authkit.web.login',
 
             /**
              * Default login route name fallback.

@@ -18,28 +18,32 @@ final class SendEmailVerificationResult
      * @param bool $ok
      * @param string $message
      * @param string $driver
+     * @param string|null $redirectUrl
      */
     public function __construct(
         public bool $ok,
         public string $message,
-        public string $driver = ''
+        public string $driver = '',
+        public ?string $redirectUrl = null
     ) {}
 
     /**
      * @param string $driver
+     * @param string|null $redirectUrl
      * @return self
      */
-    public static function sent(string $driver): self
+    public static function sent(string $driver, string $redirectUrl=null): self
     {
-        return new self(true, 'Verification message sent.', $driver);
+        return new self(true, 'Verification message sent.', $driver, $redirectUrl);
     }
 
     /**
+     * @param string|null $redirectUrl
      * @return self
      */
-    public static function alreadyVerified(): self
+    public static function alreadyVerified(string $redirectUrl=null): self
     {
-        return new self(true, 'Your email is already verified.');
+        return new self(true, 'Your email is already verified.', $redirectUrl);
     }
 
     /**
