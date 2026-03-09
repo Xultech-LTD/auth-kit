@@ -178,6 +178,8 @@ final class LoginAction
                 remember: $remember
             ));
 
+            $twoFactorRoute = (string) data_get(config('authkit.route_names.web', []), 'two_factor_challenge', 'authkit.web.twofactor.challenge');
+
             return [
                 'ok' => true,
                 'status' => 200,
@@ -185,6 +187,7 @@ final class LoginAction
                 'two_factor_required' => true,
                 'methods' => $methods,
                 'internal_challenge' => $challenge,
+                'redirect_url' => route($twoFactorRoute)
             ];
         }
 

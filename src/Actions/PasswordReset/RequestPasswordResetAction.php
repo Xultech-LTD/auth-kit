@@ -106,7 +106,11 @@ final class RequestPasswordResetAction
 
         $mode = (string) data_get(config('authkit.password_reset.post_request', []), 'mode', 'sent_page');
 
-        $route = null;
+        $route = (string) data_get(
+            config('authkit.password_reset.post_request', []),
+            'sent_route',
+            (string) ($webNames['password_forgot_sent'] ?? 'authkit.web.password.forgot.sent')
+        );;
 
         if ($mode === 'token_page') {
             $tokenRoute = (string) data_get(

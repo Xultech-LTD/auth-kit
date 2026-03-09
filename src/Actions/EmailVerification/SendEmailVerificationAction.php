@@ -104,7 +104,7 @@ final class SendEmailVerificationAction
             url: $url
         ));
 
-        return SendEmailVerificationResult::sent($driver, route($noticeRoute, ['email' => (string) ($data['email'] ?? '')]));
+        return SendEmailVerificationResult::sent($driver, route($noticeRoute, ['email' => (string) $email]));
     }
 
     /**

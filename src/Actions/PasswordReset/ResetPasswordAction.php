@@ -68,7 +68,11 @@ final class ResetPasswordAction
 
         $mode = (string) data_get(config('authkit.password_reset.post_reset', []), 'mode', 'success_page');
 
-        $route = null;
+        $route = (string) data_get(
+            config('authkit.password_reset.post_reset', []),
+            'success_route',
+            (string) ($webNames['password_reset_success'] ?? 'authkit.web.password.reset.success')
+        );
 
         if ($mode === 'redirect') {
             $redirectRoute = (string) (data_get(config('authkit.password_reset.post_reset', []), 'redirect_route') ?? '');
