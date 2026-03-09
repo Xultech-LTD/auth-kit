@@ -39,9 +39,11 @@
     $submitLabel = (string) ($submit['label'] ?? 'Continue');
 
     $fieldsComponent = (string) data_get($c, 'fields', 'authkit::form.fields');
+    $pageComponent = (string) data_get($c, 'page', 'authkit::page');
+    $pageKey = (string) data_get(config('authkit.javascript.pages', []),'two_factor_recovery.page_key','two_factor_recovery');
 @endphp
 
-<x-dynamic-component :component="data_get($c, 'layout')" title="Recovery code">
+<x-dynamic-component :component="$pageComponent" title="Recovery code" :page-key="$pageKey">
     <x-dynamic-component :component="data_get($c, 'container')">
         <x-dynamic-component :component="data_get($c, 'card')">
 

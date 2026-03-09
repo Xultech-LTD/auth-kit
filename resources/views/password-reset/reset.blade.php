@@ -43,9 +43,11 @@
     $submitLabel = (string) ($submit['label'] ?? 'Reset password');
 
     $fieldsComponent = (string) data_get($c, 'fields', 'authkit::form.fields');
+    $pageComponent = (string) data_get($c, 'page', 'authkit::page');
+    $pageKey = (string) data_get(config('authkit.javascript.pages', []),'password_reset.page_key','password_reset');
 @endphp
 
-<x-dynamic-component :component="data_get($c, 'layout')" title="Reset password">
+<x-dynamic-component :component="$pageComponent" title="Reset password" :page-key="$pageKey">
     <x-dynamic-component :component="data_get($c, 'container')">
         <x-dynamic-component :component="data_get($c, 'card')">
 

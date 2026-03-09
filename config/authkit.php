@@ -1045,21 +1045,6 @@ return [
     ],
 
     /**
-     * Theme configuration.
-     *
-     * Themes are CSS files that can be switched per project (and later per user).
-     * Theme files are expected at:
-     *   public/{assets.base_path}/themes/{theme}.css
-     */
-    'themes' => [
-        'default' => 'forest-theme',
-        'available' => [
-            'forest-theme',
-            'red-beige-theme',
-        ],
-    ],
-
-    /**
      * Email verification configuration.
      *
      * driver:
@@ -1953,6 +1938,7 @@ return [
         'container' => 'authkit::container',
         'card' => 'authkit::card',
         'alert' => 'authkit::alert',
+        'page' => 'authkit::page',
 
         /**
          * Auth page composition.
@@ -1998,6 +1984,7 @@ return [
         'button' => 'authkit::button',
         'link' => 'authkit::link',
         'divider' => 'authkit::divider',
+        'theme_toggle' => 'authkit::theme-toggle',
 
         /**
          * Schema-driven field rendering.
@@ -2015,5 +2002,621 @@ return [
          */
         'field' => 'authkit::form.field',
         'fields' => 'authkit::form.fields',
+    ],
+
+    /**
+     * UI configuration.
+     *
+     * This section controls AuthKit's visual rendering system.
+     *
+     * AuthKit separates UI concerns into three independent parts:
+     * - engine: the visual styling family (for example: tailwind-like or bootstrap-like)
+     * - theme : the color/brand skin used within that engine
+     * - mode  : the appearance mode (light, dark, or system)
+     *
+     * Design goals:
+     * - Keep Blade components framework-agnostic.
+     * - Allow consumers to switch visual systems without changing component markup.
+     * - Support light/dark mode and system-preference detection.
+     * - Support optional user-facing theme toggles.
+     * - Make it easy for consuming applications to override or extend package styling.
+     *
+     * Notes:
+     * - "tailwind" and "bootstrap" here describe AuthKit's packaged visual systems.
+     *   They do not require the host application to compile Tailwind or include Bootstrap.
+     * - AuthKit ships its own CSS files and applies them against semantic package classes
+     *   such as authkit-card, authkit-input, authkit-btn, and related elements.
+     */
+    'ui' => [
+
+        /**
+         * Default visual engine.
+         *
+         * This selects the overall styling family used by AuthKit.
+         *
+         * Supported values (initial):
+         * - tailwind
+         * - bootstrap
+         *
+         * Examples:
+         * - tailwind  : modern utility-inspired visual language
+         * - bootstrap : traditional component-library visual language
+         */
+        'engine' => 'tailwind',
+
+        /**
+         * Default color theme/skin within the selected engine.
+         *
+         * This controls the visual palette and brand personality,
+         * while the engine controls the broader component style language.
+         *
+         * Examples:
+         * - forest
+         * - red-beige
+         *
+         * The final stylesheet is typically resolved using:
+         *   {engine}-{theme}.css
+         *
+         * Example:
+         * - tailwind + forest => tailwind-forest.css
+         * - bootstrap + red-beige => bootstrap-red-beige.css
+         */
+        'theme' => 'forest',
+
+        /**
+         * Default appearance mode.
+         *
+         * Supported values:
+         * - light  : always render light mode
+         * - dark   : always render dark mode
+         * - system : follow the user's operating-system/browser preference
+         *
+         * When "system" is used, AuthKit JavaScript may resolve the active mode
+         * using prefers-color-scheme and apply the final mode at runtime.
+         */
+        'mode' => 'system',
+
+        /**
+         * Whether AuthKit should emit data attributes for UI state.
+         *
+         * When enabled, the layout may render attributes such as:
+         * - data-authkit-engine="tailwind"
+         * - data-authkit-theme="forest"
+         * - data-authkit-mode="dark"
+         *
+         * These attributes provide stable hooks for package CSS, JavaScript,
+         * and consumer overrides.
+         */
+        'use_data_attributes' => true,
+
+        /**
+         * Whether AuthKit should include its packaged theme stylesheet automatically.
+         *
+         * When true:
+         * - The layout resolves the configured engine/theme pair and loads the
+         *   corresponding CSS file from the published assets directory.
+         *
+         * When false:
+         * - Consumers are responsible for loading their own stylesheet(s).
+         *
+         * This is useful for applications that want to:
+         * - fully replace AuthKit styling
+         * - bundle AuthKit styles into their own asset pipeline
+         * - ship custom themes not loaded by the package layout directly
+         */
+        'load_stylesheet' => true,
+
+        /**
+         * Whether AuthKit should include its packaged theme JavaScript automatically.
+         *
+         * When true:
+         * - The layout may load AuthKit's base JavaScript for UI concerns such as:
+         *   - resolving light/dark/system mode
+         *   - persisting appearance preference
+         *   - powering the optional theme-toggle component
+         *
+         * When false:
+         * - Consumers are responsible for handling mode resolution/toggling themselves.
+         */
+        'load_script' => true,
+
+        /**
+         * Theme mode persistence settings.
+         *
+         * These options control whether AuthKit should remember the user's preferred
+         * light/dark/system selection across page visits.
+         */
+        'persistence' => [
+
+            /**
+             * Whether AuthKit should persist UI mode preference in browser storage.
+             *
+             * When enabled, AuthKit JavaScript may store the user's chosen mode
+             * (light, dark, or system) and restore it on future visits.
+             */
+            'enabled' => true,
+
+            /**
+             * Browser storage key used to persist the selected appearance mode.
+             *
+             * This key should remain stable once published to avoid breaking
+             * existing saved preferences.
+             */
+            'storage_key' => 'authkit.ui.mode',
+        ],
+
+        /**
+         * Theme toggle configuration.
+         *
+         * AuthKit may expose a reusable theme-toggle component that consumers
+         * can place anywhere in their page layout.
+         *
+         * Examples:
+         * - inside the auth card header
+         * - at the top-right of the page shell
+         * - in a custom application navbar
+         *
+         * This component is optional and is not required for theming to work.
+         */
+        'toggle' => [
+
+            /**
+             * Whether the packaged theme-toggle component is enabled for use.
+             *
+             * When false:
+             * - Consumers may still build and use their own custom toggle UI.
+             */
+            'enabled' => true,
+
+            /**
+             * Default toggle presentation variant.
+             *
+             * Suggested values:
+             * - auto
+             * - dropdown
+             * - buttons
+             * - icon
+             *
+             * This controls only the packaged toggle component's default UI.
+             * Consumers may still publish/override the component and render it differently.
+             */
+            'variant' => 'auto',
+
+            /**
+             * Whether the toggle should offer the "system" option in addition
+             * to explicit light and dark modes.
+             *
+             * When true:
+             * - users can choose light, dark, or system
+             *
+             * When false:
+             * - packaged toggle UIs may expose only light and dark
+             */
+            'allow_system' => true,
+
+            /**
+             * Whether the packaged toggle component should show labels
+             * alongside icons where applicable.
+             *
+             * This is purely a UI preference for the packaged component.
+             */
+            'show_labels' => true,
+
+            /**
+             * HTML attribute used to identify packaged theme-toggle elements.
+             *
+             * AuthKit JavaScript may use this attribute to discover toggle controls
+             * and bind click/change behavior automatically.
+             *
+             * Example:
+             * <button data-authkit-theme-toggle="dark">Dark</button>
+             */
+            'attribute' => 'data-authkit-theme-toggle',
+        ],
+
+        /**
+         * Consumer extension hooks.
+         *
+         * These options make it easier for consuming applications to extend
+         * or replace AuthKit styling without modifying package internals.
+         */
+        'extensions' => [
+
+            /**
+             * Whether AuthKit should expose stable root classes/hooks intended
+             * for consumer CSS overrides.
+             *
+             * Example root hooks:
+             * - .authkit
+             * - [data-authkit-engine]
+             * - [data-authkit-theme]
+             * - [data-authkit-mode]
+             *
+             * In practice, this should usually remain enabled.
+             */
+            'enable_root_hooks' => true,
+
+            /**
+             * Optional additional stylesheet paths to load after the packaged
+             * AuthKit stylesheet.
+             *
+             * These paths are relative to public/{assets.base_path} unless the
+             * layout chooses to interpret them differently.
+             *
+             * Purpose:
+             * - allow easy consumer overrides
+             * - allow brand-specific additions without replacing the full theme
+             *
+             * Example:
+             * - 'css/overrides/authkit-custom.css'
+             */
+            'extra_css' => [
+                // 'css/authkit-overrides.css',
+            ],
+
+            /**
+             * Optional additional script paths to load after AuthKit's base script.
+             *
+             * These may be used to extend toggle behavior, analytics hooks,
+             * or custom UI interactions related to AuthKit pages.
+             */
+            'extra_js' => [
+                // 'js/authkit-overrides.js',
+            ],
+        ],
+    ],
+
+    /**
+     * Theme asset configuration.
+     *
+     * AuthKit ships packaged theme stylesheets using a flat naming convention:
+     *
+     *   {engine}-{theme}.css
+     *
+     * Examples:
+     * - tailwind-forest.css
+     * - tailwind-red-beige.css
+     * - bootstrap-forest.css
+     * - bootstrap-red-beige.css
+     *
+     * These files are expected under:
+     *   public/{assets.base_path}/themes/
+     *
+     * Notes:
+     * - The ui.engine and ui.theme values select which theme file is loaded by default.
+     * - Consumers may add their own files to the published themes directory and
+     *   then point AuthKit to them through configuration.
+     */
+    'themes' => [
+
+        /**
+         * Available packaged engines.
+         *
+         * These are the styling families supported by AuthKit's shipped theme files.
+         */
+        'engines' => [
+            'tailwind',
+            'bootstrap',
+        ],
+
+        /**
+         * Available theme names by engine.
+         *
+         * This is primarily informational and may also be used by future validation,
+         * tooling, UI controls, or documentation helpers.
+         *
+         * Consumers may extend these arrays with custom theme names
+         * after publishing and adding their own theme files.
+         */
+        'available' => [
+            'tailwind' => [
+                'forest',
+                'red-beige',
+            ],
+            'bootstrap' => [
+                'forest',
+                'red-beige',
+            ],
+        ],
+
+        /**
+         * Theme asset filename pattern.
+         *
+         * AuthKit resolves the final theme stylesheet using this pattern.
+         *
+         * Supported placeholders:
+         * - {engine}
+         * - {theme}
+         *
+         * Example:
+         * - pattern: '{engine}-{theme}.css'
+         * - engine : tailwind
+         * - theme  : forest
+         * - result : tailwind-forest.css
+         */
+        'file_pattern' => '{engine}-{theme}.css',
+    ],
+
+    /**
+     * JavaScript runtime configuration.
+     *
+     * AuthKit ships a browser runtime centered around a single entry file:
+     *   public/{assets.base_path}/js/authkit.js
+     *
+     * This file acts as the package client bootstrapper and may register or initialize
+     * multiple internal modules such as:
+     * - theme mode handling
+     * - AJAX form submission
+     * - page-specific behaviors (login, register, password reset, etc.)
+     *
+     * Design goals:
+     * - Keep progressive enhancement optional: pages must still work without JavaScript.
+     * - Allow AuthKit to organize page-specific behaviors into separate internal modules
+     *   while keeping a single public entry file.
+     * - Emit stable browser events so consuming applications can extend package behavior
+     *   without modifying package source files.
+     * - Allow consumers to enable, disable, or replace runtime pieces over time.
+     *
+     * Notes:
+     * - Browser events configured here are dispatched from AuthKit's client runtime.
+     * - Event names should remain stable once published to avoid breaking consumer code.
+     * - "Modules" here refer to browser runtime modules booted by authkit.js.
+     */
+    'javascript' => [
+
+        /**
+         * Whether AuthKit should boot its packaged browser runtime.
+         *
+         * When false:
+         * - AuthKit may still render its HTML, CSS, and server-side flows normally.
+         * - Consumers become fully responsible for client-side enhancements such as:
+         *   - theme toggling
+         *   - AJAX form submission
+         *   - page-level JavaScript behaviors
+         */
+        'enabled' => true,
+
+        /**
+         * Global browser runtime configuration.
+         */
+        'runtime' => [
+
+            /**
+             * Name of the global object AuthKit may expose on window.
+             *
+             * Example:
+             * - window.AuthKit
+             *
+             * Consumers may use this public object to interact with the package runtime
+             * when such an API is exposed.
+             */
+            'window_key' => 'AuthKit',
+
+            /**
+             * Whether AuthKit should dispatch browser events during runtime activity.
+             *
+             * When enabled:
+             * - AuthKit JavaScript may emit CustomEvent instances on document or window
+             *   for lifecycle hooks such as ready, theme change, form success, and page boot.
+             */
+            'dispatch_events' => true,
+
+            /**
+             * Event target used for runtime browser events.
+             *
+             * Supported values (recommended initial support):
+             * - document
+             * - window
+             *
+             * Recommendation:
+             * - Use document for most DOM lifecycle and form-related events.
+             */
+            'event_target' => 'document',
+        ],
+
+        /**
+         * Browser event names emitted by the packaged runtime.
+         *
+         * These names are intentionally configurable so consuming applications may
+         * align them with project conventions if desired.
+         *
+         * Notes:
+         * - Keep names unique and namespaced to avoid collisions.
+         * - Consumers may listen for these events to plug in additional behaviors.
+         */
+        'events' => [
+
+            /**
+             * Fired when the AuthKit runtime has completed its initial boot.
+             */
+            'ready' => 'authkit:ready',
+
+            /**
+             * Fired after the theme module has initialized.
+             */
+            'theme_ready' => 'authkit:theme:ready',
+
+            /**
+             * Fired whenever the preferred/resolved appearance mode changes.
+             */
+            'theme_changed' => 'authkit:theme:changed',
+
+            /**
+             * Fired before an AuthKit AJAX-enabled form is submitted.
+             */
+            'form_before_submit' => 'authkit:form:before-submit',
+
+            /**
+             * Fired after an AuthKit AJAX form completes successfully.
+             */
+            'form_success' => 'authkit:form:success',
+
+            /**
+             * Fired when an AuthKit AJAX form returns validation or request errors.
+             */
+            'form_error' => 'authkit:form:error',
+
+            /**
+             * Fired when a page module is initialized.
+             *
+             * The specific page key is typically also included in the event payload.
+             */
+            'page_ready' => 'authkit:page:ready',
+        ],
+
+        /**
+         * Core runtime modules.
+         *
+         * These modules are responsible for shared functionality that may be used
+         * across multiple AuthKit pages.
+         */
+        'modules' => [
+
+            /**
+             * Theme/appearance runtime.
+             *
+             * Responsibilities may include:
+             * - resolving light/dark/system mode
+             * - persisting user preference
+             * - syncing theme toggle controls
+             * - responding to system color-scheme changes
+             */
+            'theme' => [
+                'enabled' => true,
+            ],
+
+            /**
+             * AJAX form runtime.
+             *
+             * Responsibilities may include:
+             * - binding forms marked with the configured AJAX attribute
+             * - serializing payloads as JSON or FormData
+             * - dispatching lifecycle events
+             * - handling redirects and structured responses
+             * - surfacing validation or request errors
+             */
+            'forms' => [
+                'enabled' => true,
+            ],
+        ],
+
+        /**
+         * Page runtime modules.
+         *
+         * These entries represent page-specific browser modules that may be booted by
+         * the packaged authkit.js entry file.
+         *
+         * Expected examples over time:
+         * - login
+         * - register
+         * - two_factor_challenge
+         * - two_factor_recovery
+         * - email_verification_notice
+         * - email_verification_token
+         * - password_forgot
+         * - password_reset
+         * - password_reset_token
+         *
+         * Notes:
+         * - Module keys should align with package page concepts.
+         * - The packaged runtime may decide which page module to boot based on DOM markers
+         *   or page-level data attributes.
+         */
+        'pages' => [
+
+            'login' => [
+                'enabled' => true,
+
+                /**
+                 * Optional DOM marker used by the runtime to detect the page.
+                 *
+                 * Example:
+                 * - data-authkit-page="login"
+                 */
+                'page_key' => 'login',
+            ],
+
+            'register' => [
+                'enabled' => true,
+                'page_key' => 'register',
+            ],
+
+            'two_factor_challenge' => [
+                'enabled' => true,
+                'page_key' => 'two_factor_challenge',
+            ],
+
+            'two_factor_recovery' => [
+                'enabled' => true,
+                'page_key' => 'two_factor_recovery',
+            ],
+
+            'email_verification_notice' => [
+                'enabled' => true,
+                'page_key' => 'email_verification_notice',
+            ],
+
+            'email_verification_token' => [
+                'enabled' => true,
+                'page_key' => 'email_verification_token',
+            ],
+
+            'password_forgot' => [
+                'enabled' => true,
+                'page_key' => 'password_forgot',
+            ],
+
+            'password_forgot_sent' => [
+                'enabled' => true,
+                'page_key' => 'password_forgot_sent',
+            ],
+
+            'password_reset' => [
+                'enabled' => true,
+                'page_key' => 'password_reset',
+            ],
+
+            'password_reset_token' => [
+                'enabled' => true,
+                'page_key' => 'password_reset_token',
+            ],
+
+            'password_reset_success' => [
+                'enabled' => true,
+                'page_key' => 'password_reset_success',
+            ],
+
+            'email_verification_success' => [
+                'enabled' => true,
+                'page_key' => 'email_verification_success',
+            ],
+        ],
+
+        /**
+         * Consumer JavaScript extension hooks.
+         *
+         * These options allow consumers to register additional JavaScript files
+         * or runtime entrypoints that execute alongside the packaged AuthKit runtime.
+         *
+         * Notes:
+         * - These do not replace the browser event system; they complement it.
+         * - Consumers may use these hooks to attach analytics, custom UI handlers,
+         *   alternate toast systems, or page-specific augmentations.
+         */
+        'extensions' => [
+
+            /**
+             * Additional packaged or consumer-provided browser scripts that should be loaded
+             * after the main authkit.js runtime.
+             *
+             * Paths are relative to public/{assets.base_path}.
+             *
+             * Example:
+             * - 'js/extensions/authkit-consumer.js'
+             */
+            'scripts' => [
+                // 'js/extensions/authkit-consumer.js',
+            ],
+        ],
     ],
 ];

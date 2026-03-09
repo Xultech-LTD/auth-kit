@@ -1,44 +1,32 @@
-<!doctype html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+{{--
+/**
+ * Layout: Auth Application Page
+ *
+ * High-level wrapper view for AuthKit pages.
+ *
+ * Responsibilities:
+ * - Renders the root AuthKit document layout component.
+ * - Provides a page-level shell and stable page hooks.
+ * - Exposes a centered page container for AuthKit page content.
+ *
+ * Notes:
+ * - This is a Blade view wrapper, not the root document shell itself.
+ * - The root <html>, <head>, asset loading, and UI mode handling are managed by
+ *   the `authkit::layout` component.
+ * - Consumers may publish and customize this file to integrate AuthKit pages
+ *   into their own application shells if desired.
+ */
+--}}
 
-    <title>{{ $title ?? 'AuthKit' }}</title>
-
-    @php
-        $theme = $theme ?? config('authkit.themes.default', 'forest-theme');
-
-        $basePath = (string) config('authkit.assets.base_path', 'vendor/authkit');
-        $baseAssets = (array) config('authkit.assets.base', []);
-
-        $baseCss = (array) data_get($baseAssets, 'css', []);
-        $baseJs = (array) data_get($baseAssets, 'js', []);
-
-        // Backward compatibility:
-        // If no base JS defined, fallback to default authkit.js
-        if (empty($baseJs)) {
-            $baseJs = ['js/authkit.js'];
-        }
-    @endphp
-
-    {{-- Base CSS (optional) --}}
-    @foreach ($baseCss as $path)
-        <link rel="stylesheet" href="{{ asset($basePath.'/'.ltrim($path, '/')) }}">
-    @endforeach
-
-    {{-- Theme CSS --}}
-    <link rel="stylesheet" href="{{ asset($basePath.'/themes/'.$theme.'.css') }}">
-
-    {{-- Base JS --}}
-    @foreach ($baseJs as $path)
-        <script src="{{ asset($basePath.'/'.ltrim($path, '/')) }}" defer></script>
-    @endforeach
-</head>
-<body>
-<main style="max-width:520px;margin:48px auto;padding:24px;">
-    @yield('content')
-</main>
-</body>
-</html>
+<x-authkit::layout
+        :title="$title ?? 'AuthKit'"
+        :theme="$theme ?? null"
+        :engine="$engine ?? null"
+        :mode="$mode ?? null"
+>
+    <main class="authkit-page authkit-auth-page">
+        <div class="authkit-page-container">
+            @yield('content')
+        </div>
+    </main>
+</x-authkit::layout>

@@ -6,7 +6,8 @@
  *
  * Responsibilities:
  * - Resolves the login form schema.
- * - Renders page-level shell and actions.
+ * - Renders the AuthKit page shell.
+ * - Renders page-level card content and actions.
  * - Delegates field rendering to the schema-driven field collection component.
  */
 --}}
@@ -31,10 +32,12 @@
     $submit = is_array($schema['submit'] ?? null) ? $schema['submit'] : [];
     $submitLabel = (string) ($submit['label'] ?? 'Continue');
 
+    $pageComponent = (string) data_get($c, 'page', 'authkit::page');
     $fieldsComponent = (string) data_get($c, 'fields', 'authkit::form.fields');
+    $pageKey = (string) data_get(config('authkit.javascript.pages', []),'login.page_key','login');
 @endphp
 
-<x-dynamic-component :component="data_get($c, 'layout')" title="Login">
+<x-dynamic-component :component="$pageComponent" title="Login" variant="auth" :page-key="$pageKey">
     <x-dynamic-component :component="data_get($c, 'container')">
         <x-dynamic-component :component="data_get($c, 'card')">
 

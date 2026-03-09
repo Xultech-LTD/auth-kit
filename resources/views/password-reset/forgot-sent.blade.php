@@ -41,9 +41,11 @@
     $fieldsComponent = (string) data_get($c, 'fields', 'authkit::form.fields');
 
     $resendLabel = $driver === 'token' ? 'Resend reset code' : 'Resend reset link';
+    $pageComponent = (string) data_get($c, 'page', 'authkit::page');
+    $pageKey = (string) data_get(config('authkit.javascript.pages', []),'password_forgot_sent.page_key','password_forgot_sent');
 @endphp
 
-<x-dynamic-component :component="data_get($c, 'layout')" title="Reset email sent">
+<x-dynamic-component :component="$pageComponent" title="Reset email sent" :page-key="$pageKey">
     <x-dynamic-component :component="data_get($c, 'container')">
         <x-dynamic-component :component="data_get($c, 'card')">
 

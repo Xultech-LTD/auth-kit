@@ -41,9 +41,11 @@
     $submitLabel = (string) ($submit['label'] ?? 'Verify email');
 
     $fieldsComponent = (string) data_get($c, 'fields', 'authkit::form.fields');
+    $pageComponent = (string) data_get($c, 'page', 'authkit::page');
+    $pageKey = (string) data_get(config('authkit.javascript.pages', []),'email_verification_token.page_key','email_verification_token');
 @endphp
 
-<x-dynamic-component :component="data_get($c, 'layout')" title="Verify your email">
+<x-dynamic-component :component="$pageComponent" title="Verify your email" :page-key="$pageKey">
     <x-dynamic-component :component="data_get($c, 'container')">
         <x-dynamic-component :component="data_get($c, 'card')">
 
