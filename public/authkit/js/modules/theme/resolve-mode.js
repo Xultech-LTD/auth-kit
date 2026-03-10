@@ -45,7 +45,7 @@
  */
 
 import { getConfigValue } from '../../core/config.js';
-import { isFunction, normalizeString } from '../../core/helpers.js';
+import {isFunction, isUndefined, normalizeString} from '../../core/helpers.js';
 
 
 /**
@@ -112,7 +112,7 @@ export function getConfiguredMode() {
  */
 export function supportsSystemColorScheme() {
     return (
-        typeof window !== 'undefined' &&
+        !isUndefined(window) &&
         isFunction(window.matchMedia)
     );
 }

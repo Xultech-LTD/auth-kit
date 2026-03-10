@@ -30,7 +30,7 @@
  * @license   MIT
  */
 
-import { isString, normalizeString, toArray } from './helpers.js';
+import {isFunction, isString, normalizeString, toArray} from './helpers.js';
 
 
 /**
@@ -65,7 +65,7 @@ export function queryOne(selector, scope = document) {
         return null;
     }
 
-    if (!scope || typeof scope.querySelector !== 'function') {
+    if (!scope || !isFunction(scope.querySelector)) {
         return null;
     }
 
@@ -85,7 +85,7 @@ export function queryAll(selector, scope = document) {
         return [];
     }
 
-    if (!scope || typeof scope.querySelectorAll !== 'function') {
+    if (!scope || !isFunction(scope.querySelectorAll)) {
         return [];
     }
 
@@ -360,7 +360,7 @@ export function closest(element, selector) {
  * @returns {Function}
  */
 export function listen(target, eventName, listener, options = false) {
-    if (!target || typeof target.addEventListener !== 'function') {
+    if (!target || !isFunction(target.addEventListener) ) {
         return () => {};
     }
 
@@ -371,7 +371,7 @@ export function listen(target, eventName, listener, options = false) {
     target.addEventListener(eventName, listener, options);
 
     return () => {
-        if (typeof target.removeEventListener === 'function') {
+        if (isFunction(target.removeEventListener)) {
             target.removeEventListener(eventName, listener, options);
         }
     };
@@ -437,7 +437,7 @@ export function isDomReady() {
  * @returns {void}
  */
 export function onDomReady(callback) {
-    if (typeof callback !== 'function') {
+    if (!isFunction(callback)) {
         return;
     }
 

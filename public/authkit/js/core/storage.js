@@ -30,7 +30,7 @@
  * @license   MIT
  */
 
-import { isString, normalizeString } from './helpers.js';
+import {isObject, isString, isUndefined, normalizeString} from './helpers.js';
 
 
 /**
@@ -45,7 +45,7 @@ import { isString, normalizeString } from './helpers.js';
  */
 export function resolveStorage(type = 'local') {
     try {
-        if (typeof window === 'undefined') {
+        if (isUndefined(window)) {
             return null;
         }
 
@@ -140,7 +140,7 @@ export function setItem(key, value, type = 'local') {
         return false;
     }
 
-    if (value !== null && typeof value === 'object') {
+    if (value !== null && isObject(value)) {
         return false;
     }
 

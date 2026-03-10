@@ -52,7 +52,7 @@
  * @license   MIT
  */
 
-import {hasOwn, isObject, isString, normalizeString, toBoolean,} from './helpers.js';
+import {hasOwn, isObject, isString, isUndefined, normalizeString, toBoolean,} from './helpers.js';
 
 
 /**
@@ -133,7 +133,7 @@ export function clearConfigCache() {
  * @returns {string}
  */
 export function getWindowKey() {
-    if (typeof window === 'undefined') {
+    if ( isUndefined(window) ) {
         return DEFAULT_WINDOW_KEY;
     }
 
@@ -177,7 +177,7 @@ export function getWindowKey() {
  * @returns {Object}
  */
 export function getGlobalObject() {
-    if (typeof window === 'undefined') {
+    if (isUndefined(window)) {
         return {};
     }
 
@@ -430,7 +430,7 @@ export function getDefaultConfig() {
  * @returns {Object}
  */
 export function setConfig(payload = {}) {
-    if (typeof window === 'undefined') {
+    if (isUndefined(window)) {
         return {};
     }
 

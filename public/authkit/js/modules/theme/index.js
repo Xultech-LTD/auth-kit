@@ -49,6 +49,7 @@ import {persistMode, readPersistedMode} from './persistence.js';
 import {bindThemeToggles, syncToggleState} from './toggles.js';
 
 import {bindSystemModeListener} from './system-listener.js';
+import {isObject} from "../../core/helpers";
 
 
 /**
@@ -94,7 +95,7 @@ export function getResolvedMode() {
  * @returns {void}
  */
 export function updateThemeState(modeState) {
-    if (!modeState || typeof modeState !== 'object') {
+    if (!modeState || !isObject(modeState)) {
         return;
     }
 

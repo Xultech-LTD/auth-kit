@@ -44,7 +44,7 @@
 import { getWindowKey } from './config.js';
 import { dispatchEvent } from './events.js';
 import { getDocumentRoot, getPageElement } from './dom.js';
-import { dataGet, isFunction, isObject } from './helpers.js';
+import {dataGet, isFunction, isObject, isString, isUndefined} from './helpers.js';
 import { getPageContext } from './page.js';
 
 
@@ -200,13 +200,13 @@ export function recordRuntimeError(scope, key, error) {
  * @returns {Object|null}
  */
 export function ensureGlobalNamespace() {
-    if (typeof window === 'undefined') {
+    if (isUndefined(window)) {
         return null;
     }
 
     const windowKey = getWindowKey();
 
-    if (typeof windowKey !== 'string' || windowKey.trim() === '') {
+    if (!isString(windowKey) || windowKey.trim() === '') {
         return null;
     }
 
@@ -435,7 +435,7 @@ export function getRuntimeApi() {
  * @returns {Object|null}
  */
 export function exposeRuntimeApi() {
-    if (typeof window === 'undefined') {
+    if (isUndefined(window)) {
         return null;
     }
 

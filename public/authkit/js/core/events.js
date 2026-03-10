@@ -31,7 +31,7 @@
  */
 
 import { getConfigValue } from './config.js';
-import { isString, normalizeString } from './helpers.js';
+import {isFunction, isObject, isString, isUndefined, normalizeString} from './helpers.js';
 
 
 /**
@@ -91,7 +91,7 @@ export function getEventTargetKey() {
 export function getEventTarget() {
     const eventTargetKey = getEventTargetKey();
 
-    if (eventTargetKey === 'window' && typeof window !== 'undefined') {
+    if (eventTargetKey === 'window' && !isUndefined(window) ) {
         return window;
     }
 
@@ -134,7 +134,7 @@ export function getEventName(key, fallback = null) {
  * @returns {Object}
  */
 export function createEventDetail(logicalEventKey, detail = {}) {
-    const payload = detail && typeof detail === 'object' ? { ...detail } : {};
+    const payload = detail && isObject(detail)  ? { ...detail } : {};
 
     return {
         eventKey: logicalEventKey,
@@ -167,7 +167,7 @@ export function dispatchEvent(logicalEventKey, detail = {}) {
 
     const target = getEventTarget();
 
-    if (!target || typeof target.dispatchEvent !== 'function') {
+    if (!target || !isFunction(target.dispatchEvent) ) {
         return null;
     }
 
@@ -201,14 +201,14 @@ export function onEvent(logicalEventKey, listener, options = false) {
 
     const target = getEventTarget();
 
-    if (!target || typeof target.addEventListener !== 'function') {
+    if (!target || !isFunction(target.addEventListener)) {
         return () => {};
     }
 
     target.addEventListener(eventName, listener, options);
 
     return () => {
-        if (typeof target.removeEventListener === 'function') {
+        if ( isFunction(target.removeEventListener) ) {
             target.removeEventListener(eventName, listener, options);
         }
     };

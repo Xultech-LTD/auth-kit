@@ -62,6 +62,17 @@ export function isString(value) {
 
 
 /**
+ * Determine whether a value is undefined.
+ *
+ * @param {*} value
+ * @returns {boolean}
+ */
+export function isUndefined(value) {
+    return typeof value === 'undefined';
+}
+
+
+/**
  * Determine whether a value is a boolean.
  *
  * @param {*} value
