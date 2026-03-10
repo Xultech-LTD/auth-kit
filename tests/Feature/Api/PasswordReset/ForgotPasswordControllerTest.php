@@ -274,3 +274,50 @@ it('non privacy mode returns explicit success and token page redirect when confi
 
     Event::assertDispatched(AuthKitPasswordResetRequested::class);
 });
+
+it('returns standardized DTO validation response for JSON forgot password requests', function () {
+    Route::post('/forgot-password', \Xul\AuthKit\Http\Controllers\Api\PasswordReset\ForgotPasswordController::class)
+        ->middleware(['web'])
+        ->name('authkit.api.password.forgot');
+
+    $response = $this->postJson(route('authkit.api.password.forgot'), []);
+
+    $response->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed')
+        ->assertJsonPath('payload.fields.email.0', 'The E-mail field is required.');
+
+    $errors = $response->json('errors');
+
+    expect($errors)->toBeArray()
+        ->and(count($errors))->toBe(1)
+        ->and($errors[0])->toHaveKeys(['code', 'message', 'field', 'meta'])
+        ->and($errors[0]['field'])->toBe('email')
+        ->and($errors[0]['code'])->toBe('validation_error');
+});
+
+it('normalizes email before validation for JSON forgot password requests', function () {
+    Route::post('/forgot-password', \Xul\AuthKit\Http\Controllers\Api\PasswordReset\ForgotPasswordController::class)
+        ->middleware(['web'])
+        ->name('authkit.api.password.forgot');
+
+    $response = $this->postJson(route('authkit.api.password.forgot'), [
+        'email' => '  NOT-AN-EMAIL  ',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed');
+
+    expect($response->json('payload.fields.email'))->toBeArray();
+    expect(collect($response->json('errors'))->pluck('field')->all())
+        ->toBe(['email']);
+});
