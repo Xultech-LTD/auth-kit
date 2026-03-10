@@ -189,6 +189,68 @@ it('returns a standardized action result for supported resend flow', function ()
         ->and($result->payload?->get('driver'))->toBe('fake_resend');
 });
 
+it('returns standardized DTO validation response for JSON two-factor resend requests', function () {
+    $apiNames = (array) config('authkit.route_names.api', []);
+    $routeName = (string) ($apiNames['two_factor_resend'] ?? 'authkit.api.twofactor.resend');
+
+    $response = $this->postJson(route($routeName), []);
+
+    $response
+        ->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed')
+        ->assertJsonPath('payload.fields.email.0', 'The E-mail field is required.');
+
+    $errors = $response->json('errors');
+
+    expect($errors)->toBeArray()
+        ->and(count($errors))->toBe(1)
+        ->and($errors[0])->toHaveKeys(['code', 'message', 'field', 'meta'])
+        ->and($errors[0]['field'])->toBe('email')
+        ->and($errors[0]['code'])->toBe('validation_error');
+});
+
+it('normalizes email before validation for JSON two-factor resend requests', function () {
+    $apiNames = (array) config('authkit.route_names.api', []);
+    $routeName = (string) ($apiNames['two_factor_resend'] ?? 'authkit.api.twofactor.resend');
+
+    $response = $this->postJson(route($routeName), [
+        'email' => '  NOT-AN-EMAIL  ',
+    ]);
+
+    $response
+        ->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed');
+
+    expect($response->json('payload.fields.email'))->toBeArray();
+    expect(collect($response->json('errors'))->pluck('field')->all())
+        ->toBe(['email']);
+});
+
+it('redirects to login when resend is requested without a pending challenge for non-json requests', function () {
+    Event::fake();
+
+    $apiNames = (array) config('authkit.route_names.api', []);
+    $routeName = (string) ($apiNames['two_factor_resend'] ?? 'authkit.api.twofactor.resend');
+
+    $this->post(route($routeName), [
+        'email' => 'user@example.com',
+    ])
+        ->assertRedirect(route('authkit.web.login'))
+        ->assertSessionHas('error', 'Missing two-factor challenge.');
+
+    Event::assertNotDispatched(AuthKitTwoFactorResent::class);
+});
+
 /**
  * Create a minimal user record with two-factor enabled.
  *
