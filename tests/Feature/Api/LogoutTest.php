@@ -149,6 +149,17 @@ it('returns a standardized action result from logout action', function () {
         ->and($result->payload?->get('guard'))->toBe('web');
 });
 
+it('redirects to login with error when logout is called without an authenticated user for non-json requests', function () {
+    Event::fake();
+
+    $response = $this->post(route('authkit.api.auth.logout'));
+
+    $response->assertRedirect(route('authkit.web.login'))
+        ->assertSessionHas('error', 'Unauthenticated.');
+
+    Event::assertNotDispatched(AuthKitLoggedOut::class);
+});
+
 /**
  * TestUser
  *
