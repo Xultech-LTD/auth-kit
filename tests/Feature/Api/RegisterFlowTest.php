@@ -43,17 +43,13 @@ beforeEach(function (): void {
     ]);
     Config::set('auth.providers.users', [
         'driver' => 'eloquent',
-        'model' => \Xul\AuthKit\Tests\Feature\Api\RegisterTest::class,
+        'model' => \Xul\AuthKit\Tests\Feature\Api\RegisterValidationTestUser::class,
     ]);
 
     Config::set('authkit.auth.guard', 'web');
-    Config::set('authkit.email_verification.driver', 'link');
-    Config::set('authkit.email_verification.ttl_minutes', 5);
     Config::set('authkit.route_names.api.register', 'authkit.api.auth.register');
     Config::set('authkit.route_names.web.verify_notice', 'authkit.web.email.verify.notice');
     Config::set('authkit.route_names.web.verify_link', 'authkit.web.email.verification.verify.link');
-
-    app()->singleton(TokenRepositoryContract::class, fn () => new ArrayTokenRepository());
 
     Route::post('/authkit/register', RegisterController::class)
         ->middleware(['web'])
@@ -235,12 +231,74 @@ it('returns a standardized action result from register action', function (): voi
         ->and($result->redirect?->target)->toBe('authkit.web.email.verify.notice');
 });
 
+it('returns standardized DTO validation response for JSON register requests', function (): void {
+    $route = (string) config('authkit.route_names.api.register', 'authkit.api.auth.register');
+
+    $response = $this->postJson(route($route), []);
+
+    $response
+        ->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+            'flow' => [
+                'name' => 'failed',
+            ],
+        ])
+        ->assertJsonPath('payload.fields.name.0', 'The Name field is required.')
+        ->assertJsonPath('payload.fields.email.0', 'The E-mail field is required.')
+        ->assertJsonPath('payload.fields.password.0', 'The Password field is required.')
+        ->assertJsonPath('payload.fields.password_confirmation.0', 'The Confirm password field is required.');
+
+    $errors = $response->json('errors');
+
+    expect($errors)->toBeArray()
+        ->and(count($errors))->toBe(4);
+
+    expect($errors[0])->toHaveKeys(['code', 'message', 'field', 'meta']);
+
+    expect(collect($errors)->pluck('field')->all())
+        ->toContain('name', 'email', 'password', 'password_confirmation');
+
+    expect(collect($errors)->pluck('code')->unique()->values()->all())
+        ->toBe(['validation_error']);
+});
+
+it('returns grouped field errors for invalid register JSON payload', function (): void {
+    $route = (string) config('authkit.route_names.api.register', 'authkit.api.auth.register');
+
+    $response = $this->postJson(route($route), [
+        'name' => '',
+        'email' => 'not-an-email',
+        'password' => 'short',
+        'password_confirmation' => 'different',
+    ]);
+
+    $response
+        ->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed');
+
+    expect($response->json('payload.fields'))->toBeArray();
+
+    expect(array_keys($response->json('payload.fields')))
+        ->toContain('name', 'email', 'password', 'password_confirmation');
+
+    expect(collect($response->json('errors'))->pluck('field')->all())
+        ->toContain('name', 'email', 'password', 'password_confirmation');
+});
+
 /**
- * TestUser
+ * RegisterValidationTestUser
  *
- * Minimal user model for package tests.
+ * Minimal user model for register validation request tests.
  */
-final class RegisterTest extends BaseUser
+final class RegisterValidationTestUser extends BaseUser
 {
     /**
      * @var string
