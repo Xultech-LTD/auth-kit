@@ -303,3 +303,56 @@ it('logs the user in after reset when configured', function () {
             && $event->remember === true;
     });
 });
+
+it('returns standardized DTO validation response for JSON reset password requests', function () {
+    $response = $this->postJson(route('authkit.api.password.reset'), []);
+
+    $response->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed')
+        ->assertJsonPath('payload.fields.email.0', 'The E-mail field is required.')
+        ->assertJsonPath('payload.fields.token.0', 'The Reset token field is required.')
+        ->assertJsonPath('payload.fields.password.0', 'The New password field is required.')
+        ->assertJsonPath('payload.fields.password_confirmation.0', 'The Confirm password field is required.');
+
+    $errors = $response->json('errors');
+
+    expect($errors)->toBeArray()
+        ->and(count($errors))->toBe(4)
+        ->and($errors[0])->toHaveKeys(['code', 'message', 'field', 'meta']);
+
+    expect(collect($errors)->pluck('field')->all())
+        ->toContain('email', 'token', 'password', 'password_confirmation');
+
+    expect(collect($errors)->pluck('code')->unique()->values()->all())
+        ->toBe(['validation_error']);
+});
+
+it('normalizes email before validation for JSON reset password requests', function () {
+    $response = $this->postJson(route('authkit.api.password.reset'), [
+        'email' => '  NOT-AN-EMAIL  ',
+        'token' => '',
+        'password' => '',
+        'password_confirmation' => '',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed');
+
+    expect($response->json('payload.fields.email'))->toBeArray();
+    expect($response->json('payload.fields.token'))->toBeArray();
+    expect($response->json('payload.fields.password'))->toBeArray();
+    expect($response->json('payload.fields.password_confirmation'))->toBeArray();
+
+    expect(collect($response->json('errors'))->pluck('field')->all())
+        ->toContain('email', 'token', 'password', 'password_confirmation');
+});
