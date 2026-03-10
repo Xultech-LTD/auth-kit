@@ -419,6 +419,56 @@ function base32_decode_bytes(string $value): string
     return $output;
 }
 
+it('returns standardized DTO validation response for JSON two-factor challenge requests', function () {
+    $response = $this->postJson(route('authkit.api.twofactor.challenge'), []);
+
+    $response
+        ->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed')
+        ->assertJsonPath('payload.fields.challenge.0', 'The Challenge field is required.')
+        ->assertJsonPath('payload.fields.code.0', 'The Authentication code field is required.');
+
+    $errors = $response->json('errors');
+
+    expect($errors)->toBeArray()
+        ->and(count($errors))->toBe(2)
+        ->and($errors[0])->toHaveKeys(['code', 'message', 'field', 'meta'])
+        ->and($errors[1])->toHaveKeys(['code', 'message', 'field', 'meta']);
+
+    expect(collect($errors)->pluck('field')->all())
+        ->toContain('challenge', 'code');
+
+    expect(collect($errors)->pluck('code')->unique()->values()->all())
+        ->toBe(['validation_error']);
+});
+
+it('hydrates challenge from session before validation for JSON two-factor challenge requests', function () {
+    $response = $this
+        ->withSession([AuthKitSessionKeys::TWO_FACTOR_CHALLENGE => 'session-challenge-token'])
+        ->postJson(route('authkit.api.twofactor.challenge'), []);
+
+    $response
+        ->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed')
+        ->assertJsonMissingPath('payload.fields.challenge')
+        ->assertJsonPath('payload.fields.code.0', 'The Authentication code field is required.');
+
+    $errors = collect($response->json('errors'));
+
+    expect($errors->pluck('field')->all())
+        ->toBe(['code']);
+});
+
 /**
  * TwoFactorChallengeTestUser
  *
