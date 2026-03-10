@@ -178,8 +178,8 @@ it('resets password with a valid token and consumes the token', function () {
     $this->postJson(route('authkit.api.password.reset'), [
         'email' => 'jane@example.com',
         'token' => $token,
-        'password' => 'new-password-123',
-        'password_confirmation' => 'new-password-123',
+        'password' => 'New-password-123',
+        'password_confirmation' => 'New-password-123',
     ])
         ->assertStatus(200)
         ->assertJson([
@@ -193,7 +193,7 @@ it('resets password with a valid token and consumes the token', function () {
 
     $user->refresh();
 
-    expect(Hash::check('new-password-123', (string) $user->password))->toBeTrue()
+    expect(Hash::check('New-password-123', (string) $user->password))->toBeTrue()
         ->and($pending->hasPendingForEmail('jane@example.com'))->toBeFalse()
         ->and($pending->peekToken('jane@example.com', $token))->toBeNull();
 });
@@ -215,8 +215,8 @@ it('rejects reset when token is invalid and does not update password', function 
     $this->postJson(route('authkit.api.password.reset'), [
         'email' => 'jane@example.com',
         'token' => 'bad-token',
-        'password' => 'new-password-123',
-        'password_confirmation' => 'new-password-123',
+        'password' => 'New-password-123',
+        'password_confirmation' => 'New-password-123',
     ])
         ->assertStatus(422)
         ->assertJson([
@@ -287,8 +287,8 @@ it('logs the user in after reset when configured', function () {
     $response = $this->post(route('authkit.api.password.reset'), [
         'email' => 'jane@example.com',
         'token' => $token,
-        'password' => 'new-password-123',
-        'password_confirmation' => 'new-password-123',
+        'password' => 'New-password-123',
+        'password_confirmation' => 'New-password-123',
     ]);
 
     $response->assertRedirect(route('dashboard'))

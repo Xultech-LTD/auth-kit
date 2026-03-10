@@ -152,7 +152,7 @@ final class RegisterRequest extends FormRequest
         }
 
         if (in_array('password', $fields, true)) {
-            $rules['password'] = ['required', 'string', Password::defaults()];
+            $rules['password'] = ['required', Password::defaults()];
         }
 
         if (in_array('password_confirmation', $fields, true)) {

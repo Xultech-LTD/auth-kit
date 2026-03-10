@@ -3,6 +3,7 @@
 namespace Xul\AuthKit\Http\Requests\PasswordReset;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Password;
 use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
 use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
 
@@ -149,8 +150,8 @@ final class ResetPasswordRequest extends FormRequest
         return [
             'email' => ['required', 'string', 'email'],
             'token' => ['required', 'string'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'password_confirmation' => ['required', 'string', 'min:8'],
+            'password' => ['required', 'string', 'confirmed',Password::defaults()],
+            'password_confirmation' => ['required', 'string', Password::defaults()],
         ];
     }
 }

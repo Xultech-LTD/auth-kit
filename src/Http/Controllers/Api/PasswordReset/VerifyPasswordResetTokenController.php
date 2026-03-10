@@ -14,11 +14,12 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 /**
  * VerifyPasswordResetTokenController
  *
- * Verifies a reset token or code for token-driver flows.
+ * Verifies a reset token or code for token-driver flows and completes
+ * the password reset on the same submission.
  *
  * Responsibilities:
  * - Validate the incoming request through VerifyPasswordResetTokenRequest.
- * - Delegate token verification orchestration to VerifyPasswordResetTokenAction.
+ * - Delegate token verification and password reset orchestration to VerifyPasswordResetTokenAction.
  * - Return JSON responses for API or AJAX consumers.
  * - Return redirect responses with flash messages for standard web consumers.
  */
@@ -41,8 +42,9 @@ final class VerifyPasswordResetTokenController
     ): JsonResponse|RedirectResponse {
         $email = (string) data_get($request->validated(), 'email', '');
         $token = (string) data_get($request->validated(), 'token', '');
+        $password = (string) data_get($request->validated(), 'password', '');
 
-        $result = $action->handle($email, $token);
+        $result = $action->handle($email, $token, $password);
 
         if (ResponseResolver::expectsJson($request)) {
             return $this->ok($result->toArray(), $result->status);

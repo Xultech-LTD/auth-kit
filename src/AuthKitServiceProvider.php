@@ -6,6 +6,7 @@ use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 use InvalidArgumentException;
 use Xul\AuthKit\Actions\EmailVerification\VerifyEmailLinkAction;
 use Xul\AuthKit\Contracts\EmailVerificationNotifierContract;
@@ -272,6 +273,14 @@ final class AuthKitServiceProvider extends ServiceProvider
         $this->registerPasswordResetListener();
 
         $this->registerPublishables();
+
+        Password::defaults(function () {
+            $rule = Password::min(8)->letters()->mixedCase()->numbers()->symbols();
+
+            return $this->app->isProduction()
+                ? $rule->mixedCase()->uncompromised()
+                : $rule;
+        });
     }
 
     /**

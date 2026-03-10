@@ -91,8 +91,8 @@ it('registers successfully using token driver (API JSON)', function (): void {
     $response = $this->postJson(route($route), [
         'name' => 'Michael API',
         'email' => $email,
-        'password' => 'password1234',
-        'password_confirmation' => 'password1234',
+        'password' => 'Password1234!',
+        'password_confirmation' => 'Password1234!',
     ]);
 
     $response->assertStatus(201)
@@ -152,8 +152,8 @@ it('registers successfully using link driver (API JSON)', function (): void {
     $response = $this->postJson(route($route), [
         'name' => 'Michael API Link',
         'email' => $email,
-        'password' => 'password1234',
-        'password_confirmation' => 'password1234',
+        'password' => 'Password1234!',
+        'password_confirmation' => 'Password1234!',
     ]);
 
     $response->assertStatus(201)
@@ -223,7 +223,7 @@ it('returns a standardized action result from register action', function (): voi
     $result = $action->handle([
         'name' => 'Michael DTO',
         'email' => 'michael@examples.com',
-        'password' => 'password1234',
+        'password' => 'Password1234!',
     ]);
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
