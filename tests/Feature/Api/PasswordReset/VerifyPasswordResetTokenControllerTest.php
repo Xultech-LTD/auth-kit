@@ -274,3 +274,68 @@ it('returns a standardized action result for valid token reset flow', function (
 
     expect(Hash::check('new-password-123', (string) $user->password))->toBeTrue();
 });
+
+it('returns standardized DTO validation response for JSON verify password reset token requests', function () {
+    $routeName = (string) data_get(
+        config('authkit.route_names.api', []),
+        'password_verify_token',
+        'authkit.api.password.reset.verify.token'
+    );
+
+    $response = $this->postJson(route($routeName), []);
+
+    $response->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed')
+        ->assertJsonPath('payload.fields.email.0', 'The E-mail field is required.')
+        ->assertJsonPath('payload.fields.token.0', 'The Reset code field is required.')
+        ->assertJsonPath('payload.fields.password.0', 'The New password field is required.')
+        ->assertJsonPath('payload.fields.password_confirmation.0', 'The Confirm password field is required.');
+
+    $errors = $response->json('errors');
+
+    expect($errors)->toBeArray()
+        ->and(count($errors))->toBe(4)
+        ->and($errors[0])->toHaveKeys(['code', 'message', 'field', 'meta']);
+
+    expect(collect($errors)->pluck('field')->all())
+        ->toContain('email', 'token', 'password', 'password_confirmation');
+
+    expect(collect($errors)->pluck('code')->unique()->values()->all())
+        ->toBe(['validation_error']);
+});
+
+it('normalizes email before validation for JSON verify password reset token requests', function () {
+    $routeName = (string) data_get(
+        config('authkit.route_names.api', []),
+        'password_verify_token',
+        'authkit.api.password.reset.verify.token'
+    );
+
+    $response = $this->postJson(route($routeName), [
+        'email' => '  NOT-AN-EMAIL  ',
+        'token' => '',
+        'password' => '',
+        'password_confirmation' => '',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed');
+
+    expect($response->json('payload.fields.email'))->toBeArray();
+    expect($response->json('payload.fields.token'))->toBeArray();
+    expect($response->json('payload.fields.password'))->toBeArray();
+    expect($response->json('payload.fields.password_confirmation'))->toBeArray();
+
+    expect(collect($response->json('errors'))->pluck('field')->all())
+        ->toContain('email', 'token', 'password', 'password_confirmation');
+});
