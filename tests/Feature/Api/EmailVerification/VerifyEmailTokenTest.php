@@ -353,3 +353,75 @@ it('redirects to dashboard for web flow when login after verify is enabled', fun
     $this->assertAuthenticated('web');
     $this->assertAuthenticatedAs($user, 'web');
 });
+
+it('returns standardized DTO validation response for JSON verify email token requests', function () {
+    $route = (string) data_get(
+        config('authkit.route_names.api', []),
+        'verify_token',
+        'authkit.api.email.verification.verify.token'
+    );
+
+    $response = $this->postJson(route($route), []);
+
+    $response->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed')
+        ->assertJsonPath('payload.fields.email.0', 'The E-mail field is required.')
+        ->assertJsonPath('payload.fields.token.0', 'The Verification code field is required.');
+
+    $errors = $response->json('errors');
+
+    expect($errors)->toBeArray()
+        ->and(count($errors))->toBe(2)
+        ->and($errors[0])->toHaveKeys(['code', 'message', 'field', 'meta'])
+        ->and($errors[1])->toHaveKeys(['code', 'message', 'field', 'meta']);
+
+    expect(collect($errors)->pluck('field')->all())
+        ->toContain('email', 'token');
+
+    expect(collect($errors)->pluck('code')->unique()->values()->all())
+        ->toBe(['validation_error']);
+});
+
+it('normalizes email before validation for JSON verify email token requests', function () {
+    $route = (string) data_get(
+        config('authkit.route_names.api', []),
+        'verify_token',
+        'authkit.api.email.verification.verify.token'
+    );
+
+    $response = $this->postJson(route($route), [
+        'email' => '  NOT-AN-EMAIL  ',
+        'token' => '',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed');
+
+    expect($response->json('payload.fields.email'))->toBeArray();
+    expect($response->json('payload.fields.token'))->toBeArray();
+    expect(collect($response->json('errors'))->pluck('field')->all())
+        ->toContain('email', 'token');
+});
+
+it('redirects back with validation errors for invalid SSR verify email token requests', function () {
+    $route = (string) data_get(
+        config('authkit.route_names.api', []),
+        'verify_token',
+        'authkit.api.email.verification.verify.token'
+    );
+
+    $response = $this->from(route('authkit.web.email.verify.notice'))->post(route($route), []);
+
+    $response->assertStatus(302);
+    $response->assertSessionHasErrors(['email', 'token']);
+});
