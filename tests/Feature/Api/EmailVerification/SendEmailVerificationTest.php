@@ -297,6 +297,52 @@ it('returns 404 when the email does not belong to any user', function (): void {
     Event::assertNotDispatched(AuthKitEmailVerificationRequired::class);
 });
 
+it('returns standardized DTO validation response for JSON send email verification requests', function (): void {
+    $response = $this->postJson(route('authkit.api.email.verification.send'), []);
+
+    $response->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed')
+        ->assertJsonPath('payload.fields.email.0', 'The E-mail field is required.');
+
+    $errors = $response->json('errors');
+
+    expect($errors)->toBeArray()
+        ->and(count($errors))->toBe(1)
+        ->and($errors[0])->toHaveKeys(['code', 'message', 'field', 'meta'])
+        ->and($errors[0]['field'])->toBe('email')
+        ->and($errors[0]['code'])->toBe('validation_error');
+});
+
+it('normalizes email before validation for JSON send email verification requests', function (): void {
+    $response = $this->postJson(route('authkit.api.email.verification.send'), [
+        'email' => '  NOT-AN-EMAIL  ',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed');
+
+    expect($response->json('payload.fields.email'))->toBeArray();
+    expect(collect($response->json('errors'))->pluck('field')->all())
+        ->toBe(['email']);
+});
+
+it('redirects back with errors for invalid SSR send email verification requests', function (): void {
+    $response = $this->from(route('authkit.web.email.verify.notice'))->post(route('authkit.api.email.verification.send'), []);
+
+    $response->assertStatus(302);
+    $response->assertSessionHasErrors(['email']);
+});
+
 /**
  * SendEmailVerificationTestUser
  *
