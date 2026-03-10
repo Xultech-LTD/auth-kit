@@ -294,6 +294,96 @@ it('controller redirects to dashboard on successful SSR recovery', function () {
         ->assertSessionHas('status', 'Recovered and logged in.');
 });
 
+it('returns standardized DTO validation response for JSON two-factor recovery requests', function () {
+    $apiNames = (array) config('authkit.route_names.api', []);
+    $routeName = (string) ($apiNames['two_factor_recovery'] ?? 'authkit.api.twofactor.recovery');
+
+    $response = $this->postJson(route($routeName), []);
+
+    $response
+        ->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed')
+        ->assertJsonPath('payload.fields.challenge.0', 'The Challenge field is required.')
+        ->assertJsonPath('payload.fields.recovery_code.0', 'The Recovery code field is required.');
+
+    $errors = $response->json('errors');
+
+    expect($errors)->toBeArray()
+        ->and(count($errors))->toBe(2)
+        ->and($errors[0])->toHaveKeys(['code', 'message', 'field', 'meta'])
+        ->and($errors[1])->toHaveKeys(['code', 'message', 'field', 'meta']);
+
+    expect(collect($errors)->pluck('field')->all())
+        ->toContain('challenge', 'recovery_code');
+
+    expect(collect($errors)->pluck('code')->unique()->values()->all())
+        ->toBe(['validation_error']);
+});
+
+it('hydrates challenge from session before validation for JSON two-factor recovery requests', function () {
+    $apiNames = (array) config('authkit.route_names.api', []);
+    $routeName = (string) ($apiNames['two_factor_recovery'] ?? 'authkit.api.twofactor.recovery');
+
+    $response = $this
+        ->withSession([\Xul\AuthKit\Support\AuthKitSessionKeys::TWO_FACTOR_CHALLENGE => 'session-recovery-challenge'])
+        ->postJson(route($routeName), []);
+
+    $response
+        ->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+        ])
+        ->assertJsonPath('flow.name', 'failed')
+        ->assertJsonMissingPath('payload.fields.challenge')
+        ->assertJsonPath('payload.fields.recovery_code.0', 'The Recovery code field is required.');
+
+    $errors = collect($response->json('errors'));
+
+    expect($errors->pluck('field')->all())
+        ->toBe(['recovery_code']);
+});
+
+it('controller redirects back to two-factor challenge on invalid SSR recovery code', function () {
+    Event::fake();
+
+    $user = TestUser::query()->create([
+        'email' => 'michael@example.com',
+        'password' => Hash::make('secret123'),
+    ]);
+
+    $user->enableTwoFactor();
+    $user->setTwoFactorSecret('JBSWY3DPEHPK3PXP');
+    $user->setTwoFactorMethods(['totp']);
+    $user->setTwoFactorRecoveryCodes(['AAAAA-BBBBB']);
+    $user->save();
+
+    $pending = app(PendingLogin::class);
+
+    $challenge = $pending->create(
+        userId: (string) $user->getAuthIdentifier(),
+        remember: false,
+        ttlMinutes: 5,
+        methods: ['totp']
+    );
+
+    $apiNames = (array) config('authkit.route_names.api', []);
+    $routeName = (string) ($apiNames['two_factor_recovery'] ?? 'authkit.api.twofactor.recovery');
+
+    $this->post(route($routeName), [
+        'challenge' => $challenge,
+        'recovery_code' => 'WRONG-CODE',
+    ])
+        ->assertRedirect(route('authkit.web.twofactor.challenge', ['c' => $challenge]))
+        ->assertSessionHas('error', 'Invalid recovery code.');
+});
+
 /**
  * TestUser
  *
