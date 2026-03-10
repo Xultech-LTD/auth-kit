@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Xul\AuthKit\Actions\Auth\TwoFactorChallengeAction;
 use Xul\AuthKit\Concerns\Http\ApiRespondsJson;
 use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\Auth\TwoFactorChallengeRequest;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
@@ -15,9 +16,16 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Handles completion of a pending login two-factor challenge.
  *
- * Returns:
- * - JSON responses for AJAX/JSON requests.
- * - Redirect responses with flash messages for standard SSR form posts.
+ * Responsibilities:
+ * - Validate the incoming request through TwoFactorChallengeRequest.
+ * - Delegate two-factor challenge orchestration to TwoFactorChallengeAction.
+ * - Return JSON responses for API or AJAX consumers.
+ * - Return redirect responses with flash messages for standard web consumers.
+ *
+ * Design notes:
+ * - TwoFactorChallengeAction is the source of truth for outcome, flow,
+ *   redirect, payload, and error semantics.
+ * - Public JSON responses are generated from the standardized action result DTO.
  */
 final class TwoFactorChallengeController
 {
@@ -32,49 +40,61 @@ final class TwoFactorChallengeController
      * @return JsonResponse|RedirectResponse
      * @throws \Throwable
      */
-    public function __invoke(TwoFactorChallengeRequest $request, TwoFactorChallengeAction $action): JsonResponse|RedirectResponse
-    {
+    public function __invoke(
+        TwoFactorChallengeRequest $request,
+        TwoFactorChallengeAction $action
+    ): JsonResponse|RedirectResponse {
         $result = $action->handle($request->validated());
 
         if (ResponseResolver::expectsJson($request)) {
-            $status = (int) ($result['status'] ?? 200);
-
-            return $this->ok($result, $status);
+            return $this->ok($result->toArray(), $result->status);
         }
 
-        $loginRoute = (string) data_get(config('authkit.route_names.web', []), 'login', 'authkit.web.login');
+        return $this->toWebResponse($result);
+    }
 
-        if (!(bool) ($result['ok'] ?? false)) {
-            if ((bool) ($result['two_factor_required'] ?? false)) {
-                $twoFactorRoute = (string) data_get(config('authkit.route_names.web', []), 'two_factor_challenge', 'authkit.web.twofactor.challenge');
+    /**
+     * Convert the standardized action result into a web redirect response.
+     *
+     * @param AuthKitActionResult $result
+     * @return RedirectResponse
+     */
+    protected function toWebResponse(AuthKitActionResult $result): RedirectResponse
+    {
+        $loginRoute = (string) data_get(
+            config('authkit.route_names.web', []),
+            'login',
+            'authkit.web.login'
+        );
 
+        if (! $result->ok) {
+            if ($result->hasRedirect() && $result->redirect?->isRoute()) {
                 return $this->toRouteWithError(
-                    routeName: $twoFactorRoute,
-                    parameters: ['c' => (string) ($result['challenge'] ?? '')],
-                    message: (string) ($result['message'] ?? 'Invalid authentication code.')
+                    routeName: $result->redirect->target,
+                    parameters: $result->redirect->parameters,
+                    message: $result->message
                 );
             }
 
             return $this->toRouteWithError(
                 routeName: $loginRoute,
                 parameters: [],
-                message: (string) ($result['message'] ?? 'Two-factor challenge failed.')
+                message: $result->message
             );
         }
 
-        $redirectRoute = data_get(config('authkit.login', []), 'redirect_route');
-        $dashboardRoute = (string) data_get(config('authkit.login', []), 'dashboard_route', 'dashboard');
-
-        $target = is_string($redirectRoute) && $redirectRoute !== ''
-            ? $redirectRoute
-            : $dashboardRoute;
-
-        if ($target === '') {
-            $target = $loginRoute;
+        if ($result->hasRedirect() && $result->redirect?->isRoute()) {
+            return $this->toRouteWithStatus(
+                routeName: $result->redirect->target,
+                parameters: $result->redirect->parameters,
+                message: $result->message
+            );
         }
 
-        return redirect()
-            ->route($target)
-            ->with('status', (string) ($result['message'] ?? 'Two-factor verified.'));
+        return $this->toRouteWithStatus(
+            routeName: $loginRoute,
+            parameters: [],
+            message: $result->message
+        );
     }
 }

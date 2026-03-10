@@ -178,5 +178,5 @@ Route::middleware(array_values(array_filter(array_merge(
         Route::get(
             'dashboard',
             ControllerResolver::resolve('web', 'dashboard_web', DashboardController::class)
-        )->name((string) ($webNames['dashboard_web'] ?? 'authkit.web.dashboard.web'));
+        )->name((string) ($webNames['dashboard_web'] ?? 'authkit.web.dashboard'));
     });

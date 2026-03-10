@@ -6,30 +6,38 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Support\Facades\URL;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitFlowStep;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitPublicPayload;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitRedirect;
 use Xul\AuthKit\Events\AuthKitEmailVerificationRequired;
 use Xul\AuthKit\Support\PendingEmailVerification;
 
 /**
  * SendEmailVerificationAction
  *
- * Resends an email verification message (link or token) to a user.
+ * Resends an email verification message to a user.
  *
  * Responsibilities:
  * - Normalize the email input.
  * - Resolve the user by email using the configured guard provider.
  * - Prevent resending to a different email than the authenticated user's email.
  * - Skip sending if the user is already verified.
- * - Create a verification token context via PendingEmailVerification.
- * - Build a signed URL when driver=link.
- * - Dispatch AuthKitEmailVerificationRequired for external delivery.
+ * - Create a verification token context through PendingEmailVerification.
+ * - Build a signed URL when the active driver is link-based.
+ * - Dispatch AuthKitEmailVerificationRequired for external delivery handling.
+ * - Return a standardized AuthKitActionResult for all outcomes.
  *
  * Security:
- * - This action never returns raw tokens or URLs to the caller.
- * - Tokens/URLs are only emitted via the event for delivery purposes.
+ * - This action never returns raw tokens or signed URLs to the caller.
+ * - Tokens and URLs are only emitted through the event for delivery purposes.
  */
 final class SendEmailVerificationAction
 {
     /**
+     * Create a new instance.
+     *
      * @param PendingEmailVerification $pending
      * @param AuthFactory $auth
      */
@@ -39,15 +47,24 @@ final class SendEmailVerificationAction
     ) {}
 
     /**
+     * Resend the email verification message.
+     *
      * @param string $email
-     * @return SendEmailVerificationResult
+     * @return AuthKitActionResult
      */
-    public function execute(string $email): SendEmailVerificationResult
+    public function handle(string $email): AuthKitActionResult
     {
         $email = mb_strtolower(trim($email));
 
         if ($email === '') {
-            return SendEmailVerificationResult::failed('Email is required.');
+            return AuthKitActionResult::failure(
+                message: 'Email is required.',
+                status: 422,
+                flow: AuthKitFlowStep::failed(),
+                errors: [
+                    AuthKitError::validation('email', 'The email field is required.', 'missing_email'),
+                ],
+            );
         }
 
         $guardName = (string) config('authkit.auth.guard', 'web');
@@ -59,18 +76,43 @@ final class SendEmailVerificationAction
             $sessionEmail = mb_strtolower(trim((string) ($sessionUser->email ?? '')));
 
             if ($sessionEmail !== '' && $sessionEmail !== $email) {
-                return SendEmailVerificationResult::failed('Invalid email verification context.');
+                return AuthKitActionResult::failure(
+                    message: 'Invalid email verification context.',
+                    status: 403,
+                    flow: AuthKitFlowStep::failed(),
+                    errors: [
+                        AuthKitError::make('invalid_email_verification_context', 'Invalid email verification context.'),
+                    ],
+                    redirect: $this->noticeRedirect($email)
+                );
             }
         }
 
         $user = $this->retrieveByEmail($email);
 
         if (! $user) {
-            return SendEmailVerificationResult::failed('We could not find a user with that email address.');
+            return AuthKitActionResult::failure(
+                message: 'We could not find a user with that email address.',
+                status: 404,
+                flow: AuthKitFlowStep::failed(),
+                errors: [
+                    AuthKitError::make('email_verification_user_not_found', 'We could not find a user with that email address.'),
+                ],
+                redirect: $this->noticeRedirect($email)
+            );
         }
 
         if ($this->userHasVerifiedEmail($user)) {
-            return SendEmailVerificationResult::alreadyVerified();
+            return AuthKitActionResult::success(
+                message: 'Your email is already verified.',
+                status: 200,
+                flow: AuthKitFlowStep::completed(),
+                redirect: $this->noticeRedirect($email),
+                payload: AuthKitPublicPayload::make([
+                    'email' => $email,
+                    'already_verified' => true,
+                ])
+            );
         }
 
         $driver = (string) config('authkit.email_verification.driver', 'link');
@@ -82,18 +124,20 @@ final class SendEmailVerificationAction
         ]);
 
         if (! is_string($token) || $token === '') {
-            return SendEmailVerificationResult::failed('Unable to create verification token.');
+            return AuthKitActionResult::failure(
+                message: 'Unable to create verification token.',
+                status: 500,
+                flow: AuthKitFlowStep::failed(),
+                errors: [
+                    AuthKitError::make('email_verification_token_creation_failed', 'Unable to create verification token.'),
+                ],
+                redirect: $this->noticeRedirect($email)
+            );
         }
 
         $url = $driver === 'link'
             ? $this->buildSignedLinkUrl($user, $email, $ttl, $token)
             : null;
-
-        $noticeRoute = (string) data_get(
-            config('authkit.route_names.web', []),
-            'verify_notice',
-            'authkit.web.email.verify.notice'
-        );
 
         event(new AuthKitEmailVerificationRequired(
             user: $user,
@@ -104,10 +148,21 @@ final class SendEmailVerificationAction
             url: $url
         ));
 
-        return SendEmailVerificationResult::sent($driver, route($noticeRoute, ['email' => (string) $email]));
+        return AuthKitActionResult::success(
+            message: 'Verification message sent.',
+            status: 200,
+            flow: AuthKitFlowStep::emailVerificationNotice(),
+            redirect: $this->noticeRedirect($email),
+            payload: AuthKitPublicPayload::make([
+                'email' => $email,
+                'driver' => $driver,
+            ])
+        );
     }
 
     /**
+     * Resolve a user by email using the configured guard provider.
+     *
      * @param string $email
      * @return Authenticatable|null
      */
@@ -128,6 +183,8 @@ final class SendEmailVerificationAction
     }
 
     /**
+     * Determine whether the given user has already verified their email address.
+     *
      * @param Authenticatable $user
      * @return bool
      */
@@ -143,14 +200,20 @@ final class SendEmailVerificationAction
     }
 
     /**
+     * Build the signed verification URL for the link driver.
+     *
      * @param Authenticatable $user
      * @param string $email
      * @param int $ttlMinutes
      * @param string $token
      * @return string
      */
-    protected function buildSignedLinkUrl(Authenticatable $user, string $email, int $ttlMinutes, string $token): string
-    {
+    protected function buildSignedLinkUrl(
+        Authenticatable $user,
+        string $email,
+        int $ttlMinutes,
+        string $token
+    ): string {
         $routeName = (string) data_get(
             config('authkit.route_names.web', []),
             'verify_link',
@@ -165,6 +228,29 @@ final class SendEmailVerificationAction
                 'hash' => $token,
                 'email' => $email,
             ]
+        );
+    }
+
+    /**
+     * Resolve the verification notice redirect.
+     *
+     * @param string $email
+     * @return AuthKitRedirect
+     */
+    protected function noticeRedirect(string $email): AuthKitRedirect
+    {
+        $routeName = (string) data_get(
+            config('authkit.route_names.web', []),
+            'verify_notice',
+            'authkit.web.email.verify.notice'
+        );
+
+        $parameters = $email !== '' ? ['email' => $email] : [];
+
+        return AuthKitRedirect::route(
+            routeName: $routeName,
+            parameters: $parameters,
+            url: route($routeName, $parameters)
         );
     }
 }

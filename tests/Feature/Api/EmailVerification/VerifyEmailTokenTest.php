@@ -3,17 +3,22 @@
 namespace Xul\AuthKit\Tests\Feature\Api\EmailVerification;
 
 use Illuminate\Auth\Events\Verified;
+use Illuminate\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Auth\User as BaseUser;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\URL;
+use Xul\AuthKit\Actions\EmailVerification\VerifyEmailTokenAction;
+use Xul\AuthKit\Contracts\TokenRepositoryContract;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Events\AuthKitEmailVerified;
+use Xul\AuthKit\Events\AuthKitLoggedIn;
+use Xul\AuthKit\Http\Controllers\Api\EmailVerification\VerifyEmailTokenController;
 use Xul\AuthKit\Support\PendingEmailVerification;
-use Illuminate\Auth\MustVerifyEmail;
-use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
+use Xul\AuthKit\Tests\Support\ArrayTokenRepository;
 
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -22,14 +27,8 @@ final class TestUser extends BaseUser implements MustVerifyEmailContract
     use Notifiable;
     use MustVerifyEmail;
 
-    /**
-     * @var string
-     */
     protected $table = 'users';
 
-    /**
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
@@ -40,44 +39,41 @@ final class TestUser extends BaseUser implements MustVerifyEmailContract
 }
 
 beforeEach(function () {
-    /**
-     * Minimal routes needed by redirect flows.
-     */
-    Route::get('/dashboard', fn () => 'ok')->name('dashboard');
+    Route::middleware(['web'])->group(function (): void {
+        Route::get('/dashboard', fn () => 'ok')->name('authkit.web.dashboard');
+        Route::get('/login', fn () => 'login')->name('authkit.web.login');
+        Route::get('/email/verify/notice', fn () => 'notice')->name('authkit.web.email.verify.notice');
+        Route::get('/email/verify/success', fn () => 'success')->name('authkit.web.email.verify.success');
 
-    /**
-     * Test users table.
-     */
-    if (! Schema::hasTable('users')) {
-        Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->nullable();
-            $table->string('email')->unique();
-            $table->string('password')->nullable();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->rememberToken();
-            $table->timestamps();
-        });
-    }
+        Route::post('/email/verify/token', VerifyEmailTokenController::class)
+            ->name('authkit.api.email.verification.verify.token');
+    });
 
-    /**
-     * Ensure the auth provider uses our test user model.
-     */
+    Schema::create('users', function (Blueprint $table) {
+        $table->id();
+        $table->string('name')->nullable();
+        $table->string('email')->unique();
+        $table->string('password')->nullable();
+        $table->timestamp('email_verified_at')->nullable();
+        $table->rememberToken();
+        $table->timestamps();
+    });
+
     config()->set('auth.providers.users.model', TestUser::class);
-
-    /**
-     * Ensure AuthKit uses the same guard during tests.
-     */
     config()->set('authkit.auth.guard', 'web');
+    config()->set('authkit.login.dashboard_route', 'authkit.web.dashboard');
+    config()->set('authkit.route_names.web.login', 'authkit.web.login');
+    config()->set('authkit.route_names.web.verify_notice', 'authkit.web.email.verify.notice');
+    config()->set('authkit.route_names.web.verify_success', 'authkit.web.email.verify.success');
+    config()->set('authkit.route_names.web.dashboard_web', 'authkit.web.dashboard');
+    config()->set('authkit.route_names.api.verify_token', 'authkit.api.email.verification.verify.token');
+    config()->set('authkit.email_verification.columns.verified_at', 'email_verified_at');
 
-    /**
-     * Ensure we have a stable dashboard route target.
-     */
-    config()->set('authkit.login.dashboard_route', 'dashboard');
+    app()->singleton(TokenRepositoryContract::class, fn () => new ArrayTokenRepository());
 });
 
-it('verifies email via token (JSON) and logs the user in when enabled', function () {
-    Event::fake([Verified::class, AuthKitEmailVerified::class]);
+it('verifies email via token in json mode and logs the user in when enabled', function () {
+    Event::fake([Verified::class, AuthKitEmailVerified::class, AuthKitLoggedIn::class]);
 
     config()->set('authkit.email_verification.driver', 'token');
     config()->set('authkit.email_verification.ttl_minutes', 10);
@@ -105,14 +101,22 @@ it('verifies email via token (JSON) and logs the user in when enabled', function
         'authkit.api.email.verification.verify.token'
     );
 
-    $res = $this->postJson(route($route), [
+    $response = $this->postJson(route($route), [
         'email' => $user->email,
         'token' => $token,
     ]);
 
-    $res->assertStatus(200)->assertJson([
-        'ok' => true,
-    ]);
+    $response->assertStatus(200)
+        ->assertJson([
+            'ok' => true,
+            'status' => 200,
+            'message' => 'Email verified successfully.',
+        ])
+        ->assertJsonPath('flow.name', 'completed')
+        ->assertJsonPath('payload.email', $user->email)
+        ->assertJsonPath('payload.verified', true)
+        ->assertJsonPath('payload.logged_in', true)
+        ->assertJsonPath('redirect.target', 'authkit.web.dashboard');
 
     $user->refresh();
 
@@ -122,14 +126,19 @@ it('verifies email via token (JSON) and logs the user in when enabled', function
     $this->assertAuthenticatedAs($user, 'web');
 
     Event::assertDispatched(Verified::class);
-    Event::assertDispatched(AuthKitEmailVerified::class, function ($e) use ($user) {
-        return (string) $e->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
-            && $e->driver === 'token';
+    Event::assertDispatched(AuthKitEmailVerified::class, function ($event) use ($user) {
+        return (string) $event->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
+            && $event->driver === 'token';
+    });
+    Event::assertDispatched(AuthKitLoggedIn::class, function ($event) use ($user) {
+        return (string) $event->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
+            && $event->guard === 'web'
+            && $event->remember === true;
     });
 });
 
-it('verifies email via token (JSON) but does not log the user in when disabled', function () {
-    Event::fake([Verified::class, AuthKitEmailVerified::class]);
+it('verifies email via token in json mode but does not log the user in when disabled', function () {
+    Event::fake([Verified::class, AuthKitEmailVerified::class, AuthKitLoggedIn::class]);
 
     config()->set('authkit.email_verification.driver', 'token');
     config()->set('authkit.email_verification.ttl_minutes', 10);
@@ -156,14 +165,21 @@ it('verifies email via token (JSON) but does not log the user in when disabled',
         'authkit.api.email.verification.verify.token'
     );
 
-    $res = $this->postJson(route($route), [
+    $response = $this->postJson(route($route), [
         'email' => $user->email,
         'token' => $token,
     ]);
 
-    $res->assertStatus(200)->assertJson([
-        'ok' => true,
-    ]);
+    $response->assertStatus(200)
+        ->assertJson([
+            'ok' => true,
+            'status' => 200,
+            'message' => 'Email verified successfully.',
+        ])
+        ->assertJsonPath('flow.name', 'completed')
+        ->assertJsonPath('payload.email', $user->email)
+        ->assertJsonPath('payload.verified', true)
+        ->assertJsonPath('payload.logged_in', false);
 
     $user->refresh();
 
@@ -172,25 +188,23 @@ it('verifies email via token (JSON) but does not log the user in when disabled',
     $this->assertGuest('web');
 
     Event::assertDispatched(Verified::class);
-    Event::assertDispatched(AuthKitEmailVerified::class, function ($e) use ($user) {
-        return (string) $e->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
-            && $e->driver === 'token';
+    Event::assertDispatched(AuthKitEmailVerified::class, function ($event) use ($user) {
+        return (string) $event->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
+            && $event->driver === 'token';
     });
+    Event::assertNotDispatched(AuthKitLoggedIn::class);
 });
 
-it('verifies email via signed link and logs the user in when enabled', function () {
-    Event::fake([Verified::class, AuthKitEmailVerified::class]);
+it('returns a standardized action result from verify email token action', function () {
+    Event::fake([Verified::class, AuthKitEmailVerified::class, AuthKitLoggedIn::class]);
 
-    config()->set('authkit.email_verification.driver', 'link');
+    config()->set('authkit.email_verification.driver', 'token');
     config()->set('authkit.email_verification.ttl_minutes', 10);
-    config()->set('authkit.email_verification.post_verify.mode', 'redirect');
-    config()->set('authkit.email_verification.post_verify.redirect_route', null);
-    config()->set('authkit.email_verification.post_verify.login_after_verify', true);
-    config()->set('authkit.email_verification.post_verify.remember', true);
+    config()->set('authkit.email_verification.post_verify.login_after_verify', false);
 
     $user = TestUser::query()->create([
-        'name' => 'Link Verify',
-        'email' => 'verify-link@example.com',
+        'name' => 'Action Verify',
+        'email' => 'action-verify@example.com',
         'password' => bcrypt('password'),
         'email_verified_at' => null,
     ]);
@@ -200,39 +214,142 @@ it('verifies email via signed link and logs the user in when enabled', function 
 
     $token = $pending->createForEmail($user->email, 10, [
         'user_id' => (string) $user->getAuthIdentifier(),
-        'driver' => 'link',
+        'driver' => 'token',
     ]);
 
-    $verifyLinkRoute = (string) data_get(
-        config('authkit.route_names.web', []),
-        'verify_link',
-        'authkit.web.email.verification.verify.link'
+    /** @var VerifyEmailTokenAction $action */
+    $action = app(VerifyEmailTokenAction::class);
+
+    $result = $action->handle($user->email, $token);
+
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeTrue()
+        ->and($result->status)->toBe(200)
+        ->and($result->flow?->is('completed'))->toBeTrue()
+        ->and($result->payload?->get('email'))->toBe($user->email)
+        ->and($result->payload?->get('verified'))->toBeTrue()
+        ->and($result->redirect?->target)->toBe('authkit.web.dashboard');
+});
+
+it('returns 422 for invalid or expired token', function () {
+    Event::fake([Verified::class, AuthKitEmailVerified::class, AuthKitLoggedIn::class]);
+
+    $user = TestUser::query()->create([
+        'name' => 'Invalid Token User',
+        'email' => 'invalid-token@example.com',
+        'password' => bcrypt('password'),
+        'email_verified_at' => null,
+    ]);
+
+    $route = (string) data_get(
+        config('authkit.route_names.api', []),
+        'verify_token',
+        'authkit.api.email.verification.verify.token'
     );
 
-    $signedUrl = URL::temporarySignedRoute(
-        name: $verifyLinkRoute,
-        expiration: now()->addMinutes(10),
-        parameters: [
-            'id' => (string) $user->getAuthIdentifier(),
-            'hash' => $token,
-            'email' => $user->email,
-        ]
+    $response = $this->postJson(route($route), [
+        'email' => $user->email,
+        'token' => 'bad-token',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'Invalid or expired verification code.',
+        ])
+        ->assertJsonPath('flow.name', 'failed')
+        ->assertJsonPath('errors.0.code', 'invalid_or_expired_verification_code');
+
+    $this->assertGuest('web');
+
+    Event::assertNotDispatched(Verified::class);
+    Event::assertNotDispatched(AuthKitEmailVerified::class);
+    Event::assertNotDispatched(AuthKitLoggedIn::class);
+});
+
+it('returns already verified success when the user email is already verified', function () {
+    Event::fake([Verified::class, AuthKitEmailVerified::class, AuthKitLoggedIn::class]);
+
+    config()->set('authkit.email_verification.post_verify.login_after_verify', false);
+
+    $user = TestUser::query()->create([
+        'name' => 'Already Verified',
+        'email' => 'already-verified@example.com',
+        'password' => bcrypt('password'),
+        'email_verified_at' => now(),
+    ]);
+
+    /** @var PendingEmailVerification $pending */
+    $pending = app(PendingEmailVerification::class);
+
+    $token = $pending->createForEmail($user->email, 10, [
+        'user_id' => (string) $user->getAuthIdentifier(),
+        'driver' => 'token',
+    ]);
+
+    $route = (string) data_get(
+        config('authkit.route_names.api', []),
+        'verify_token',
+        'authkit.api.email.verification.verify.token'
     );
 
-    $res = $this->get($signedUrl);
+    $response = $this->postJson(route($route), [
+        'email' => $user->email,
+        'token' => $token,
+    ]);
 
-    $res->assertRedirect(route('dashboard'));
+    $response->assertStatus(200)
+        ->assertJson([
+            'ok' => true,
+            'status' => 200,
+            'message' => 'Your email is already verified.',
+        ])
+        ->assertJsonPath('flow.name', 'completed')
+        ->assertJsonPath('payload.email', $user->email)
+        ->assertJsonPath('payload.already_verified', true);
 
-    $user->refresh();
+    Event::assertNotDispatched(Verified::class);
+    Event::assertNotDispatched(AuthKitEmailVerified::class);
+});
 
-    expect($user->email_verified_at)->not->toBeNull();
+it('redirects to dashboard for web flow when login after verify is enabled', function () {
+    Event::fake([Verified::class, AuthKitEmailVerified::class, AuthKitLoggedIn::class]);
+
+    config()->set('authkit.email_verification.driver', 'token');
+    config()->set('authkit.email_verification.ttl_minutes', 10);
+    config()->set('authkit.email_verification.post_verify.login_after_verify', true);
+    config()->set('authkit.email_verification.post_verify.remember', true);
+
+    $user = TestUser::query()->create([
+        'name' => 'Web Verify',
+        'email' => 'web-verify@example.com',
+        'password' => bcrypt('password'),
+        'email_verified_at' => null,
+    ]);
+
+    /** @var PendingEmailVerification $pending */
+    $pending = app(PendingEmailVerification::class);
+
+    $token = $pending->createForEmail($user->email, 10, [
+        'user_id' => (string) $user->getAuthIdentifier(),
+        'driver' => 'token',
+    ]);
+
+    $route = (string) data_get(
+        config('authkit.route_names.api', []),
+        'verify_token',
+        'authkit.api.email.verification.verify.token'
+    );
+
+    $response = $this->post(route($route), [
+        'email' => $user->email,
+        'token' => $token,
+    ]);
+
+    $response->assertRedirect(route('authkit.web.dashboard'))
+        ->assertSessionHas('status', 'Email verified successfully.');
 
     $this->assertAuthenticated('web');
     $this->assertAuthenticatedAs($user, 'web');
-
-    Event::assertDispatched(Verified::class);
-    Event::assertDispatched(AuthKitEmailVerified::class, function ($e) use ($user) {
-        return (string) $e->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
-            && $e->driver === 'link';
-    });
 });

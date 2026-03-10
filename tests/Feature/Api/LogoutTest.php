@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Events\AuthKitLoggedOut;
 use Xul\AuthKit\Http\Controllers\Api\Auth\LogoutController;
 
@@ -21,12 +22,12 @@ beforeEach(function () {
         'prefix' => '',
     ]);
 
-    Schema::create('users', function (Blueprint $t) {
-        $t->id();
-        $t->string('email')->unique();
-        $t->string('password');
-        $t->rememberToken();
-        $t->timestamps();
+    Schema::create('users', function (Blueprint $table) {
+        $table->id();
+        $table->string('email')->unique();
+        $table->string('password');
+        $table->rememberToken();
+        $table->timestamps();
     });
 
     Config::set('auth.defaults.guard', 'web');
@@ -43,10 +44,11 @@ beforeEach(function () {
     Config::set('authkit.route_names.web.login', 'authkit.web.login');
 
     Route::post('/authkit/logout', LogoutController::class)
-        ->middleware(['web', 'auth'])
+        ->middleware(['web'])
         ->name('authkit.api.auth.logout');
 
-    Route::get('/authkit/login', fn() => 'login')->name('authkit.web.login');
+    Route::get('/authkit/login', fn () => 'login')
+        ->name('authkit.web.login');
 });
 
 it('logs out and returns json when request expects json', function () {
@@ -59,20 +61,24 @@ it('logs out and returns json when request expects json', function () {
 
     $this->actingAs($user, 'web');
 
-    $res = $this->postJson(route('authkit.api.auth.logout'));
+    $response = $this->postJson(route('authkit.api.auth.logout'));
 
-    $res->assertOk()
+    $response->assertOk()
         ->assertJson([
             'ok' => true,
             'status' => 200,
-        ]);
+            'message' => 'Logged out.',
+        ])
+        ->assertJsonPath('flow.name', 'completed')
+        ->assertJsonPath('redirect.target', 'authkit.web.login')
+        ->assertJsonPath('payload.guard', 'web');
 
     expect(auth('web')->check())->toBeFalse();
 
-    Event::assertDispatched(AuthKitLoggedOut::class, function ($e) use ($user) {
-        return $e->guard === 'web'
-            && $e->user !== null
-            && (string)$e->user->getAuthIdentifier() === (string)$user->getAuthIdentifier();
+    Event::assertDispatched(AuthKitLoggedOut::class, function (AuthKitLoggedOut $event) use ($user) {
+        return $event->guard === 'web'
+            && $event->user !== null
+            && (string) $event->user->getAuthIdentifier() === (string) $user->getAuthIdentifier();
     });
 });
 
@@ -86,27 +92,61 @@ it('logs out and redirects to login route for non-json requests', function () {
 
     $this->actingAs($user, 'web');
 
-    $res = $this->post(route('authkit.api.auth.logout'));
+    $response = $this->post(route('authkit.api.auth.logout'));
 
-    $res->assertRedirect(route('authkit.web.login'));
+    $response->assertRedirect(route('authkit.web.login'))
+        ->assertSessionHas('status', 'Logged out.');
 
     expect(auth('web')->check())->toBeFalse();
 
-    Event::assertDispatched(AuthKitLoggedOut::class, function ($e) use ($user) {
-        return $e->guard === 'web'
-            && $e->user !== null
-            && (string)$e->user->getAuthIdentifier() === (string)$user->getAuthIdentifier();
+    Event::assertDispatched(AuthKitLoggedOut::class, function (AuthKitLoggedOut $event) use ($user) {
+        return $event->guard === 'web'
+            && $event->user !== null
+            && (string) $event->user->getAuthIdentifier() === (string) $user->getAuthIdentifier();
     });
 });
 
 it('returns 401 when logout is called without an authenticated user', function () {
     Event::fake();
 
-    $res = $this->postJson(route('authkit.api.auth.logout'));
+    $response = $this->postJson(route('authkit.api.auth.logout'));
 
-    $res->assertStatus(401);
+    $response->assertStatus(401)
+        ->assertJson([
+            'ok' => false,
+            'status' => 401,
+            'message' => 'Unauthenticated.',
+        ])
+        ->assertJsonPath('flow.name', 'failed')
+        ->assertJsonPath('errors.0.code', 'unauthenticated');
 
     Event::assertNotDispatched(AuthKitLoggedOut::class);
+});
+
+/**
+ * LogoutActionResultTest
+ *
+ * Ensures the standardized logout action result contract is returned.
+ */
+it('returns a standardized action result from logout action', function () {
+    $user = \Xul\AuthKit\Tests\Feature\Api\LogoutTest::query()->create([
+        'email' => 'michael@example.com',
+        'password' => bcrypt('secret123'),
+    ]);
+
+    $this->actingAs($user, 'web');
+
+    $action = app(\Xul\AuthKit\Actions\Auth\LogoutAction::class);
+
+    $result = $action->handle();
+
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeTrue()
+        ->and($result->status)->toBe(200)
+        ->and($result->message)->toBe('Logged out.')
+        ->and($result->flow?->is('completed'))->toBeTrue()
+        ->and($result->redirect?->target)->toBe('authkit.web.login')
+        ->and($result->payload?->get('guard'))->toBe('web');
 });
 
 /**
@@ -116,9 +156,18 @@ it('returns 401 when logout is called without an authenticated user', function (
  */
 final class LogoutTest extends BaseUser
 {
+    /**
+     * @var string
+     */
     protected $table = 'users';
 
+    /**
+     * @var array<int, string>
+     */
     protected $guarded = [];
 
+    /**
+     * @var array<int, string>
+     */
     protected $hidden = ['password'];
 }

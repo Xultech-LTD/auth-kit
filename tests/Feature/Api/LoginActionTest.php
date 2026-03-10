@@ -1,24 +1,25 @@
 <?php
-//file: tests/Feature/Api/LoginActionTest
+// file: tests/Feature/Api/LoginActionTest.php
 
 namespace Xul\AuthKit\Tests\Feature\Api;
 
-use Xul\AuthKit\Events\AuthKitEmailVerificationRequired;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Auth\User as BaseUser;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Xul\AuthKit\Actions\Auth\LoginAction;
 use Xul\AuthKit\Contracts\TokenRepositoryContract;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
+use Xul\AuthKit\Events\AuthKitEmailVerificationRequired;
 use Xul\AuthKit\Events\AuthKitLoggedIn;
 use Xul\AuthKit\Events\AuthKitTwoFactorRequired;
 use Xul\AuthKit\Tests\Support\ArrayTokenRepository;
-use Illuminate\Support\Facades\Route;
 
-app()->bind(TokenRepositoryContract::class, fn () => new ArrayTokenRepository());
+app()->instance(TokenRepositoryContract::class, fn () => new ArrayTokenRepository());
 
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -30,17 +31,17 @@ beforeEach(function () {
         'prefix' => '',
     ]);
 
-    Schema::create('users', function (Blueprint $t) {
-        $t->id();
-        $t->string('email')->unique();
-        $t->string('password');
-        $t->rememberToken();
-        $t->boolean('two_factor_enabled')->default(false);
-        $t->text('two_factor_secret')->nullable();
-        $t->json('two_factor_recovery_codes')->nullable();
-        $t->json('two_factor_methods')->nullable();
-        $t->timestamp('email_verified_at')->nullable();
-        $t->timestamps();
+    Schema::create('users', function (Blueprint $table) {
+        $table->id();
+        $table->string('email')->unique();
+        $table->string('password');
+        $table->rememberToken();
+        $table->boolean('two_factor_enabled')->default(false);
+        $table->text('two_factor_secret')->nullable();
+        $table->json('two_factor_recovery_codes')->nullable();
+        $table->json('two_factor_methods')->nullable();
+        $table->timestamp('email_verified_at')->nullable();
+        $table->timestamps();
     });
 
     Config::set('authkit.email_verification.enabled', true);
@@ -48,6 +49,12 @@ beforeEach(function () {
     Config::set('authkit.email_verification.ttl_minutes', 30);
     Config::set('authkit.email_verification.columns.verified_at', 'email_verified_at');
     Config::set('authkit.route_names.web.verify_link', 'authkit.web.email.verification.verify.link');
+    Config::set('authkit.route_names.web.verify_notice', 'authkit.web.email.verify.notice');
+    Config::set('authkit.route_names.web.two_factor_challenge', 'authkit.web.twofactor.challenge');
+    Config::set('authkit.route_names.web.login', 'authkit.web.login');
+
+    Config::set('authkit.login.redirect_route', null);
+    Config::set('authkit.login.dashboard_route', 'dashboard');
 
     Config::set('auth.defaults.guard', 'web');
     Config::set('auth.guards.web', [
@@ -80,8 +87,19 @@ beforeEach(function () {
     Route::get('/authkit/email/verify/link/{id}/{hash}', fn () => 'verify-link')
         ->name('authkit.web.email.verification.verify.link');
 
-    app()->bind(TokenRepositoryContract::class, fn () => new ArrayTokenRepository());
+    Route::get('/authkit/email/verify/notice', fn () => 'verify-notice')
+        ->name('authkit.web.email.verify.notice');
 
+    Route::get('/authkit/two-factor/challenge', fn () => 'two-factor-challenge')
+        ->name('authkit.web.twofactor.challenge');
+
+    Route::get('/authkit/login', fn () => 'login')
+        ->name('authkit.web.login');
+
+    Route::get('/dashboard', fn () => 'dashboard')
+        ->name('dashboard');
+
+    app()->singleton(TokenRepositoryContract::class, fn () => new ArrayTokenRepository());
 });
 
 /**
@@ -111,22 +129,23 @@ it('logs in and dispatches AuthKitLoggedIn when two-factor is globally disabled'
         'remember' => true,
     ]);
 
-    expect($result)
-        ->and((bool) ($result['ok'] ?? false))->toBeTrue()
-        ->and((bool) ($result['two_factor_required'] ?? false))->toBeFalse()
-        ->and((string) ($result['user_id'] ?? ''))->toBe((string) $user->getAuthIdentifier())
-        ->and(array_key_exists('internal_challenge', $result))->toBeFalse()
-        ->and(array_key_exists('challenge', $result))->toBeFalse();
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeTrue()
+        ->and($result->status)->toBe(200)
+        ->and($result->flow?->is('completed'))->toBeTrue()
+        ->and($result->payload?->get('user_id'))->toBe((string) $user->getAuthIdentifier())
+        ->and($result->payload?->get('remember'))->toBeTrue()
+        ->and($result->internal)->toBeNull();
 
     /** @var AuthFactory $auth */
     $auth = app()->make(AuthFactory::class);
 
     expect($auth->guard('web')->check())->toBeTrue();
 
-    Event::assertDispatched(AuthKitLoggedIn::class, function (AuthKitLoggedIn $e) use ($user) {
-        return (string) $e->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
-            && $e->guard === 'web'
-            && $e->remember === true;
+    Event::assertDispatched(AuthKitLoggedIn::class, function (AuthKitLoggedIn $event) use ($user) {
+        return (string) $event->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
+            && $event->guard === 'web'
+            && $event->remember === true;
     });
 
     Event::assertNotDispatched(AuthKitTwoFactorRequired::class);
@@ -159,28 +178,30 @@ it('creates a pending login challenge and dispatches AuthKitTwoFactorRequired wh
         'remember' => false,
     ]);
 
-    expect($result)
-        ->and((bool) ($result['ok'] ?? false))->toBeTrue()
-        ->and((bool) ($result['two_factor_required'] ?? false))->toBeTrue()
-        ->and($result['methods'] ?? null)->toBe(['totp'])
-        ->and(array_key_exists('challenge', $result))->toBeFalse()
-        ->and((string) ($result['internal_challenge'] ?? ''))->toBeString()->not->toBeEmpty();
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeTrue()
+        ->and($result->status)->toBe(200)
+        ->and($result->flow?->is('two_factor_required'))->toBeTrue()
+        ->and($result->payload?->get('methods'))->toBe(['totp'])
+        ->and($result->payload?->get('remember'))->toBeFalse()
+        ->and($result->internal)->not->toBeNull();
 
-    $internalChallenge = (string) ($result['internal_challenge'] ?? '');
+    $internalChallenge = (string) $result->internal?->get('challenge', '');
 
-    expect(strlen($internalChallenge))->toBeGreaterThan(10);
+    expect($internalChallenge)->not->toBeEmpty()
+        ->and(strlen($internalChallenge))->toBeGreaterThan(10);
 
     /** @var AuthFactory $auth */
     $auth = app()->make(AuthFactory::class);
 
     expect($auth->guard('web')->check())->toBeFalse();
 
-    Event::assertDispatched(AuthKitTwoFactorRequired::class, function (AuthKitTwoFactorRequired $e) use ($user, $internalChallenge) {
-        return (string) $e->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
-            && $e->guard === 'web'
-            && $e->challenge === $internalChallenge
-            && $e->methods === ['totp']
-            && $e->remember === false;
+    Event::assertDispatched(AuthKitTwoFactorRequired::class, function (AuthKitTwoFactorRequired $event) use ($user, $internalChallenge) {
+        return (string) $event->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
+            && $event->guard === 'web'
+            && $event->challenge === $internalChallenge
+            && $event->methods === ['totp']
+            && $event->remember === false;
     });
 
     Event::assertNotDispatched(AuthKitLoggedIn::class);
@@ -209,11 +230,13 @@ it('returns 401 when credentials are invalid', function () {
         'password' => 'wrong-password',
     ]);
 
-    expect($result)
-        ->and((bool) ($result['ok'] ?? true))->toBeFalse()
-        ->and((int) ($result['status'] ?? 0))->toBe(401)
-        ->and(array_key_exists('internal_challenge', $result))->toBeFalse()
-        ->and(array_key_exists('challenge', $result))->toBeFalse();
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeFalse()
+        ->and($result->status)->toBe(401)
+        ->and($result->flow?->is('failed'))->toBeTrue()
+        ->and($result->internal)->toBeNull()
+        ->and($result->hasErrors())->toBeTrue()
+        ->and($result->errors[0]->code)->toBe('invalid_credentials');
 
     /** @var AuthFactory $auth */
     $auth = app()->make(AuthFactory::class);
@@ -255,29 +278,31 @@ it('returns 403 and dispatches AuthKitEmailVerificationRequired when email verif
         'remember' => true,
     ]);
 
-    expect($result)
-        ->and((bool) ($result['ok'] ?? true))->toBeFalse()
-        ->and((int) ($result['status'] ?? 0))->toBe(403)
-        ->and((bool) ($result['email_verification_required'] ?? false))->toBeTrue()
-        ->and($result['redirect_params'] ?? [])->toBe(['email' => 'michael@example.com'])
-        ->and(array_key_exists('two_factor_required', $result))->toBeFalse()
-        ->and(array_key_exists('internal_challenge', $result))->toBeFalse()
-        ->and(array_key_exists('challenge', $result))->toBeFalse();
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeFalse()
+        ->and($result->status)->toBe(403)
+        ->and($result->flow?->is('email_verification_required'))->toBeTrue()
+        ->and($result->payload?->get('email'))->toBe('michael@example.com')
+        ->and($result->payload?->get('driver'))->toBe('link')
+        ->and($result->redirect)->not->toBeNull()
+        ->and($result->redirect?->target)->toBe('authkit.web.email.verify.notice')
+        ->and($result->redirect?->parameters)->toBe(['email' => 'michael@example.com'])
+        ->and($result->internal)->toBeNull();
 
     /** @var AuthFactory $auth */
     $auth = app()->make(AuthFactory::class);
 
     expect($auth->guard('web')->check())->toBeFalse();
 
-    Event::assertDispatched(AuthKitEmailVerificationRequired::class, function (AuthKitEmailVerificationRequired $e) use ($user) {
-        return (string) $e->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
-            && $e->email === 'michael@example.com'
-            && $e->driver === 'link'
-            && $e->ttlMinutes === 30
-            && is_string($e->token)
-            && $e->token !== ''
-            && is_string($e->url)
-            && $e->url !== '';
+    Event::assertDispatched(AuthKitEmailVerificationRequired::class, function (AuthKitEmailVerificationRequired $event) use ($user) {
+        return (string) $event->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
+            && $event->email === 'michael@example.com'
+            && $event->driver === 'link'
+            && $event->ttlMinutes === 30
+            && is_string($event->token)
+            && $event->token !== ''
+            && is_string($event->url)
+            && $event->url !== '';
     });
 
     Event::assertNotDispatched(AuthKitTwoFactorRequired::class);
@@ -291,12 +316,24 @@ it('returns 403 and dispatches AuthKitEmailVerificationRequired when email verif
  */
 final class LoginActionTest extends BaseUser
 {
+    /**
+     * @var string
+     */
     protected $table = 'users';
 
+    /**
+     * @var array<int, string>
+     */
     protected $guarded = [];
 
+    /**
+     * @var array<int, string>
+     */
     protected $hidden = ['password'];
 
+    /**
+     * @var array<string, string>
+     */
     protected $casts = [
         'two_factor_enabled' => 'bool',
         'two_factor_recovery_codes' => 'array',

@@ -8,6 +8,11 @@ use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Support\Carbon;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitFlowStep;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitPublicPayload;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitRedirect;
 use Xul\AuthKit\Events\AuthKitEmailVerified;
 use Xul\AuthKit\Events\AuthKitLoggedIn;
 use Xul\AuthKit\Support\PendingEmailVerification;
@@ -15,14 +20,16 @@ use Xul\AuthKit\Support\PendingEmailVerification;
 /**
  * VerifyEmailTokenAction
  *
- * Verifies a user's email using a token/code.
+ * Verifies a user's email using a token or code.
  *
  * Responsibilities:
- * - Validate and consume the verification token using PendingEmailVerification
- * - Resolve the user referenced by the token payload (user_id) via the configured provider
- * - Mark the user as verified (if supported)
- * - Dispatch Laravel's Verified event (if MustVerifyEmail)
- * - Dispatch AuthKitEmailVerified event (driver=token)
+ * - Validate and consume the verification token using PendingEmailVerification.
+ * - Resolve the user referenced by the token payload via the configured provider.
+ * - Mark the user as verified when supported by the user model.
+ * - Dispatch Laravel's Verified event when applicable.
+ * - Dispatch AuthKitEmailVerified after successful verification.
+ * - Optionally authenticate the user after successful verification.
+ * - Return a standardized AuthKitActionResult for all outcomes.
  */
 final class VerifyEmailTokenAction
 {
@@ -42,47 +49,105 @@ final class VerifyEmailTokenAction
      *
      * @param string $email
      * @param string $token
-     * @return VerifyEmailTokenResult
+     * @return AuthKitActionResult
      */
-    public function execute(string $email, string $token): VerifyEmailTokenResult
+    public function handle(string $email, string $token): AuthKitActionResult
     {
         $email = mb_strtolower(trim($email));
         $token = trim($token);
 
         if ($email === '' || $token === '') {
-            return VerifyEmailTokenResult::failed('Email and verification code are required.');
+            return AuthKitActionResult::failure(
+                message: 'Email and verification code are required.',
+                status: 422,
+                flow: AuthKitFlowStep::failed(),
+                errors: [
+                    AuthKitError::validation('email', 'The email field is required.', 'missing_email'),
+                    AuthKitError::validation('token', 'The token field is required.', 'missing_token'),
+                ],
+                redirect: $this->noticeRedirect($email)
+            );
         }
 
         $payload = $this->pending->consumeToken($email, $token);
 
         if (! is_array($payload)) {
-            return VerifyEmailTokenResult::failed('Invalid or expired verification code.');
+            return AuthKitActionResult::failure(
+                message: 'Invalid or expired verification code.',
+                status: 422,
+                flow: AuthKitFlowStep::failed(),
+                errors: [
+                    AuthKitError::make('invalid_or_expired_verification_code', 'Invalid or expired verification code.'),
+                ],
+                redirect: $this->noticeRedirect($email)
+            );
         }
 
         $userId = (string) ($payload['user_id'] ?? '');
 
         if ($userId === '') {
-            return VerifyEmailTokenResult::failed('Invalid verification context.');
+            return AuthKitActionResult::failure(
+                message: 'Invalid verification context.',
+                status: 422,
+                flow: AuthKitFlowStep::failed(),
+                errors: [
+                    AuthKitError::make('invalid_verification_context', 'Invalid verification context.'),
+                ],
+                redirect: $this->noticeRedirect($email)
+            );
         }
 
         $user = $this->retrieveById($userId);
 
         if (! $user) {
-            return VerifyEmailTokenResult::failed('Invalid verification context.');
+            return AuthKitActionResult::failure(
+                message: 'Invalid verification context.',
+                status: 422,
+                flow: AuthKitFlowStep::failed(),
+                errors: [
+                    AuthKitError::make('invalid_verification_context', 'Invalid verification context.'),
+                ],
+                redirect: $this->noticeRedirect($email)
+            );
         }
 
         $userEmail = mb_strtolower(trim((string) ($user->email ?? '')));
 
         if ($userEmail === '' || $userEmail !== $email) {
-            return VerifyEmailTokenResult::failed('Invalid verification context.');
+            return AuthKitActionResult::failure(
+                message: 'Invalid verification context.',
+                status: 422,
+                flow: AuthKitFlowStep::failed(),
+                errors: [
+                    AuthKitError::make('invalid_verification_context', 'Invalid verification context.'),
+                ],
+                redirect: $this->noticeRedirect($email)
+            );
         }
 
         if ($this->userHasVerifiedEmail($user)) {
-            return VerifyEmailTokenResult::alreadyVerified();
+            return AuthKitActionResult::success(
+                message: 'Your email is already verified.',
+                status: 200,
+                flow: AuthKitFlowStep::completed(),
+                redirect: $this->postVerifyRedirect(),
+                payload: AuthKitPublicPayload::make([
+                    'email' => $email,
+                    'already_verified' => true,
+                ])
+            );
         }
 
         if (! $this->markUserVerified($user)) {
-            return VerifyEmailTokenResult::failed('Email verification is not supported by this user model.');
+            return AuthKitActionResult::failure(
+                message: 'Email verification is not supported by this user model.',
+                status: 500,
+                flow: AuthKitFlowStep::failed(),
+                errors: [
+                    AuthKitError::make('email_verification_not_supported', 'Email verification is not supported by this user model.'),
+                ],
+                redirect: $this->noticeRedirect($email)
+            );
         }
 
         if ($user instanceof MustVerifyEmail) {
@@ -94,25 +159,19 @@ final class VerifyEmailTokenAction
             driver: 'token'
         ));
 
-        $this->loginAfterVerify($user);
+        $loggedIn = $this->loginAfterVerify($user);
 
-        $mode = (string) data_get(config('authkit.email_verification.post_verify', []), 'mode', 'redirect');
-        $webNames = (array) config('authkit.route_names.web', []);
-        $target = ($mode === 'success_page') ? (string) ($webNames['verify_success'] ?? 'authkit.web.email.verify.success') :
-            (string) (data_get(config('authkit.email_verification.post_verify', []), 'redirect_route') ?? '');
-
-        $loginAfterVerify = (bool) data_get(config('authkit.email_verification.post_verify', []), 'login_after_verify', false);
-
-        if ($loginAfterVerify) {
-            $redirectRoute = data_get(config('authkit.login', []), 'redirect_route');
-            $dashboardRoute = (string)data_get(config('authkit.login', []), 'dashboard_route', 'authkit.web.dashboard.web');
-
-            $target = is_string($redirectRoute) && $redirectRoute !== ''
-                ? $redirectRoute
-                : $dashboardRoute;
-        }
-
-        return VerifyEmailTokenResult::verified(route($target));
+        return AuthKitActionResult::success(
+            message: 'Email verified successfully.',
+            status: 200,
+            flow: AuthKitFlowStep::completed(),
+            redirect: $this->postVerifyRedirect(),
+            payload: AuthKitPublicPayload::make([
+                'email' => $email,
+                'verified' => true,
+                'logged_in' => $loggedIn,
+            ])
+        );
     }
 
     /**
@@ -124,7 +183,6 @@ final class VerifyEmailTokenAction
     protected function retrieveById(string $id): ?Authenticatable
     {
         $guardName = (string) config('authkit.auth.guard', 'web');
-
         $guard = $this->auth->guard($guardName);
 
         $provider = $guard->getProvider();
@@ -137,11 +195,7 @@ final class VerifyEmailTokenAction
     }
 
     /**
-     * Determine if the user is already verified.
-     *
-     * Behavior:
-     * - If the user implements hasVerifiedEmail(), that method is used.
-     * - Otherwise falls back to the configured verification timestamp column.
+     * Determine whether the user is already verified.
      *
      * @param Authenticatable $user
      * @return bool
@@ -161,11 +215,6 @@ final class VerifyEmailTokenAction
 
     /**
      * Mark the user as verified.
-     *
-     * Behavior:
-     * - If the user implements markEmailAsVerified(), that method is used.
-     * - Otherwise AuthKit sets the configured verification timestamp column
-     *   and persists the model when possible.
      *
      * @param Authenticatable $user
      * @return bool
@@ -203,13 +252,16 @@ final class VerifyEmailTokenAction
 
     /**
      * Optionally authenticate the user after successful verification.
+     *
+     * @param Authenticatable $user
+     * @return bool
      */
-    protected function loginAfterVerify(Authenticatable $user): void
+    protected function loginAfterVerify(Authenticatable $user): bool
     {
         $enabled = (bool) data_get(config('authkit.email_verification.post_verify', []), 'login_after_verify', false);
 
         if (! $enabled) {
-            return;
+            return false;
         }
 
         $remember = (bool) data_get(config('authkit.email_verification.post_verify', []), 'remember', true);
@@ -222,5 +274,88 @@ final class VerifyEmailTokenAction
             guard: $guardName,
             remember: $remember
         ));
+
+        return true;
+    }
+
+    /**
+     * Resolve the verification notice redirect.
+     *
+     * @param string $email
+     * @return AuthKitRedirect
+     */
+    protected function noticeRedirect(string $email): AuthKitRedirect
+    {
+        $routeName = (string) data_get(
+            config('authkit.route_names.web', []),
+            'verify_notice',
+            'authkit.web.email.verify.notice'
+        );
+
+        $parameters = $email !== '' ? ['email' => $email] : [];
+
+        return AuthKitRedirect::route(
+            routeName: $routeName,
+            parameters: $parameters,
+            url: route($routeName, $parameters)
+        );
+    }
+
+    /**
+     * Resolve the redirect after successful verification.
+     *
+     * @return AuthKitRedirect
+     */
+    protected function postVerifyRedirect(): AuthKitRedirect
+    {
+        $webNames = (array) config('authkit.route_names.web', []);
+        $mode = (string) data_get(config('authkit.email_verification.post_verify', []), 'mode', 'redirect');
+
+        if ($mode === 'success_page') {
+            $successRoute = (string) ($webNames['verify_success'] ?? 'authkit.web.email.verify.success');
+
+            return AuthKitRedirect::route(
+                routeName: $successRoute,
+                parameters: [],
+                url: route($successRoute)
+            );
+        }
+
+        $configuredRedirectRoute = (string) (data_get(config('authkit.email_verification.post_verify', []), 'redirect_route') ?? '');
+
+        if ($configuredRedirectRoute !== '') {
+            return AuthKitRedirect::route(
+                routeName: $configuredRedirectRoute,
+                parameters: [],
+                url: route($configuredRedirectRoute)
+            );
+        }
+
+        $loginAfterVerify = (bool) data_get(config('authkit.email_verification.post_verify', []), 'login_after_verify', false);
+
+        if ($loginAfterVerify) {
+            $redirectRoute = data_get(config('authkit.login', []), 'redirect_route');
+            $dashboardRoute = (string) data_get(config('authkit.login', []), 'dashboard_route', 'dashboard');
+
+            $target = is_string($redirectRoute) && $redirectRoute !== ''
+                ? $redirectRoute
+                : $dashboardRoute;
+
+            if ($target !== '') {
+                return AuthKitRedirect::route(
+                    routeName: $target,
+                    parameters: [],
+                    url: route($target)
+                );
+            }
+        }
+
+        $loginRoute = (string) ($webNames['login'] ?? 'authkit.web.login');
+
+        return AuthKitRedirect::route(
+            routeName: $loginRoute,
+            parameters: [],
+            url: route($loginRoute)
+        );
     }
 }

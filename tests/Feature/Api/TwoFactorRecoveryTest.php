@@ -8,18 +8,16 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 use Xul\AuthKit\Actions\Auth\TwoFactorRecoveryAction;
 use Xul\AuthKit\Concerns\Model\HasAuthKitTwoFactor;
 use Xul\AuthKit\Contracts\TokenRepositoryContract;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Events\AuthKitLoggedIn;
 use Xul\AuthKit\Events\AuthKitTwoFactorRecovered;
 use Xul\AuthKit\Http\Controllers\Api\Auth\TwoFactorRecoveryController;
 use Xul\AuthKit\Support\PendingLogin;
 use Xul\AuthKit\Tests\Support\ArrayTokenRepository;
 
-
-app()->bind(TokenRepositoryContract::class, fn () => new ArrayTokenRepository());
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
 beforeEach(function () {
@@ -30,16 +28,16 @@ beforeEach(function () {
         'prefix' => '',
     ]);
 
-    Schema::create('users', function (Blueprint $t) {
-        $t->id();
-        $t->string('email')->unique();
-        $t->string('password');
-        $t->rememberToken();
-        $t->boolean('two_factor_enabled')->default(false);
-        $t->text('two_factor_secret')->nullable();
-        $t->json('two_factor_recovery_codes')->nullable();
-        $t->json('two_factor_methods')->nullable();
-        $t->timestamps();
+    Schema::create('users', function (Blueprint $table) {
+        $table->id();
+        $table->string('email')->unique();
+        $table->string('password');
+        $table->rememberToken();
+        $table->boolean('two_factor_enabled')->default(false);
+        $table->text('two_factor_secret')->nullable();
+        $table->json('two_factor_recovery_codes')->nullable();
+        $table->json('two_factor_methods')->nullable();
+        $table->timestamps();
     });
 
     Config::set('auth.defaults.guard', 'web');
@@ -81,17 +79,15 @@ beforeEach(function () {
     Config::set('authkit.login.dashboard_route', 'dashboard');
     Config::set('authkit.login.redirect_route', null);
 
-    app()->bind(TokenRepositoryContract::class, fn () => new ArrayTokenRepository());
+    app()->singleton(TokenRepositoryContract::class, fn () => new ArrayTokenRepository());
 
     Route::middleware(['web'])->group(function () {
         Route::get('/login', fn () => 'login')->name('authkit.web.login');
         Route::get('/two-factor/challenge', fn () => 'Two-factor verification')->name('authkit.web.twofactor.challenge');
         Route::get('/dashboard', fn () => 'dashboard')->name('dashboard');
 
-        Route::post(
-            '/api/two-factor/recovery',
-            TwoFactorRecoveryController::class
-        )->name('authkit.api.twofactor.recovery');
+        Route::post('/api/two-factor/recovery', TwoFactorRecoveryController::class)
+            ->name('authkit.api.twofactor.recovery');
     });
 });
 
@@ -128,23 +124,25 @@ it('action recovers and logs in, dispatching AuthKitTwoFactorRecovered and AuthK
         'recovery_code' => $rawCodes[0],
     ]);
 
-    expect($result['ok'])->toBeTrue()
-        ->and($result['two_factor_recovered'])->toBeTrue()
-        ->and((int) $result['status'])->toBe(200);
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeTrue()
+        ->and($result->status)->toBe(200)
+        ->and($result->flow?->is('completed'))->toBeTrue()
+        ->and($result->payload?->get('two_factor_recovered'))->toBeTrue();
 
     /** @var AuthFactory $auth */
     $auth = app()->make(AuthFactory::class);
     expect($auth->guard('web')->check())->toBeTrue();
 
-    Event::assertDispatched(AuthKitTwoFactorRecovered::class, function ($e) use ($user) {
-        return (string) $e->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
-            && $e->guard === 'web';
+    Event::assertDispatched(AuthKitTwoFactorRecovered::class, function ($event) use ($user) {
+        return (string) $event->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
+            && $event->guard === 'web';
     });
 
-    Event::assertDispatched(AuthKitLoggedIn::class, function ($e) use ($user) {
-        return (string) $e->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
-            && $e->guard === 'web'
-            && $e->remember === true;
+    Event::assertDispatched(AuthKitLoggedIn::class, function ($event) use ($user) {
+        return (string) $event->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
+            && $event->guard === 'web'
+            && $event->remember === true;
     });
 });
 
@@ -179,8 +177,11 @@ it('action returns 422 for invalid recovery code and does not log in', function 
         'recovery_code' => 'WRONG-CODE',
     ]);
 
-    expect($result['ok'])->toBeFalse()
-        ->and((int) $result['status'])->toBe(422);
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeFalse()
+        ->and($result->status)->toBe(422)
+        ->and($result->flow?->is('failed'))->toBeTrue()
+        ->and($result->errors[0]->code)->toBe('invalid_recovery_code');
 
     /** @var AuthFactory $auth */
     $auth = app()->make(AuthFactory::class);
@@ -201,8 +202,11 @@ it('action returns 410 for expired or invalid challenge', function () {
         'recovery_code' => 'AAAAA-BBBBB',
     ]);
 
-    expect($result['ok'])->toBeFalse()
-        ->and((int) $result['status'])->toBe(410);
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeFalse()
+        ->and($result->status)->toBe(410)
+        ->and($result->flow?->is('failed'))->toBeTrue()
+        ->and($result->errors[0]->code)->toBe('invalid_or_expired_two_factor_challenge');
 
     /** @var AuthFactory $auth */
     $auth = app()->make(AuthFactory::class);
@@ -247,8 +251,11 @@ it('controller returns JSON 200 on successful recovery', function () {
         ->assertOk()
         ->assertJson([
             'ok' => true,
-            'two_factor_recovered' => true,
-        ]);
+            'status' => 200,
+            'message' => 'Recovered and logged in.',
+        ])
+        ->assertJsonPath('flow.name', 'completed')
+        ->assertJsonPath('payload.two_factor_recovered', true);
 });
 
 it('controller redirects to dashboard on successful SSR recovery', function () {
@@ -283,7 +290,8 @@ it('controller redirects to dashboard on successful SSR recovery', function () {
         'challenge' => $challenge,
         'recovery_code' => $rawCodes[0],
     ])
-        ->assertRedirect(route('dashboard'));
+        ->assertRedirect(route('dashboard'))
+        ->assertSessionHas('status', 'Recovered and logged in.');
 });
 
 /**
@@ -295,16 +303,27 @@ final class TestUser extends BaseUser
 {
     use HasAuthKitTwoFactor;
 
+    /**
+     * @var string
+     */
     protected $table = 'users';
 
+    /**
+     * @var array<int, string>
+     */
     protected $guarded = [];
 
+    /**
+     * @var array<int, string>
+     */
     protected $hidden = ['password'];
 
+    /**
+     * @var array<string, string>
+     */
     protected $casts = [
         'two_factor_enabled' => 'bool',
         'two_factor_recovery_codes' => 'array',
         'two_factor_methods' => 'array',
     ];
 }
-

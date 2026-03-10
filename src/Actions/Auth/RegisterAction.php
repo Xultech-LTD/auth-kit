@@ -3,11 +3,17 @@
 namespace Xul\AuthKit\Actions\Auth;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\URL;
-use Xul\AuthKit\Events\AuthKitRegistered;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitFlowStep;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitPublicPayload;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitRedirect;
 use Xul\AuthKit\Events\AuthKitEmailVerificationRequired;
+use Xul\AuthKit\Events\AuthKitRegistered;
 use Xul\AuthKit\Support\PendingEmailVerification;
 
 /**
@@ -15,52 +21,71 @@ use Xul\AuthKit\Support\PendingEmailVerification;
  *
  * Creates a new user account and initializes the email verification flow.
  *
- * Verification token model:
- * - A raw token is generated and returned by TokenRepositoryContract::create().
- * - Only a derived representation (sha256) is stored by the repository.
- * - For link driver, the raw token is placed into the signed URL as {hash}.
- * - For token driver, the raw token is delivered to the user (email/SMS/etc).
+ * Responsibilities:
+ * - Create a new user using the configured auth provider when possible.
+ * - Dispatch AuthKitRegistered after successful account creation.
+ * - Initialize email verification when an email address is available.
+ * - Dispatch AuthKitEmailVerificationRequired for external delivery handling.
+ * - Return a standardized AuthKitActionResult for all outcomes.
  *
- * Delivery model:
- * - This action dispatches AuthKitEmailVerificationRequired after creating the pending token.
- * - Delivery is handled externally (e.g. by listeners) to keep the action package-extensible.
+ * Verification token model:
+ * - A raw token is generated and returned by PendingEmailVerification.
+ * - Only a derived representation is stored by the backing repository.
+ * - For link driver, the raw token is placed into the signed URL as {hash}.
+ * - For token driver, the raw token is delivered externally through event listeners.
+ *
+ * Security notes:
+ * - This action never returns the raw verification token to the caller.
+ * - This action never returns the signed verification URL to the caller.
+ * - Verification delivery remains event-driven and package-extensible.
  */
 final class RegisterAction
 {
     /**
      * Create a new instance.
+     *
+     * @param PendingEmailVerification $pendingEmailVerification
+     * @param AuthFactory $auth
      */
     public function __construct(
-        protected PendingEmailVerification $pendingEmailVerification
+        protected PendingEmailVerification $pendingEmailVerification,
+        protected AuthFactory $auth,
     ) {}
 
     /**
-     * Register a user and start email verification flow.
+     * Register a user and start the email verification flow.
      *
-     * @param  array<string, mixed>  $data
-     * @return array<string, mixed>
+     * @param array<string, mixed> $data
+     * @return AuthKitActionResult
      */
-    public function handle(array $data): array
+    public function handle(array $data): AuthKitActionResult
     {
         $user = $this->createUser($data);
 
         if (! $user) {
-            return [
-                'ok' => false,
-                'message' => 'Registration failed.',
-            ];
+            return AuthKitActionResult::failure(
+                message: 'Registration failed.',
+                status: 422,
+                flow: AuthKitFlowStep::failed(),
+                errors: [
+                    AuthKitError::make('registration_failed', 'Registration failed.'),
+                ],
+            );
         }
 
         event(new AuthKitRegistered($user));
 
-        $email = (string) ($data['email'] ?? '');
+        $email = mb_strtolower(trim((string) ($data['email'] ?? '')));
 
         if ($email === '') {
-            return [
-                'ok' => true,
-                'message' => 'Account created.',
-                'user_id' => $user->getAuthIdentifier(),
-            ];
+            return AuthKitActionResult::success(
+                message: 'Account created.',
+                status: 201,
+                flow: AuthKitFlowStep::registrationCompleted(),
+                payload: AuthKitPublicPayload::make([
+                    'user_id' => (string) $user->getAuthIdentifier(),
+                ]),
+            );
         }
 
         $ttl = (int) config('authkit.email_verification.ttl_minutes', 30);
@@ -84,16 +109,29 @@ final class RegisterAction
             url: $url
         ));
 
-        $route = (string) config('authkit.route_names.web.verify_notice', 'authkit.web.email.verify.notice');
+        $routeName = (string) data_get(
+            config('authkit.route_names.web', []),
+            'verify_notice',
+            'authkit.web.email.verify.notice'
+        );
 
-        return [
-            'ok' => true,
-            'message' => 'Account created. Please verify your email.',
-            'user_id' => $user->getAuthIdentifier(),
-            'email' => $email,
-            'redirect_params' => ['email' => $email],
-            'redirect_url' => route($route, ['email' => $email])
-        ];
+        $parameters = ['email' => $email];
+
+        return AuthKitActionResult::success(
+            message: 'Account created. Please verify your email.',
+            status: 201,
+            flow: AuthKitFlowStep::emailVerificationNotice(),
+            redirect: AuthKitRedirect::route(
+                routeName: $routeName,
+                parameters: $parameters,
+                url: route($routeName, $parameters)
+            ),
+            payload: AuthKitPublicPayload::make([
+                'user_id' => (string) $user->getAuthIdentifier(),
+                'email' => $email,
+                'driver' => $driver,
+            ]),
+        );
     }
 
     /**
@@ -101,7 +139,14 @@ final class RegisterAction
      *
      * Route parameters:
      * - id: user identifier
-     * - hash: raw verification token (repository stores only sha256(token))
+     * - hash: raw verification token
+     * - email: verification email context
+     *
+     * @param Authenticatable $user
+     * @param string $email
+     * @param int $ttlMinutes
+     * @param string $token
+     * @return string
      */
     protected function buildSignedLinkUrl(
         Authenticatable $user,
@@ -128,31 +173,31 @@ final class RegisterAction
     /**
      * Create a user using the configured auth provider when possible.
      *
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      * @return Authenticatable|null
      */
     protected function createUser(array $data): ?Authenticatable
     {
-        $guard = (string) config('authkit.auth.guard', 'web');
-        $provider = auth()->guard($guard)->getProvider();
+        $guardName = (string) config('authkit.auth.guard', 'web');
+        $provider = $this->auth->guard($guardName)->getProvider();
 
-        if (!$provider instanceof UserProvider) {
+        if (! $provider instanceof UserProvider) {
             return null;
         }
 
         $model = $this->createProviderModel($provider);
 
-        if (!$model) {
+        if (! $model) {
             return null;
         }
 
         $payload = $this->userPayload($data);
 
-        foreach ($payload as $k => $v) {
-            $model->{$k} = $v;
+        foreach ($payload as $key => $value) {
+            $model->{$key} = $value;
         }
 
-        if (!method_exists($model, 'save')) {
+        if (! method_exists($model, 'save')) {
             return null;
         }
 
@@ -164,14 +209,15 @@ final class RegisterAction
     /**
      * Attempt to create a new model instance from a provider.
      *
+     * @param UserProvider $provider
      * @return object|null
      */
     protected function createProviderModel(UserProvider $provider): ?object
     {
         if (method_exists($provider, 'createModel')) {
-            $m = $provider->createModel();
+            $model = $provider->createModel();
 
-            return is_object($m) ? $m : null;
+            return is_object($model) ? $model : null;
         }
 
         return null;
@@ -180,25 +226,25 @@ final class RegisterAction
     /**
      * Prepare the user payload from request data.
      *
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
     protected function userPayload(array $data): array
     {
-        $out = [];
+        $payload = [];
 
         if (array_key_exists('name', $data) && is_string($data['name'])) {
-            $out['name'] = trim($data['name']);
+            $payload['name'] = trim($data['name']);
         }
 
         if (array_key_exists('email', $data) && is_string($data['email'])) {
-            $out['email'] = mb_strtolower(trim($data['email']));
+            $payload['email'] = mb_strtolower(trim($data['email']));
         }
 
         if (array_key_exists('password', $data) && is_string($data['password'])) {
-            $out['password'] = Hash::make($data['password']);
+            $payload['password'] = Hash::make($data['password']);
         }
 
-        return $out;
+        return $payload;
     }
 }

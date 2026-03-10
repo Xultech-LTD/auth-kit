@@ -1,5 +1,5 @@
 <?php
-//file: tests/Feature/Api/TwoFactorChallengeTest
+// file: tests/Feature/Api/TwoFactorChallengeTest.php
 
 namespace Xul\AuthKit\Tests\Feature\Api;
 
@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Xul\AuthKit\Concerns\Model\HasAuthKitTwoFactor;
 use Xul\AuthKit\Contracts\TokenRepositoryContract;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Events\AuthKitLoggedIn;
 use Xul\AuthKit\Events\AuthKitTwoFactorLoggedIn;
 use Xul\AuthKit\Events\AuthKitTwoFactorRequired;
@@ -31,18 +32,18 @@ beforeEach(function () {
         'prefix' => '',
     ]);
 
-    Schema::create('users', function (Blueprint $t) {
-        $t->id();
-        $t->string('email')->unique();
-        $t->string('password');
-        $t->timestamp('email_verified_at')->nullable();
-        $t->rememberToken();
-        $t->boolean('two_factor_enabled')->default(false);
-        $t->text('two_factor_secret')->nullable();
-        $t->json('two_factor_recovery_codes')->nullable();
-        $t->json('two_factor_methods')->nullable();
-        $t->timestamp('two_factor_confirmed_at')->nullable();
-        $t->timestamps();
+    Schema::create('users', function (Blueprint $table) {
+        $table->id();
+        $table->string('email')->unique();
+        $table->string('password');
+        $table->timestamp('email_verified_at')->nullable();
+        $table->rememberToken();
+        $table->boolean('two_factor_enabled')->default(false);
+        $table->text('two_factor_secret')->nullable();
+        $table->json('two_factor_recovery_codes')->nullable();
+        $table->json('two_factor_methods')->nullable();
+        $table->timestamp('two_factor_confirmed_at')->nullable();
+        $table->timestamps();
     });
 
     Config::set('auth.defaults.guard', 'web');
@@ -92,8 +93,7 @@ beforeEach(function () {
     Config::set('authkit.two_factor.totp.window', 1);
     Config::set('authkit.two_factor.totp.algo', 'sha1');
 
-    // Bind token repo for pending_login
-    app()->bind(TokenRepositoryContract::class, fn () => new ArrayTokenRepository());
+    app()->singleton(TokenRepositoryContract::class, fn () => new ArrayTokenRepository());
 
     Route::post('/authkit/twofactor/challenge', TwoFactorChallengeController::class)
         ->name('authkit.api.twofactor.challenge');
@@ -124,23 +124,26 @@ it('in peek strategy, completes the challenge and forgets the session challenge'
         'remember' => true,
     ]);
 
-    expect($loginResult['ok'])->toBeTrue()
-        ->and($loginResult['two_factor_required'])->toBeTrue()
-        ->and($loginResult['internal_challenge'])->toBeString();
+    expect($loginResult)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($loginResult->ok)->toBeTrue()
+        ->and($loginResult->flow?->is('two_factor_required'))->toBeTrue()
+        ->and($loginResult->internal?->get('challenge'))->toBeString();
 
-    $challenge = (string) $loginResult['internal_challenge'];
+    $challenge = (string) $loginResult->internal?->get('challenge', '');
 
-    $res = $this
+    $response = $this
         ->withSession([AuthKitSessionKeys::TWO_FACTOR_CHALLENGE => $challenge])
         ->postJson(route('authkit.api.twofactor.challenge'), [
             'code' => totp_code('JBSWY3DPEHPK3PXP'),
         ]);
 
-    $res->assertOk()
+    $response->assertOk()
         ->assertJson([
             'ok' => true,
-            'two_factor_required' => false,
-        ]);
+            'status' => 200,
+            'message' => 'Two-factor verified.',
+        ])
+        ->assertJsonPath('flow.name', 'completed');
 
     /** @var AuthFactory $auth */
     $auth = app()->make(AuthFactory::class);
@@ -152,16 +155,16 @@ it('in peek strategy, completes the challenge and forgets the session challenge'
     expect($store->has(AuthKitSessionKeys::TWO_FACTOR_CHALLENGE))->toBeFalse();
 
     Event::assertDispatched(AuthKitTwoFactorRequired::class);
-    Event::assertDispatched(AuthKitTwoFactorLoggedIn::class, function ($e) use ($user, $challenge) {
-        return (string) $e->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
-            && $e->guard === 'web'
-            && $e->challenge === $challenge
-            && $e->remember === true;
+    Event::assertDispatched(AuthKitTwoFactorLoggedIn::class, function ($event) use ($user, $challenge) {
+        return (string) $event->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
+            && $event->guard === 'web'
+            && $event->challenge === $challenge
+            && $event->remember === true;
     });
-    Event::assertDispatched(AuthKitLoggedIn::class, function ($e) use ($user) {
-        return (string) $e->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
-            && $e->guard === 'web'
-            && $e->remember === true;
+    Event::assertDispatched(AuthKitLoggedIn::class, function ($event) use ($user) {
+        return (string) $event->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
+            && $event->guard === 'web'
+            && $event->remember === true;
     });
 });
 
@@ -186,20 +189,23 @@ it('in peek strategy, invalid code keeps the session challenge and returns 401',
         'remember' => false,
     ]);
 
-    $challenge = (string) ($loginResult['internal_challenge'] ?? '');
+    $challenge = (string) $loginResult->internal?->get('challenge', '');
     expect($challenge)->not->toBe('');
 
-    $res = $this
+    $response = $this
         ->withSession([AuthKitSessionKeys::TWO_FACTOR_CHALLENGE => $challenge])
         ->postJson(route('authkit.api.twofactor.challenge'), [
             'code' => '000000',
         ]);
 
-    $res->assertStatus(401)
+    $response->assertStatus(401)
         ->assertJson([
             'ok' => false,
-            'two_factor_required' => true,
-        ]);
+            'status' => 401,
+            'message' => 'Invalid authentication code.',
+        ])
+        ->assertJsonPath('flow.name', 'two_factor_required')
+        ->assertJsonPath('payload.challenge', $challenge);
 
     $store = app('session.store');
     expect($store->get(AuthKitSessionKeys::TWO_FACTOR_CHALLENGE))->toBe($challenge);
@@ -233,16 +239,22 @@ it('in consume strategy, invalid code forgets the session challenge and returns 
         'remember' => false,
     ]);
 
-    $challenge = (string) ($loginResult['internal_challenge'] ?? '');
+    $challenge = (string) $loginResult->internal?->get('challenge', '');
     expect($challenge)->not->toBe('');
 
-    $res = $this
+    $response = $this
         ->withSession([AuthKitSessionKeys::TWO_FACTOR_CHALLENGE => $challenge])
         ->postJson(route('authkit.api.twofactor.challenge'), [
             'code' => '000000',
         ]);
 
-    $res->assertStatus(401)->assertJson(['ok' => false]);
+    $response->assertStatus(401)
+        ->assertJson([
+            'ok' => false,
+            'status' => 401,
+            'message' => 'Invalid authentication code.',
+        ])
+        ->assertJsonPath('flow.name', 'failed');
 
     $store = app('session.store');
     expect($store->has(AuthKitSessionKeys::TWO_FACTOR_CHALLENGE))->toBeFalse();
@@ -255,16 +267,22 @@ it('in consume strategy, invalid code forgets the session challenge and returns 
     Event::assertNotDispatched(AuthKitLoggedIn::class);
 });
 
-it('returns 410 and forgets the session challenge when the challenge is missing/invalid', function () {
+it('returns 410 and forgets the session challenge when the challenge is missing or invalid', function () {
     Event::fake();
 
-    $res = $this
+    $response = $this
         ->withSession([AuthKitSessionKeys::TWO_FACTOR_CHALLENGE => 'invalid-challenge-token'])
         ->postJson(route('authkit.api.twofactor.challenge'), [
             'code' => '123456',
         ]);
 
-    $res->assertStatus(410)->assertJson(['ok' => false]);
+    $response->assertStatus(410)
+        ->assertJson([
+            'ok' => false,
+            'status' => 410,
+            'message' => 'Expired or invalid two-factor challenge.',
+        ])
+        ->assertJsonPath('flow.name', 'failed');
 
     $store = app('session.store');
     expect($store->has(AuthKitSessionKeys::TWO_FACTOR_CHALLENGE))->toBeFalse();
@@ -300,16 +318,22 @@ it('verifies against an encrypted secret stored on the model', function () {
         'remember' => false,
     ]);
 
-    $challenge = (string) ($loginResult['internal_challenge'] ?? '');
+    $challenge = (string) $loginResult->internal?->get('challenge', '');
     expect($challenge)->not->toBe('');
 
-    $res = $this
+    $response = $this
         ->withSession([AuthKitSessionKeys::TWO_FACTOR_CHALLENGE => $challenge])
         ->postJson(route('authkit.api.twofactor.challenge'), [
             'code' => totp_code($plain),
         ]);
 
-    $res->assertOk()->assertJson(['ok' => true]);
+    $response->assertOk()
+        ->assertJson([
+            'ok' => true,
+            'status' => 200,
+            'message' => 'Two-factor verified.',
+        ])
+        ->assertJsonPath('flow.name', 'completed');
 
     /** @var AuthFactory $auth */
     $auth = app()->make(AuthFactory::class);
@@ -324,6 +348,9 @@ it('verifies against an encrypted secret stored on the model', function () {
 
 /**
  * Generate a TOTP code for a Base32-encoded secret.
+ *
+ * @param string $base32Secret
+ * @return string
  */
 function totp_code(string $base32Secret): string
 {
@@ -354,43 +381,46 @@ function totp_code(string $base32Secret): string
 
 /**
  * Decode RFC 4648 Base32 secret into raw bytes.
+ *
+ * @param string $value
+ * @return string
  */
-function base32_decode_bytes(string $s): string
+function base32_decode_bytes(string $value): string
 {
-    $s = strtoupper((string) preg_replace('/[^A-Z2-7]/', '', $s));
+    $value = strtoupper((string) preg_replace('/[^A-Z2-7]/', '', $value));
 
-    if ($s === '') {
+    if ($value === '') {
         return '';
     }
 
     $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
     $buffer = 0;
     $bits = 0;
-    $out = '';
+    $output = '';
 
-    $len = strlen($s);
+    $length = strlen($value);
 
-    for ($i = 0; $i < $len; $i++) {
-        $val = strpos($alphabet, $s[$i]);
+    for ($index = 0; $index < $length; $index++) {
+        $charValue = strpos($alphabet, $value[$index]);
 
-        if ($val === false) {
+        if ($charValue === false) {
             return '';
         }
 
-        $buffer = ($buffer << 5) | $val;
+        $buffer = ($buffer << 5) | $charValue;
         $bits += 5;
 
         while ($bits >= 8) {
             $bits -= 8;
-            $out .= chr(($buffer >> $bits) & 0xFF);
+            $output .= chr(($buffer >> $bits) & 0xFF);
         }
     }
 
-    return $out;
+    return $output;
 }
 
 /**
- * TestUser
+ * TwoFactorChallengeTestUser
  *
  * Minimal user model for package tests.
  */
@@ -398,12 +428,24 @@ final class TwoFactorChallengeTestUser extends BaseUser
 {
     use HasAuthKitTwoFactor;
 
+    /**
+     * @var string
+     */
     protected $table = 'users';
 
+    /**
+     * @var array<int, string>
+     */
     protected $guarded = [];
 
+    /**
+     * @var array<int, string>
+     */
     protected $hidden = ['password'];
 
+    /**
+     * @var array<string, string>
+     */
     protected $casts = [
         'two_factor_enabled' => 'bool',
         'two_factor_recovery_codes' => 'array',

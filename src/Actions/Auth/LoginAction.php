@@ -7,31 +7,38 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Support\Facades\URL;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitFlowStep;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitInternalPayload;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitPublicPayload;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitRedirect;
 use Xul\AuthKit\Events\AuthKitEmailVerificationRequired;
 use Xul\AuthKit\Events\AuthKitLoggedIn;
 use Xul\AuthKit\Events\AuthKitTwoFactorRequired;
-use Xul\AuthKit\Support\PendingLogin;
 use Xul\AuthKit\Support\PendingEmailVerification;
+use Xul\AuthKit\Support\PendingLogin;
 use Xul\AuthKit\Support\TwoFactor\TwoFactorManager;
 
 /**
  * LoginAction
  *
- * Validates user credentials and conditionally performs session login.
+ * Validates user credentials and resolves the next step of the login journey.
  *
- * Behavior:
- * - Always validates user credentials against the configured guard provider.
- * - If two-factor is globally enabled AND the user has two-factor enabled:
- *   - creates a PendingLogin challenge
- *   - dispatches AuthKitTwoFactorRequired for delivery/coordination
- *   - does not authenticate the session yet
- * - Otherwise:
- *   - authenticates the session
- *   - dispatches AuthKitLoggedIn
+ * Responsibilities:
+ * - Resolve the configured guard and provider.
+ * - Validate incoming credentials against the configured provider.
+ * - Require email verification when configured and the user is unverified.
+ * - Require two-factor authentication when enabled for the user.
+ * - Perform stateful session login when no further step is required.
+ * - Dispatch the appropriate AuthKit events for each login outcome.
+ * - Return a standardized AuthKitActionResult for all outcomes.
  *
- * Security:
- * - This action must never return pending login challenge tokens to the caller.
- * - Challenge transport is handled by the HTTP layer (session/redirects) and events.
+ * Security notes:
+ * - Internal two-factor challenge values are returned only through the
+ *   internal payload DTO for server-side transport handling.
+ * - Signed verification URLs and tokens are emitted through the
+ *   AuthKitEmailVerificationRequired event for delivery coordination.
  */
 final class LoginAction
 {
@@ -51,33 +58,39 @@ final class LoginAction
     ) {}
 
     /**
-     * Attempt login.
+     * Attempt login and return a standardized action result.
      *
-     * @param  array<string, mixed>  $data
-     * @return array<string, mixed>
+     * @param array<string, mixed> $data
+     * @return AuthKitActionResult
      * @throws \Throwable
      */
-    public function handle(array $data): array
+    public function handle(array $data): AuthKitActionResult
     {
         $guardName = (string) config('authkit.auth.guard', 'web');
         $guard = $this->auth->guard($guardName);
 
         if (! $guard instanceof StatefulGuard) {
-            return [
-                'ok' => false,
-                'status' => 500,
-                'message' => 'Auth guard is not stateful.',
-            ];
+            return AuthKitActionResult::failure(
+                message: 'Auth guard is not stateful.',
+                status: 500,
+                flow: AuthKitFlowStep::failed(),
+                errors: [
+                    AuthKitError::make('guard_not_stateful', 'Auth guard is not stateful.'),
+                ],
+            );
         }
 
         $provider = $guard->getProvider();
 
         if (! $provider instanceof UserProvider) {
-            return [
-                'ok' => false,
-                'status' => 500,
-                'message' => 'Invalid auth provider.',
-            ];
+            return AuthKitActionResult::failure(
+                message: 'Invalid auth provider.',
+                status: 500,
+                flow: AuthKitFlowStep::failed(),
+                errors: [
+                    AuthKitError::make('invalid_auth_provider', 'Invalid auth provider.'),
+                ],
+            );
         }
 
         $identityField = (string) data_get(config('authkit.identity.login', []), 'field', 'email');
@@ -87,11 +100,15 @@ final class LoginAction
         $remember = (bool) ($data['remember'] ?? false);
 
         if (trim($identity) === '' || $password === '') {
-            return [
-                'ok' => false,
-                'status' => 422,
-                'message' => 'Missing credentials.',
-            ];
+            return AuthKitActionResult::failure(
+                message: 'Missing credentials.',
+                status: 422,
+                flow: AuthKitFlowStep::failed(),
+                errors: [
+                    AuthKitError::validation($identityField, 'The identity field is required.', 'missing_identity'),
+                    AuthKitError::validation('password', 'The password field is required.', 'missing_password'),
+                ],
+            );
         }
 
         $user = $provider->retrieveByCredentials([
@@ -100,95 +117,22 @@ final class LoginAction
         ]);
 
         if (! $user || ! $provider->validateCredentials($user, ['password' => $password])) {
-            return [
-                'ok' => false,
-                'status' => 401,
-                'message' => 'Invalid credentials.',
-            ];
+            return AuthKitActionResult::failure(
+                message: 'Invalid credentials.',
+                status: 401,
+                flow: AuthKitFlowStep::failed(),
+                errors: [
+                    AuthKitError::make('invalid_credentials', 'Invalid credentials.'),
+                ],
+            );
         }
 
         if ($this->shouldRequireEmailVerification($user)) {
-            $email = $this->resolveUserEmail($user, $identityField, $identity);
-
-            if ($email !== '') {
-                $ttl = (int) config('authkit.email_verification.ttl_minutes', 30);
-                $driver = (string) config('authkit.email_verification.driver', 'link');
-
-                $token = $this->pendingEmailVerification->createForEmail($email, $ttl, [
-                    'user_id' => (string) $user->getAuthIdentifier(),
-                    'driver' => $driver,
-                ]);
-
-                $url = $driver === 'link'
-                    ? $this->buildSignedVerifyLinkUrl($user, $email, $ttl, $token)
-                    : null;
-
-                event(new AuthKitEmailVerificationRequired(
-                    user: $user,
-                    email: $email,
-                    driver: $driver,
-                    ttlMinutes: $ttl,
-                    token: $token,
-                    url: $url
-                ));
-            }
-
-            $route = (string) config('authkit.route_names.web.verify_notice', 'authkit.web.email.verify.notice');
-
-            return [
-                'ok' => false,
-                'status' => 403,
-                'message' => 'Email verification required.',
-                'email_verification_required' => true,
-                'redirect_params' => $email !== '' ? ['email' => $email] : [],
-                'redirect_url' =>  route($route, ['email' => $email])
-            ];
+            return $this->emailVerificationRequiredResult($user, $identityField, $identity);
         }
 
         if ($this->shouldRequireTwoFactor($user)) {
-            $ttl = (int) config('authkit.two_factor.ttl_minutes', 10);
-
-            $driverName = (string) config('authkit.two_factor.driver', 'totp');
-            $driver = $this->twoFactor->driver($driverName);
-
-            $methods = $driver->methods($user);
-
-            if ($methods === []) {
-                $methods = (array) config('authkit.two_factor.methods', ['totp']);
-            }
-
-            $methods = array_values(array_filter($methods, static fn ($v) => is_string($v) && $v !== ''));
-
-            if ($methods === []) {
-                $methods = ['totp'];
-            }
-
-            $challenge = $this->pendingLogin->create(
-                userId: (string) $user->getAuthIdentifier(),
-                remember: $remember,
-                ttlMinutes: $ttl,
-                methods: $methods
-            );
-
-            event(new AuthKitTwoFactorRequired(
-                user: $user,
-                guard: $guardName,
-                challenge: $challenge,
-                methods: $methods,
-                remember: $remember
-            ));
-
-            $twoFactorRoute = (string) data_get(config('authkit.route_names.web', []), 'two_factor_challenge', 'authkit.web.twofactor.challenge');
-
-            return [
-                'ok' => true,
-                'status' => 200,
-                'message' => 'Two-factor authentication required.',
-                'two_factor_required' => true,
-                'methods' => $methods,
-                'internal_challenge' => $challenge,
-                'redirect_url' => route($twoFactorRoute)
-            ];
+            return $this->twoFactorRequiredResult($user, $guardName, $remember);
         }
 
         $guard->login($user, $remember);
@@ -199,21 +143,183 @@ final class LoginAction
             remember: $remember
         ));
 
+        $redirect = $this->resolveLoginSuccessRedirect();
+
+        return AuthKitActionResult::success(
+            message: 'Logged in.',
+            status: 200,
+            flow: AuthKitFlowStep::completed(),
+            redirect: $redirect,
+            payload: AuthKitPublicPayload::make([
+                'user_id' => (string) $user->getAuthIdentifier(),
+                'remember' => $remember,
+            ]),
+        );
+    }
+
+    /**
+     * Build the action result for an email-verification-required login outcome.
+     *
+     * @param object $user
+     * @param string $identityField
+     * @param string $identity
+     * @return AuthKitActionResult
+     */
+    protected function emailVerificationRequiredResult(
+        object $user,
+        string $identityField,
+        string $identity
+    ): AuthKitActionResult {
+        $email = $this->resolveUserEmail($user, $identityField, $identity);
+
+        if ($email !== '') {
+            $ttl = (int) config('authkit.email_verification.ttl_minutes', 30);
+            $driver = (string) config('authkit.email_verification.driver', 'link');
+
+            $token = $this->pendingEmailVerification->createForEmail($email, $ttl, [
+                'user_id' => (string) $user->getAuthIdentifier(),
+                'driver' => $driver,
+            ]);
+
+            $url = $driver === 'link'
+                ? $this->buildSignedVerifyLinkUrl($user, $email, $ttl, $token)
+                : null;
+
+            event(new AuthKitEmailVerificationRequired(
+                user: $user,
+                email: $email,
+                driver: $driver,
+                ttlMinutes: $ttl,
+                token: $token,
+                url: $url
+            ));
+        }
+
+        $routeName = (string) data_get(
+            config('authkit.route_names.web', []),
+            'verify_notice',
+            'authkit.web.email.verify.notice'
+        );
+
+        $parameters = $email !== '' ? ['email' => $email] : [];
+
+        return AuthKitActionResult::failure(
+            message: 'Email verification required.',
+            status: 403,
+            flow: AuthKitFlowStep::emailVerificationRequired(),
+            redirect: AuthKitRedirect::route(
+                routeName: $routeName,
+                parameters: $parameters,
+                url: route($routeName, $parameters)
+            ),
+            payload: AuthKitPublicPayload::make([
+                'email' => $email,
+                'driver' => (string) config('authkit.email_verification.driver', 'link'),
+            ]),
+            errors: [
+                AuthKitError::make('email_verification_required', 'Email verification required.'),
+            ],
+        );
+    }
+
+    /**
+     * Build the action result for a two-factor-required login outcome.
+     *
+     * @param object $user
+     * @param string $guardName
+     * @param bool $remember
+     * @return AuthKitActionResult
+     * @throws \Throwable
+     */
+    protected function twoFactorRequiredResult(
+        object $user,
+        string $guardName,
+        bool $remember
+    ): AuthKitActionResult {
+        $ttl = (int) config('authkit.two_factor.ttl_minutes', 10);
+
+        $driverName = (string) config('authkit.two_factor.driver', 'totp');
+        $driver = $this->twoFactor->driver($driverName);
+
+        $methods = $driver->methods($user);
+
+        if ($methods === []) {
+            $methods = (array) config('authkit.two_factor.methods', ['totp']);
+        }
+
+        $methods = array_values(array_filter(
+            $methods,
+            static fn ($value): bool => is_string($value) && $value !== ''
+        ));
+
+        if ($methods === []) {
+            $methods = ['totp'];
+        }
+
+        $challenge = $this->pendingLogin->create(
+            userId: (string) $user->getAuthIdentifier(),
+            remember: $remember,
+            ttlMinutes: $ttl,
+            methods: $methods
+        );
+
+        event(new AuthKitTwoFactorRequired(
+            user: $user,
+            guard: $guardName,
+            challenge: $challenge,
+            methods: $methods,
+            remember: $remember
+        ));
+
+        $routeName = (string) data_get(
+            config('authkit.route_names.web', []),
+            'two_factor_challenge',
+            'authkit.web.twofactor.challenge'
+        );
+
+        return AuthKitActionResult::success(
+            message: 'Two-factor authentication required.',
+            status: 200,
+            flow: AuthKitFlowStep::twoFactorRequired(),
+            redirect: AuthKitRedirect::route(
+                routeName: $routeName,
+                parameters: [],
+                url: route($routeName)
+            ),
+            payload: AuthKitPublicPayload::make([
+                'methods' => $methods,
+                'remember' => $remember,
+            ]),
+            internal: AuthKitInternalPayload::make([
+                'challenge' => $challenge,
+            ]),
+        );
+    }
+
+    /**
+     * Resolve the post-login redirect target.
+     *
+     * @return AuthKitRedirect
+     */
+    protected function resolveLoginSuccessRedirect(): AuthKitRedirect
+    {
         $redirectRoute = data_get(config('authkit.login', []), 'redirect_route');
-        $dashboardRoute = (string) data_get(config('authkit.login', []), 'dashboard_route', 'authkit.web.dashboard.web');
+        $dashboardRoute = (string) data_get(config('authkit.login', []), 'dashboard_route', 'dashboard');
+        $loginRoute = (string) data_get(config('authkit.route_names.web', []), 'login', 'authkit.web.login');
 
         $target = is_string($redirectRoute) && $redirectRoute !== ''
             ? $redirectRoute
             : $dashboardRoute;
 
-        return [
-            'ok' => true,
-            'status' => 200,
-            'message' => 'Logged in.',
-            'two_factor_required' => false,
-            'user_id' => $user->getAuthIdentifier(),
-            'redirect_url' => route($target)
-        ];
+        if ($target === '') {
+            $target = $loginRoute;
+        }
+
+        return AuthKitRedirect::route(
+            routeName: $target,
+            parameters: [],
+            url: route($target)
+        );
     }
 
     /**
@@ -226,9 +332,9 @@ final class LoginAction
      *
      * Fallback column logic:
      * - The column defaults to "email_verified_at".
-     * - A null/empty value means the user is not verified.
+     * - A null or empty value means the user is not verified.
      *
-     * @param  object  $user
+     * @param object $user
      * @return bool
      */
     protected function shouldRequireEmailVerification(object $user): bool
@@ -252,14 +358,14 @@ final class LoginAction
      * Resolve the email address associated with the authenticated identity.
      *
      * Resolution order:
-     * - Prefer the identity field on the user model (e.g. email).
+     * - Prefer the identity field on the user model.
      * - Fall back to the raw identity value used during login.
      *
      * The returned value is normalized to lowercase and trimmed.
      *
-     * @param  object  $user
-     * @param  string  $identityField
-     * @param  string  $identity
+     * @param object $user
+     * @param string $identityField
+     * @param string $identity
      * @return string
      */
     protected function resolveUserEmail(object $user, string $identityField, string $identity): string
@@ -276,15 +382,15 @@ final class LoginAction
      *
      * Route parameters:
      * - id: user identifier
-     * - hash: raw verification token (repository stores only sha256(token))
+     * - hash: raw verification token
      * - email: verification email context
      *
      * The URL is temporary and expires according to the configured TTL.
      *
-     * @param  object  $user
-     * @param  string  $email
-     * @param  int  $ttlMinutes
-     * @param  string  $token
+     * @param object $user
+     * @param string $email
+     * @param int $ttlMinutes
+     * @param string $token
      * @return string
      */
     protected function buildSignedVerifyLinkUrl(object $user, string $email, int $ttlMinutes, string $token): string

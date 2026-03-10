@@ -222,7 +222,7 @@ return [
             'password_reset_token_page' => 'authkit.web.password.reset.token',
             'password_reset_success' => 'authkit.web.password.reset.success',
 
-            'dashboard_web' => 'authkit.web.dashboard.web',
+            'dashboard_web' => 'authkit.web.dashboard',
         ],
 
         /**
@@ -953,7 +953,7 @@ return [
          *
          * Consumers should set this to their app dashboard/home route.
          */
-        'dashboard_route' => 'authkit.web.dashboard.web',
+        'dashboard_route' => 'authkit.web.dashboard',
     ],
 
     /**
@@ -1177,7 +1177,7 @@ return [
              *
              * If null, AuthKit uses the login route name.
              */
-            'redirect_route' => 'authkit.web.login',
+            'redirect_route' => 'authkit.web.dashboard',
 
             /**
              * Default login route name fallback.

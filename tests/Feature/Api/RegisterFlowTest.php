@@ -3,37 +3,78 @@
 namespace Xul\AuthKit\Tests\Feature\Api;
 
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Auth\User as BaseUser;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
+use Xul\AuthKit\Actions\Auth\RegisterAction;
 use Xul\AuthKit\Contracts\TokenRepositoryContract;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Events\AuthKitEmailVerificationRequired;
 use Xul\AuthKit\Events\AuthKitRegistered;
+use Xul\AuthKit\Http\Controllers\Api\Auth\RegisterController;
+use Xul\AuthKit\Tests\Support\ArrayTokenRepository;
 
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
 beforeEach(function (): void {
-    if (! Schema::hasTable('users')) {
-        Schema::create('users', function (Blueprint $table): void {
-            $table->id();
-            $table->string('name')->nullable();
-            $table->string('email')->unique();
-            $table->string('password');
-            $table->timestamp('email_verified_at')->nullable();
-            $table->timestamps();
-        });
-    }
+    Config::set('database.default', 'testing');
+    Config::set('database.connections.testing', [
+        'driver' => 'sqlite',
+        'database' => ':memory:',
+        'prefix' => '',
+    ]);
+
+    Schema::create('users', function (Blueprint $table): void {
+        $table->id();
+        $table->string('name')->nullable();
+        $table->string('email')->unique();
+        $table->string('password');
+        $table->timestamp('email_verified_at')->nullable();
+        $table->timestamps();
+    });
+
+    Config::set('auth.defaults.guard', 'web');
+    Config::set('auth.guards.web', [
+        'driver' => 'session',
+        'provider' => 'users',
+    ]);
+    Config::set('auth.providers.users', [
+        'driver' => 'eloquent',
+        'model' => \Xul\AuthKit\Tests\Feature\Api\RegisterTest::class,
+    ]);
+
+    Config::set('authkit.auth.guard', 'web');
+    Config::set('authkit.email_verification.driver', 'link');
+    Config::set('authkit.email_verification.ttl_minutes', 5);
+    Config::set('authkit.route_names.api.register', 'authkit.api.auth.register');
+    Config::set('authkit.route_names.web.verify_notice', 'authkit.web.email.verify.notice');
+    Config::set('authkit.route_names.web.verify_link', 'authkit.web.email.verification.verify.link');
+
+    app()->singleton(TokenRepositoryContract::class, fn () => new ArrayTokenRepository());
+
+    Route::post('/authkit/register', RegisterController::class)
+        ->middleware(['web'])
+        ->name('authkit.api.auth.register');
+
+    Route::get('/authkit/email/verify/notice', fn () => 'verify-notice')
+        ->name('authkit.web.email.verify.notice');
+
+    Route::get('/authkit/email/verify/link/{id}/{hash}', fn () => 'verify-link')
+        ->name('authkit.web.email.verification.verify.link');
 });
 
 /**
- * RegisterFlowTest (API)
+ * RegisterFlowTest
  *
  * Covers:
  * - Controller JSON response
  * - RegisterAction behavior
- * - Event dispatch (AuthKitRegistered, AuthKitEmailVerificationRequired)
+ * - Event dispatch
  * - Token persistence
- * - Security: response must not include raw token or verification URL
+ * - Security guarantees for API response payload
  */
 it('registers successfully using token driver (API JSON)', function (): void {
     Event::fake([
@@ -45,8 +86,7 @@ it('registers successfully using token driver (API JSON)', function (): void {
     config()->set('authkit.email_verification.ttl_minutes', 5);
 
     $route = (string) config('authkit.route_names.api.register', 'authkit.api.auth.register');
-
-    $email = 'meritinfos@gmail.com';
+    $email = 'michael@examples.com';
 
     $response = $this->postJson(route($route), [
         'name' => 'Michael API',
@@ -55,27 +95,33 @@ it('registers successfully using token driver (API JSON)', function (): void {
         'password_confirmation' => 'password1234',
     ]);
 
-    $response->assertStatus(201);
+    $response->assertStatus(201)
+        ->assertJson([
+            'ok' => true,
+            'status' => 201,
+            'message' => 'Account created. Please verify your email.',
+        ])
+        ->assertJsonPath('flow.name', 'email_verification_notice')
+        ->assertJsonPath('payload.email', mb_strtolower($email))
+        ->assertJsonPath('payload.driver', 'token');
 
     $data = $response->json();
 
-    expect($data)
-        ->and(data_get($data, 'ok'))->toBeTrue()
-        ->and(data_get($data, 'email'))->toBe(mb_strtolower($email))
-        ->and(data_get($data, 'token'))->toBeNull()
+    expect(data_get($data, 'token'))->toBeNull()
         ->and(data_get($data, 'verify_url'))->toBeNull();
 
     Event::assertDispatched(AuthKitRegistered::class);
 
     $issuedToken = null;
 
-    Event::assertDispatched(AuthKitEmailVerificationRequired::class, function (AuthKitEmailVerificationRequired $e) use ($email, &$issuedToken): bool {
-        $issuedToken = $e->token;
+    Event::assertDispatched(AuthKitEmailVerificationRequired::class, function (AuthKitEmailVerificationRequired $event) use ($email, &$issuedToken): bool {
+        $issuedToken = $event->token;
 
-        return $e->driver === 'token'
-            && $e->email === mb_strtolower($email)
-            && $e->url === null
-            && is_string($e->token) && $e->token !== '';
+        return $event->driver === 'token'
+            && $event->email === mb_strtolower($email)
+            && $event->url === null
+            && is_string($event->token)
+            && $event->token !== '';
     });
 
     expect($issuedToken)->toBeString()->not->toBeEmpty();
@@ -101,8 +147,7 @@ it('registers successfully using link driver (API JSON)', function (): void {
     config()->set('authkit.email_verification.ttl_minutes', 5);
 
     $route = (string) config('authkit.route_names.api.register', 'authkit.api.auth.register');
-
-    $email = 'meritinfos@gmail.com';
+    $email = 'michael@examples.com';
 
     $response = $this->postJson(route($route), [
         'name' => 'Michael API Link',
@@ -111,14 +156,19 @@ it('registers successfully using link driver (API JSON)', function (): void {
         'password_confirmation' => 'password1234',
     ]);
 
-    $response->assertStatus(201);
+    $response->assertStatus(201)
+        ->assertJson([
+            'ok' => true,
+            'status' => 201,
+            'message' => 'Account created. Please verify your email.',
+        ])
+        ->assertJsonPath('flow.name', 'email_verification_notice')
+        ->assertJsonPath('payload.email', mb_strtolower($email))
+        ->assertJsonPath('payload.driver', 'link');
 
     $data = $response->json();
 
-    expect($data)
-        ->and(data_get($data, 'ok'))->toBeTrue()
-        ->and(data_get($data, 'email'))->toBe(mb_strtolower($email))
-        ->and(data_get($data, 'token'))->toBeNull()
+    expect(data_get($data, 'token'))->toBeNull()
         ->and(data_get($data, 'verify_url'))->toBeNull();
 
     Event::assertDispatched(AuthKitRegistered::class);
@@ -126,14 +176,16 @@ it('registers successfully using link driver (API JSON)', function (): void {
     $issuedUrl = null;
     $issuedToken = null;
 
-    Event::assertDispatched(AuthKitEmailVerificationRequired::class, function (AuthKitEmailVerificationRequired $e) use ($email, &$issuedUrl, &$issuedToken): bool {
-        $issuedUrl = $e->url;
-        $issuedToken = $e->token;
+    Event::assertDispatched(AuthKitEmailVerificationRequired::class, function (AuthKitEmailVerificationRequired $event) use ($email, &$issuedUrl, &$issuedToken): bool {
+        $issuedUrl = $event->url;
+        $issuedToken = $event->token;
 
-        return $e->driver === 'link'
-            && $e->email === mb_strtolower($email)
-            && is_string($e->url) && $e->url !== ''
-            && is_string($e->token) && $e->token !== '';
+        return $event->driver === 'link'
+            && $event->email === mb_strtolower($email)
+            && is_string($event->url)
+            && $event->url !== ''
+            && is_string($event->token)
+            && $event->token !== '';
     });
 
     expect($issuedUrl)->toBeString()->not->toBeEmpty();
@@ -156,3 +208,52 @@ it('registers successfully using link driver (API JSON)', function (): void {
 
     expect($peek)->toBeArray();
 });
+
+it('returns a standardized action result from register action', function (): void {
+    Event::fake([
+        AuthKitRegistered::class,
+        AuthKitEmailVerificationRequired::class,
+    ]);
+
+    config()->set('authkit.email_verification.driver', 'token');
+
+    /** @var RegisterAction $action */
+    $action = app(RegisterAction::class);
+
+    $result = $action->handle([
+        'name' => 'Michael DTO',
+        'email' => 'michael@examples.com',
+        'password' => 'password1234',
+    ]);
+
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeTrue()
+        ->and($result->status)->toBe(201)
+        ->and($result->flow?->is('email_verification_notice'))->toBeTrue()
+        ->and($result->payload?->get('email'))->toBe('michael@examples.com')
+        ->and($result->payload?->get('driver'))->toBe('token')
+        ->and($result->redirect?->target)->toBe('authkit.web.email.verify.notice');
+});
+
+/**
+ * TestUser
+ *
+ * Minimal user model for package tests.
+ */
+final class RegisterTest extends BaseUser
+{
+    /**
+     * @var string
+     */
+    protected $table = 'users';
+
+    /**
+     * @var array<int, string>
+     */
+    protected $guarded = [];
+
+    /**
+     * @var array<int, string>
+     */
+    protected $hidden = ['password'];
+}

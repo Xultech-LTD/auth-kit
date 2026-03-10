@@ -7,15 +7,20 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Auth\User as BaseUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Xul\AuthKit\Contracts\TokenRepositoryContract;
 use Xul\AuthKit\Contracts\TwoFactorDriverContract;
 use Xul\AuthKit\Contracts\TwoFactorResendableContract;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
+use Xul\AuthKit\Events\AuthKitTwoFactorResent;
 use Xul\AuthKit\Http\Controllers\Api\Auth\TwoFactorResendController;
 use Xul\AuthKit\Support\AuthKitSessionKeys;
 use Xul\AuthKit\Support\PendingLogin;
+use Xul\AuthKit\Tests\Support\ArrayTokenRepository;
 
 uses(RefreshDatabase::class);
 
@@ -27,17 +32,17 @@ beforeEach(function () {
         'prefix' => '',
     ]);
 
-    Schema::create('users', function (Blueprint $t) {
-        $t->id();
-        $t->string('name')->nullable();
-        $t->string('email')->unique();
-        $t->string('password');
-        $t->rememberToken();
-        $t->boolean('two_factor_enabled')->default(false);
-        $t->text('two_factor_secret')->nullable();
-        $t->json('two_factor_recovery_codes')->nullable();
-        $t->json('two_factor_methods')->nullable();
-        $t->timestamps();
+    Schema::create('users', function (Blueprint $table) {
+        $table->id();
+        $table->string('name')->nullable();
+        $table->string('email')->unique();
+        $table->string('password');
+        $table->rememberToken();
+        $table->boolean('two_factor_enabled')->default(false);
+        $table->text('two_factor_secret')->nullable();
+        $table->json('two_factor_recovery_codes')->nullable();
+        $table->json('two_factor_methods')->nullable();
+        $table->timestamps();
     });
 
     Config::set('auth.defaults.guard', 'web');
@@ -67,12 +72,22 @@ beforeEach(function () {
     Config::set('authkit.two_factor.columns.methods', 'two_factor_methods');
 
     Config::set('authkit.route_names.api.two_factor_resend', 'authkit.api.twofactor.resend');
+    Config::set('authkit.route_names.web.login', 'authkit.web.login');
+    Config::set('authkit.route_names.web.two_factor_challenge', 'authkit.web.twofactor.challenge');
+
+    app()->singleton(TokenRepositoryContract::class, fn () => new ArrayTokenRepository());
+
+    Route::get('/login', fn () => 'login')->name('authkit.web.login');
+    Route::get('/twofactor', fn () => 'twofactor')->name('authkit.web.twofactor.challenge');
 
     Route::post('/authkit/twofactor/resend', TwoFactorResendController::class)
+        ->middleware(['web'])
         ->name('authkit.api.twofactor.resend');
 });
 
-it('returns 409 when resend is not supported by the active driver (totp)', function () {
+it('returns 409 when resend is not supported by the active driver', function () {
+    Event::fake();
+
     $apiNames = (array) config('authkit.route_names.api', []);
     $routeName = (string) ($apiNames['two_factor_resend'] ?? 'authkit.api.twofactor.resend');
 
@@ -95,16 +110,23 @@ it('returns 409 when resend is not supported by the active driver (totp)', funct
         ->assertStatus(409)
         ->assertJson([
             'ok' => false,
-        ]);
+            'status' => 409,
+            'message' => 'Two-factor resend is not supported for the active driver.',
+        ])
+        ->assertJsonPath('payload.driver', 'totp');
+
+    Event::assertNotDispatched(AuthKitTwoFactorResent::class);
 });
 
 it('returns 200 when resend is supported by the active driver', function () {
-    $apiNames = (array) config('authkit.route_names.api', []);
-    $routeName = (string) ($apiNames['two_factor_resend'] ?? 'authkit.api.twofactor.resend');
+    Event::fake();
 
     config()->set('authkit.two_factor.driver', 'fake_resend');
     config()->set('authkit.two_factor.drivers.fake_resend', FakeResendTwoFactorDriver::class);
     config()->set('authkit.two_factor.methods', ['fake']);
+
+    $apiNames = (array) config('authkit.route_names.api', []);
+    $routeName = (string) ($apiNames['two_factor_resend'] ?? 'authkit.api.twofactor.resend');
 
     $user = createTwoFactorEnabledUser();
 
@@ -125,8 +147,46 @@ it('returns 200 when resend is supported by the active driver', function () {
         ->assertOk()
         ->assertJson([
             'ok' => true,
-            'driver' => 'fake_resend',
-        ]);
+            'status' => 200,
+            'message' => 'Challenge resent.',
+        ])
+        ->assertJsonPath('flow.name', 'two_factor_required')
+        ->assertJsonPath('payload.driver', 'fake_resend');
+
+    Event::assertDispatched(AuthKitTwoFactorResent::class);
+});
+
+it('returns a standardized action result for supported resend flow', function () {
+    Event::fake();
+
+    config()->set('authkit.two_factor.driver', 'fake_resend');
+    config()->set('authkit.two_factor.drivers.fake_resend', FakeResendTwoFactorDriver::class);
+    config()->set('authkit.two_factor.methods', ['fake']);
+
+    $user = createTwoFactorEnabledUser();
+
+    $pending = app(PendingLogin::class);
+
+    $challenge = $pending->create(
+        userId: (string) $user->getAuthIdentifier(),
+        remember: true,
+        ttlMinutes: 5,
+        methods: ['fake']
+    );
+
+    session()->put(AuthKitSessionKeys::TWO_FACTOR_CHALLENGE, $challenge);
+
+    $action = app(\Xul\AuthKit\Actions\Auth\TwoFactorResendAction::class);
+
+    $result = $action->handle([
+        'email' => $user->email,
+    ]);
+
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeTrue()
+        ->and($result->status)->toBe(200)
+        ->and($result->flow?->is('two_factor_required'))->toBeTrue()
+        ->and($result->payload?->get('driver'))->toBe('fake_resend');
 });
 
 /**
@@ -136,14 +196,14 @@ it('returns 200 when resend is supported by the active driver', function () {
  */
 function createTwoFactorEnabledUser(): TestUser
 {
-    $enabledCol = (string) config('authkit.two_factor.columns.enabled', 'two_factor_enabled');
+    $enabledColumn = (string) config('authkit.two_factor.columns.enabled', 'two_factor_enabled');
 
     /** @var TestUser $user */
     $user = TestUser::query()->create([
         'name' => 'Test User',
         'email' => 'user' . uniqid() . '@example.com',
         'password' => Hash::make('password'),
-        $enabledCol => true,
+        $enabledColumn => true,
     ]);
 
     return $user;
@@ -156,12 +216,24 @@ function createTwoFactorEnabledUser(): TestUser
  */
 final class TestUser extends BaseUser
 {
+    /**
+     * @var string
+     */
     protected $table = 'users';
 
+    /**
+     * @var array<int, string>
+     */
     protected $guarded = [];
 
+    /**
+     * @var array<int, string>
+     */
     protected $hidden = ['password', 'remember_token'];
 
+    /**
+     * @var array<string, string>
+     */
     protected $casts = [
         'two_factor_enabled' => 'bool',
         'two_factor_recovery_codes' => 'array',
@@ -173,47 +245,76 @@ final class TestUser extends BaseUser
  * FakeResendTwoFactorDriver
  *
  * Test-only driver that supports resend for the pending login context.
- *
- * @final
  */
 final class FakeResendTwoFactorDriver implements TwoFactorDriverContract, TwoFactorResendableContract
 {
+    /**
+     * @return string
+     */
     public function key(): string
     {
         return 'fake_resend';
     }
 
+    /**
+     * @param object $user
+     * @return array<int, string>
+     */
     public function methods(object $user): array
     {
         return ['fake'];
     }
 
+    /**
+     * @param object $user
+     * @return bool
+     */
     public function enabled(object $user): bool
     {
         if (method_exists($user, 'hasTwoFactorEnabled')) {
             return (bool) $user->hasTwoFactorEnabled();
         }
 
-        $col = (string) config('authkit.two_factor.columns.enabled', 'two_factor_enabled');
+        $column = (string) config('authkit.two_factor.columns.enabled', 'two_factor_enabled');
 
-        return (bool) data_get($user, $col, false);
+        return (bool) data_get($user, $column, false);
     }
 
+    /**
+     * @param object $user
+     * @param string $code
+     * @return bool
+     */
     public function verify(object $user, string $code): bool
     {
         return false;
     }
 
+    /**
+     * @param object $user
+     * @param string $recoveryCode
+     * @return bool
+     */
     public function verifyRecoveryCode(object $user, string $recoveryCode): bool
     {
         return false;
     }
 
+    /**
+     * @param object $user
+     * @param string $recoveryCode
+     * @return bool
+     */
     public function consumeRecoveryCode(object $user, string $recoveryCode): bool
     {
         return false;
     }
 
+    /**
+     * @param Authenticatable $user
+     * @param array<string, mixed> $context
+     * @return array<string, mixed>
+     */
     public function resend(Authenticatable $user, array $context = []): array
     {
         return [
@@ -223,17 +324,22 @@ final class FakeResendTwoFactorDriver implements TwoFactorDriverContract, TwoFac
         ];
     }
 
+    /**
+     * @param int $count
+     * @param int $length
+     * @return array<int, string>
+     */
     public function generateRecoveryCodes(int $count = 8, int $length = 10): array
     {
         $count = max(1, $count);
         $length = max(4, $length);
 
-        $out = [];
+        $codes = [];
 
-        for ($i = 0; $i < $count; $i++) {
-            $out[] = Str::lower(Str::random($length));
+        for ($index = 0; $index < $count; $index++) {
+            $codes[] = Str::lower(Str::random($length));
         }
 
-        return $out;
+        return $codes;
     }
 }

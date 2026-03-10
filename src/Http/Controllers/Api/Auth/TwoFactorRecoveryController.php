@@ -2,14 +2,13 @@
 
 namespace Xul\AuthKit\Http\Controllers\Api\Auth;
 
-use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Psr\SimpleCache\InvalidArgumentException;
 use Throwable;
 use Xul\AuthKit\Actions\Auth\TwoFactorRecoveryAction;
 use Xul\AuthKit\Concerns\Http\ApiRespondsJson;
 use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\Auth\TwoFactorRecoveryRequest;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
@@ -18,7 +17,16 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Handles recovery-code completion of a pending two-factor login challenge.
  *
- * @final
+ * Responsibilities:
+ * - Validate the incoming request through TwoFactorRecoveryRequest.
+ * - Delegate recovery-code authentication flow to TwoFactorRecoveryAction.
+ * - Return JSON responses for API or AJAX consumers.
+ * - Return redirect responses with flash messages for standard web consumers.
+ *
+ * Design notes:
+ * - TwoFactorRecoveryAction is the source of truth for outcome, flow,
+ *   redirect, payload, and error semantics.
+ * - Public JSON responses are generated from the standardized action result DTO.
  */
 final class TwoFactorRecoveryController
 {
@@ -28,59 +36,81 @@ final class TwoFactorRecoveryController
     /**
      * Handle a two-factor recovery request.
      *
-     * Returns:
-     * - JSON responses for AJAX/JSON requests.
-     * - Redirect responses with flash messages for standard SSR form posts.
-     *
      * @param TwoFactorRecoveryRequest $request
      * @param TwoFactorRecoveryAction $action
      * @return JsonResponse|RedirectResponse
      * @throws Throwable
      */
-    public function __invoke(TwoFactorRecoveryRequest $request, TwoFactorRecoveryAction $action): JsonResponse|RedirectResponse
-    {
+    public function __invoke(
+        TwoFactorRecoveryRequest $request,
+        TwoFactorRecoveryAction $action
+    ): JsonResponse|RedirectResponse {
         $result = $action->handle($request->validated());
 
         if (ResponseResolver::expectsJson($request)) {
-            $status = (int) ($result['status'] ?? 200);
-
-            return $this->ok($result, $status);
+            return $this->ok($result->toArray(), $result->status);
         }
 
-        $loginRoute = (string) data_get(config('authkit.route_names.web', []), 'login', 'authkit.web.login');
-        $twoFactorRoute = (string) data_get(config('authkit.route_names.web', []), 'two_factor_challenge', 'authkit.web.twofactor.challenge');
+        return $this->toWebResponse($result, (string) $request->input('challenge', ''));
+    }
 
-        if (!(bool) ($result['ok'] ?? false)) {
-            $status = (int) ($result['status'] ?? 422);
+    /**
+     * Convert the standardized action result into a web redirect response.
+     *
+     * @param AuthKitActionResult $result
+     * @param string $challenge
+     * @return RedirectResponse
+     */
+    protected function toWebResponse(AuthKitActionResult $result, string $challenge): RedirectResponse
+    {
+        $loginRoute = (string) data_get(
+            config('authkit.route_names.web', []),
+            'login',
+            'authkit.web.login'
+        );
 
-            if ($status === 410) {
+        $twoFactorRoute = (string) data_get(
+            config('authkit.route_names.web', []),
+            'two_factor_challenge',
+            'authkit.web.twofactor.challenge'
+        );
+
+        if (! $result->ok) {
+            if ($result->status === 410) {
                 return $this->toRouteWithError(
                     routeName: $loginRoute,
                     parameters: [],
-                    message: (string) ($result['message'] ?? 'Expired or invalid two-factor challenge.')
+                    message: $result->message
+                );
+            }
+
+            if ($result->hasRedirect() && $result->redirect?->isRoute()) {
+                return $this->toRouteWithError(
+                    routeName: $result->redirect->target,
+                    parameters: $result->redirect->parameters,
+                    message: $result->message
                 );
             }
 
             return $this->toRouteWithError(
                 routeName: $twoFactorRoute,
-                parameters: ['c' => (string) $request->input('challenge', '')],
-                message: (string) ($result['message'] ?? 'Recovery failed.')
+                parameters: $challenge !== '' ? ['c' => $challenge] : [],
+                message: $result->message
             );
         }
 
-        $redirectRoute = data_get(config('authkit.login', []), 'redirect_route');
-        $dashboardRoute = (string) data_get(config('authkit.login', []), 'dashboard_route', 'dashboard');
-
-        $target = is_string($redirectRoute) && $redirectRoute !== ''
-            ? $redirectRoute
-            : $dashboardRoute;
-
-        if ($target === '') {
-            $target = $loginRoute;
+        if ($result->hasRedirect() && $result->redirect?->isRoute()) {
+            return $this->toRouteWithStatus(
+                routeName: $result->redirect->target,
+                parameters: $result->redirect->parameters,
+                message: $result->message
+            );
         }
 
-        return redirect()
-            ->route($target)
-            ->with('status', (string) ($result['message'] ?? 'Recovered and logged in.'));
+        return $this->toRouteWithStatus(
+            routeName: $loginRoute,
+            parameters: [],
+            message: $result->message
+        );
     }
 }

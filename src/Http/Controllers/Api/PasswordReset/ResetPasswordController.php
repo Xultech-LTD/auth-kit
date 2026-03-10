@@ -2,23 +2,25 @@
 
 namespace Xul\AuthKit\Http\Controllers\Api\PasswordReset;
 
-use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Xul\AuthKit\Actions\PasswordReset\ResetPasswordAction;
 use Xul\AuthKit\Concerns\Http\ApiRespondsJson;
 use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\PasswordReset\ResetPasswordRequest;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
 /**
  * ResetPasswordController
  *
- * Completes a password reset using an email + token/code + new password.
+ * Completes a password reset using an email, token or code, and new password.
  *
- * Returns:
- * - JSON for AJAX/JSON requests.
- * - Redirect + flash messages for standard SSR form posts.
+ * Responsibilities:
+ * - Validate the incoming request through ResetPasswordRequest.
+ * - Delegate reset orchestration to ResetPasswordAction.
+ * - Return JSON responses for API or AJAX consumers.
+ * - Return redirect responses with flash messages for standard web consumers.
  */
 final class ResetPasswordController
 {
@@ -26,40 +28,55 @@ final class ResetPasswordController
     use WebRespondsRedirects;
 
     /**
+     * Handle the incoming request.
+     *
      * @param ResetPasswordRequest $request
      * @param ResetPasswordAction $action
-     * @param AuthFactory $auth
      * @return JsonResponse|RedirectResponse
      */
     public function __invoke(
         ResetPasswordRequest $request,
-        ResetPasswordAction $action,
-        AuthFactory $auth
+        ResetPasswordAction $action
     ): JsonResponse|RedirectResponse {
         $email = (string) data_get($request->validated(), 'email', '');
         $token = (string) data_get($request->validated(), 'token', '');
         $password = (string) data_get($request->validated(), 'password', '');
 
-        $result = $action->execute(
+        $result = $action->handle(
             email: $email,
             token: $token,
             newPasswordRaw: $password
         );
 
-        $payload = [
-            'ok' => $result->ok,
-            'message' => $result->message,
-            'redirect_url' => $result->redirectUrl,
-        ];
-
         if (ResponseResolver::expectsJson($request)) {
-            return $this->ok($payload, $result->ok ? 200 : 422);
+            return $this->ok($result->toArray(), $result->status);
         }
 
+        return $this->toWebResponse($result, $email, $token);
+    }
+
+    /**
+     * Convert the standardized action result into a web redirect response.
+     *
+     * @param AuthKitActionResult $result
+     * @param string $email
+     * @param string $token
+     * @return RedirectResponse
+     */
+    protected function toWebResponse(AuthKitActionResult $result, string $email, string $token): RedirectResponse
+    {
         $webNames = (array) config('authkit.route_names.web', []);
         $resetRoute = (string) ($webNames['password_reset'] ?? 'authkit.web.password.reset');
 
         if (! $result->ok) {
+            if ($result->hasRedirect() && $result->redirect?->isRoute()) {
+                return $this->toRouteWithError(
+                    routeName: $result->redirect->target,
+                    parameters: $result->redirect->parameters,
+                    message: $result->message
+                );
+            }
+
             return $this->toRouteWithError(
                 routeName: $resetRoute,
                 parameters: ['token' => $token, 'email' => $email],
@@ -67,49 +84,17 @@ final class ResetPasswordController
             );
         }
 
-        $mode = (string) data_get(config('authkit.password_reset.post_reset', []), 'mode', 'success_page');
-
-        if ($mode === 'redirect') {
-            $redirectRoute = (string) (data_get(config('authkit.password_reset.post_reset', []), 'redirect_route') ?? '');
-
-            if ($redirectRoute !== '') {
-                return redirect()->route($redirectRoute)->with('status', $result->message);
-            }
-
-            $loginFallback = (string) data_get(config('authkit.password_reset.post_reset', []), 'login_route', 'authkit.web.login');
-
-            return redirect()->route($loginFallback)->with('status', $result->message);
+        if ($result->hasRedirect() && $result->redirect?->isRoute()) {
+            return $this->toRouteWithStatus(
+                routeName: $result->redirect->target,
+                parameters: $result->redirect->parameters,
+                message: $result->message
+            );
         }
-
-        $loginAfterReset = (bool) data_get(config('authkit.password_reset.post_reset', []), 'login_after_reset', false);
-
-        if ($loginAfterReset && $result->user !== null) {
-            $guard = (string) config('authkit.auth.guard', 'web');
-            $remember = (bool) data_get(config('authkit.password_reset.post_reset', []), 'remember', true);
-
-            $auth->guard($guard)->login($result->user, $remember);
-
-            $redirectRoute = data_get(config('authkit.login', []), 'redirect_route');
-            $dashboardRoute = (string) data_get(config('authkit.login', []), 'dashboard_route', 'dashboard');
-
-            $target = is_string($redirectRoute) && $redirectRoute !== '' ? $redirectRoute : $dashboardRoute;
-
-            if ($target === '') {
-                $target = (string) ($webNames['login'] ?? 'authkit.web.login');
-            }
-
-            return redirect()->route($target)->with('status', $result->message);
-        }
-
-        $successRoute = (string) data_get(
-            config('authkit.password_reset.post_reset', []),
-            'success_route',
-            (string) ($webNames['password_reset_success'] ?? 'authkit.web.password.reset.success')
-        );
 
         return $this->toRouteWithStatus(
-            routeName: $successRoute,
-            parameters: [],
+            routeName: $resetRoute,
+            parameters: ['token' => $token, 'email' => $email],
             message: $result->message
         );
     }

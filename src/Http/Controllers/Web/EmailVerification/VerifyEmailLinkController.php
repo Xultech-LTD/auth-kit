@@ -5,6 +5,7 @@ namespace Xul\AuthKit\Http\Controllers\Web\EmailVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Xul\AuthKit\Actions\EmailVerification\VerifyEmailLinkAction;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 
 /**
  * VerifyEmailLinkController
@@ -12,7 +13,7 @@ use Xul\AuthKit\Actions\EmailVerification\VerifyEmailLinkAction;
  * Handles signed email verification link requests.
  *
  * This controller delegates verification logic to VerifyEmailLinkAction and
- * applies AuthKit UX configuration for post-verification navigation.
+ * applies redirect behavior from the standardized action result.
  */
 final class VerifyEmailLinkController
 {
@@ -40,84 +41,39 @@ final class VerifyEmailLinkController
         $id = (string) $request->route('id', '');
         $hash = (string) $request->route('hash', '');
 
-        $result = $this->action->execute($id, $hash);
+        $result = $this->action->handle($id, $hash);
 
-        if (!$result->ok) {
-            return $this->redirectToLogin()
-                ->with('error', $result->message);
-        }
-
-        $mode = (string) data_get(config('authkit.email_verification.post_verify', []), 'mode', 'redirect');
-
-        if ($mode === 'success_page') {
-            return $this->redirectToSuccessPage()
-                ->with('status', $result->message);
-        }
-
-        return $this->redirectAfterSuccess()
-            ->with('status', $result->message);
+        return $this->toWebResponse($result);
     }
 
     /**
-     * Redirect after successful verification (mode=redirect).
+     * Convert the standardized action result into a redirect response.
      *
+     * @param AuthKitActionResult $result
      * @return RedirectResponse
      */
-    protected function redirectAfterSuccess(): RedirectResponse
+    protected function toWebResponse(AuthKitActionResult $result): RedirectResponse
     {
-        $redirectRoute = (string) (data_get(config('authkit.email_verification.post_verify', []), 'redirect_route') ?? '');
+        $redirect = $result->redirect;
 
-        if ($redirectRoute !== '') {
-            return redirect()->route($redirectRoute);
+        if ($redirect !== null && $redirect->isRoute()) {
+            return $result->ok
+                ? redirect()
+                    ->route($redirect->target, $redirect->parameters)
+                    ->with('status', $result->message)
+                : redirect()
+                    ->route($redirect->target, $redirect->parameters)
+                    ->with('error', $result->message);
         }
 
-        $loginAfterVerify = (bool) data_get(config('authkit.email_verification.post_verify', []), 'login_after_verify', false);
-
-        if ($loginAfterVerify) {
-            $redirectRoute = data_get(config('authkit.login', []), 'redirect_route');
-            $dashboardRoute = (string) data_get(config('authkit.login', []), 'dashboard_route', 'dashboard');
-
-            $target = is_string($redirectRoute) && $redirectRoute !== ''
-                ? $redirectRoute
-                : $dashboardRoute;
-
-            if ($target !== '') {
-                return redirect()->route($target);
-            }
-        }
-
-        return $this->redirectToLogin();
-    }
-
-    /**
-     * Redirect to AuthKit success page (mode=success_page).
-     *
-     * @return RedirectResponse
-     */
-    protected function redirectToSuccessPage(): RedirectResponse
-    {
-        $webNames = (array) config('authkit.route_names.web', []);
-        $fallback = (string) data_get(config('authkit.email_verification.post_verify', []), 'success_route', 'authkit.web.email.verify.success');
-
-        $routeName = (string) ($webNames['verify_success'] ?? $fallback);
-
-        return redirect()->route($routeName);
-    }
-
-    /**
-     * Redirect to the configured login route.
-     *
-     * @return RedirectResponse
-     */
-    protected function redirectToLogin(): RedirectResponse
-    {
         $login = (string) data_get(
             config('authkit.route_names.web', []),
             'login',
-            (string) data_get(config('authkit.email_verification.post_verify', []), 'login_route', 'authkit.web.login')
+            'authkit.web.login'
         );
 
-        return redirect()->route($login);
+        return $result->ok
+            ? redirect()->route($login)->with('status', $result->message)
+            : redirect()->route($login)->with('error', $result->message);
     }
-
 }

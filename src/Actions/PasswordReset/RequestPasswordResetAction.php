@@ -6,27 +6,40 @@ use Illuminate\Support\Facades\Event;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetPolicyContract;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetUrlGeneratorContract;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetUserResolverContract;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitFlowStep;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitPublicPayload;
+use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitRedirect;
 use Xul\AuthKit\Events\AuthKitPasswordResetRequested;
 use Xul\AuthKit\Support\PendingPasswordReset;
 
 /**
  * RequestPasswordResetAction
  *
- * Starts a password reset request for a given identity value (email).
+ * Starts a password reset request for a given identity value.
  *
  * Key goals:
- * - Support "do not reveal user existence" (privacy mode).
- * - Generate tokens using PendingPasswordReset (single source of truth).
- * - Dispatch AuthKitPasswordResetRequested only when a real user exists,
- *   so delivery listeners are not triggered for unknown identities.
+ * - Support privacy mode that does not reveal whether a user exists.
+ * - Generate reset tokens using PendingPasswordReset as the source of truth.
+ * - Dispatch AuthKitPasswordResetRequested only when a real user exists.
+ * - Return a standardized AuthKitActionResult for all outcomes.
  *
  * Token lifecycle:
- * - PendingPasswordReset creates and stores the token payload via TokenRepositoryContract.
- * - PendingPasswordReset stores a short-lived presence key for UI/middleware.
- * - Delivery listener receives the raw token via event and sends it (link/token).
+ * - PendingPasswordReset creates and stores the token payload.
+ * - PendingPasswordReset stores a short-lived presence key for UI and middleware.
+ * - Delivery listeners receive the raw token via AuthKitPasswordResetRequested.
  */
 final class RequestPasswordResetAction
 {
+    /**
+     * Create a new instance.
+     *
+     * @param PendingPasswordReset $pending
+     * @param PasswordResetUserResolverContract $users
+     * @param PasswordResetPolicyContract $policy
+     * @param PasswordResetUrlGeneratorContract $urls
+     */
     public function __construct(
         protected PendingPasswordReset $pending,
         protected PasswordResetUserResolverContract $users,
@@ -35,12 +48,15 @@ final class RequestPasswordResetAction
     ) {}
 
     /**
-     * Execute the reset request.
+     * Execute the password reset request flow.
      *
-     * @param string $email Normalized identity (email).
+     * @param string $email
+     * @return AuthKitActionResult
      */
-    public function execute(string $email): PasswordResetRequestResult
+    public function handle(string $email): AuthKitActionResult
     {
+        $email = mb_strtolower(trim($email));
+
         $driver = (string) config('authkit.password_reset.driver', 'link');
         $ttlMinutes = (int) config('authkit.password_reset.ttl_minutes', 30);
 
@@ -53,27 +69,52 @@ final class RequestPasswordResetAction
             'If an account exists for this email, password reset instructions have been sent.'
         );
 
-        $privacySafeSent = PasswordResetRequestResult::sent($driver, $genericMessage);
+        $privacySafeResult = AuthKitActionResult::success(
+            message: $genericMessage,
+            status: 200,
+            flow: AuthKitFlowStep::completed(),
+            redirect: $this->postRequestRedirect($email),
+            payload: AuthKitPublicPayload::make([
+                'email' => $email,
+                'driver' => $driver,
+                'privacy_mode' => true,
+            ])
+        );
 
         if (! $this->policy->canRequest($email)) {
             return $hideExistence
-                ? $privacySafeSent
-                : PasswordResetRequestResult::failed('Password reset is not available for this account.', $driver);
+                ? $privacySafeResult
+                : AuthKitActionResult::failure(
+                    message: 'Password reset is not available for this account.',
+                    status: 403,
+                    flow: AuthKitFlowStep::failed(),
+                    errors: [
+                        AuthKitError::make('password_reset_not_available', 'Password reset is not available for this account.'),
+                    ],
+                    redirect: $this->forgotRedirect()
+                );
         }
 
         $user = $this->users->resolve($email);
 
         if (! $user) {
             return $hideExistence
-                ? $privacySafeSent
-                : PasswordResetRequestResult::failed('We could not find an account with that email address.', $driver);
+                ? $privacySafeResult
+                : AuthKitActionResult::failure(
+                    message: 'We could not find an account with that email address.',
+                    status: 404,
+                    flow: AuthKitFlowStep::failed(),
+                    errors: [
+                        AuthKitError::make('password_reset_user_not_found', 'We could not find an account with that email address.'),
+                    ],
+                    redirect: $this->forgotRedirect()
+                );
         }
 
         $token = $this->pending->createForEmail(
             email: $email,
             ttlMinutes: $ttlMinutes,
             payload: [
-                // Reserved for future diagnostics and audit logging.
                 'flow' => 'password_reset_request',
             ]
         );
@@ -95,32 +136,79 @@ final class RequestPasswordResetAction
             ]
         ));
 
-
         if ($hideExistence) {
-            return $privacySafeSent;
+            return $privacySafeResult;
         }
 
         $message = $driver === 'token'
             ? 'A password reset code has been sent.'
             : 'A password reset link has been sent.';
 
+        return AuthKitActionResult::success(
+            message: $message,
+            status: 200,
+            flow: AuthKitFlowStep::completed(),
+            redirect: $this->postRequestRedirect($email),
+            payload: AuthKitPublicPayload::make([
+                'email' => $email,
+                'driver' => $driver,
+                'privacy_mode' => false,
+            ])
+        );
+    }
+
+    /**
+     * Resolve the forgot password page redirect.
+     *
+     * @return AuthKitRedirect
+     */
+    protected function forgotRedirect(): AuthKitRedirect
+    {
+        $webNames = (array) config('authkit.route_names.web', []);
+        $routeName = (string) ($webNames['password_forgot'] ?? 'authkit.web.password.forgot');
+
+        return AuthKitRedirect::route(
+            routeName: $routeName,
+            parameters: [],
+            url: route($routeName)
+        );
+    }
+
+    /**
+     * Resolve the post-request redirect target.
+     *
+     * @param string $email
+     * @return AuthKitRedirect
+     */
+    protected function postRequestRedirect(string $email): AuthKitRedirect
+    {
+        $webNames = (array) config('authkit.route_names.web', []);
         $mode = (string) data_get(config('authkit.password_reset.post_request', []), 'mode', 'sent_page');
 
-        $route = (string) data_get(
-            config('authkit.password_reset.post_request', []),
-            'sent_route',
-            (string) ($webNames['password_forgot_sent'] ?? 'authkit.web.password.forgot.sent')
-        );;
-
         if ($mode === 'token_page') {
-            $tokenRoute = (string) data_get(
+            $routeName = (string) data_get(
                 config('authkit.password_reset.post_request', []),
                 'token_route',
                 'authkit.web.password.reset.token'
             );
 
-            $route = route($tokenRoute, ['email' => $email]);
+            return AuthKitRedirect::route(
+                routeName: $routeName,
+                parameters: ['email' => $email],
+                url: route($routeName, ['email' => $email])
+            );
         }
-        return PasswordResetRequestResult::sent($driver, $message, $route);
+
+        $routeName = (string) data_get(
+            config('authkit.password_reset.post_request', []),
+            'sent_route',
+            (string) ($webNames['password_forgot_sent'] ?? 'authkit.web.password.forgot.sent')
+        );
+
+        return AuthKitRedirect::route(
+            routeName: $routeName,
+            parameters: ['email' => $email],
+            url: route($routeName, ['email' => $email])
+        );
     }
 }

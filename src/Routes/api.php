@@ -41,10 +41,10 @@ Route::middleware(array_values(array_filter(array_merge(
         /** @var RateLimitMiddlewareFactory $throttle */
         $throttle = app(RateLimitMiddlewareFactory::class);
 
-        /**
-         * Guest-only actions
-         *
-         * These endpoints are accessible only to unauthenticated users.
+        /* --------------------------------------------------------------------------
+         | Guest-only actions
+         | --------------------------------------------------------------------------
+         | These endpoints are accessible only to unauthenticated users.
          */
         Route::middleware(['guest'])->group(function () use ($apiNames, $throttle): void {
             /**
@@ -149,18 +149,6 @@ Route::middleware(array_values(array_filter(array_merge(
                 ->name((string) ($apiNames['two_factor_recovery'] ?? 'authkit.api.twofactor.recovery'));
 
             /**
-             * Send email verification notification (link or token depending on config).
-             */
-            Route::post(
-                '/email/verification-notification',
-                ControllerResolver::resolve('api', 'email_send_verification', SendEmailVerificationController::class)
-            )
-                ->middleware(array_values(array_filter([
-                    $throttle->middlewareFor('email_send_verification'),
-                ])))
-                ->name((string) ($apiNames['send_verification'] ?? 'authkit.api.email.verification.send'));
-
-            /**
              * Verify email using token (token driver).
              */
             Route::post(
@@ -173,18 +161,39 @@ Route::middleware(array_values(array_filter(array_merge(
                 ->name((string) ($apiNames['verify_token'] ?? 'authkit.api.email.verification.verify.token'));
         });
 
-        /**
-         * Authenticated actions
-         *
-         * These endpoints require an authenticated user session.
+        /* --------------------------------------------------------------------------
+         | Session-aware actions
+         | --------------------------------------------------------------------------
+         | These endpoints may be called with or without an authenticated session.
+         | The action itself determines the correct standardized response.
          */
+
+        /**
+         * Send email verification notification (link or token depending on config).
+         */
+        Route::post(
+            '/email/verification-notification',
+            ControllerResolver::resolve('api', 'email_send_verification', SendEmailVerificationController::class)
+        )
+            ->middleware(array_values(array_filter([
+                $throttle->middlewareFor('email_send_verification'),
+            ])))
+            ->name((string) ($apiNames['send_verification'] ?? 'authkit.api.email.verification.send'));
+
+        /**
+         * Logout action.
+         */
+        Route::post(
+            '/logout',
+            ControllerResolver::resolve('api', 'logout', LogoutController::class)
+        )->name((string) ($apiNames['logout'] ?? 'authkit.api.auth.logout'));
+
+        /* --------------------------------------------------------------------------
+          | Authenticated actions
+          | --------------------------------------------------------------------------
+          | These endpoints require an authenticated user session.
+          */
         Route::middleware(["auth:{$guard}"])->group(function () use ($apiNames): void {
-            /**
-             * Logout action.
-             */
-            Route::post(
-                '/logout',
-                ControllerResolver::resolve('api', 'logout', LogoutController::class)
-            )->name((string) ($apiNames['logout'] ?? 'authkit.api.auth.logout'));
+            // other authenticated-only routes here
         });
     });
