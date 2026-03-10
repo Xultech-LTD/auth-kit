@@ -797,3 +797,392 @@ it('rejects invalid token and redirects to login with error', function () {
         ->assertRedirect(route($loginName))
         ->assertSessionHas('error', 'Invalid verification link.');
 });
+
+it('returns completed result when email is already verified', function () {
+    Event::fake([Verified::class, AuthKitEmailVerified::class, AuthKitLoggedIn::class]);
+
+    config()->set('authkit.email_verification.driver', 'link');
+    config()->set('authkit.auth.guard', 'web');
+    config()->set('authkit.email_verification.post_verify.mode', 'redirect');
+    config()->set('authkit.email_verification.post_verify.redirect_route', 'authkit.web.login');
+    config()->set('authkit.email_verification.post_verify.login_after_verify', false);
+    config()->set('authkit.route_names.web.login', 'authkit.web.login');
+
+    $user = new class extends AuthenticatableUser implements MustVerifyEmail {
+        public $email = 'michael@example.com';
+        public $email_verified_at;
+
+        public function __construct()
+        {
+            $this->email_verified_at = now();
+        }
+
+        public function getAuthIdentifierName(): string
+        {
+            return 'id';
+        }
+
+        public function getAuthIdentifier(): mixed
+        {
+            return 10;
+        }
+
+        public function hasVerifiedEmail(): bool
+        {
+            return true;
+        }
+
+        public function markEmailAsVerified(): bool
+        {
+            return true;
+        }
+
+        public function sendEmailVerificationNotification(): void {}
+
+        public function getEmailForVerification(): string
+        {
+            return (string) $this->email;
+        }
+    };
+
+    $provider = new class($user) implements UserProvider {
+        public function __construct(private Authenticatable $user) {}
+
+        public function retrieveById($identifier)
+        {
+            return ((string) $identifier === '10') ? $this->user : null;
+        }
+
+        public function retrieveByToken($identifier, $token)
+        {
+            return null;
+        }
+
+        public function updateRememberToken(Authenticatable $user, $token): void {}
+
+        public function retrieveByCredentials(array $credentials)
+        {
+            return null;
+        }
+
+        public function validateCredentials(Authenticatable $user, array $credentials): bool
+        {
+            return false;
+        }
+
+        public function rehashPasswordIfRequired(Authenticatable $user, array $credentials, bool $force = false): void {}
+    };
+
+    $guard = new class($provider) implements Guard {
+        public function __construct(private UserProvider $provider) {}
+
+        public function check()
+        {
+            return false;
+        }
+
+        public function guest()
+        {
+            return true;
+        }
+
+        public function user()
+        {
+            return null;
+        }
+
+        public function id()
+        {
+            return null;
+        }
+
+        public function validate(array $credentials = [])
+        {
+            return false;
+        }
+
+        public function hasUser()
+        {
+            return false;
+        }
+
+        public function setUser(Authenticatable $user)
+        {
+            return $this;
+        }
+
+        public function getProvider()
+        {
+            return $this->provider;
+        }
+    };
+
+    $auth = new class($guard) implements AuthFactory {
+        public function __construct(private Guard $guard) {}
+
+        public function guard($name = null)
+        {
+            return $this->guard;
+        }
+
+        public function shouldUse($name) {}
+
+        public function setDefaultDriver($name) {}
+
+        public function getDefaultDriver()
+        {
+            return 'web';
+        }
+
+        public function extend($driver, \Closure $callback) {}
+
+        public function provider($name, \Closure $callback) {}
+    };
+
+    $pending = new PendingEmailVerification(
+        tokens: app(TokenRepositoryContract::class),
+        cache: app('cache')->store(),
+        auth: $auth
+    );
+
+    $action = new VerifyEmailLinkAction($pending, $auth);
+
+    $result = $action->handle('10', 'any-token');
+
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeTrue()
+        ->and($result->status)->toBe(200)
+        ->and($result->flow?->is('completed'))->toBeTrue()
+        ->and($result->message)->toBe('Your email is already verified.')
+        ->and($result->payload?->get('email'))->toBe('michael@example.com')
+        ->and($result->payload?->get('already_verified'))->toBeTrue()
+        ->and($result->payload?->get('driver'))->toBe('link')
+        ->and($result->redirect?->target)->toBe('authkit.web.login');
+
+    Event::assertNotDispatched(Verified::class);
+    Event::assertNotDispatched(AuthKitEmailVerified::class);
+    Event::assertNotDispatched(AuthKitLoggedIn::class);
+});
+
+it('logs the user in after successful verification when configured', function () {
+    Event::fake([Verified::class, AuthKitEmailVerified::class, AuthKitLoggedIn::class]);
+
+    config()->set('authkit.email_verification.driver', 'link');
+    config()->set('authkit.auth.guard', 'web');
+    config()->set('authkit.email_verification.post_verify.mode', 'redirect');
+    config()->set('authkit.email_verification.post_verify.redirect_route', null);
+    config()->set('authkit.email_verification.post_verify.login_after_verify', true);
+    config()->set('authkit.email_verification.post_verify.remember', true);
+    config()->set('authkit.login.dashboard_route', 'dashboard');
+    config()->set('authkit.login.redirect_route', null);
+    config()->set('authkit.route_names.web.login', 'authkit.web.login');
+
+    $user = new class extends AuthenticatableUser implements MustVerifyEmail {
+        public $email = 'michael@example.com';
+        public $email_verified_at = null;
+
+        public function getAuthIdentifierName(): string
+        {
+            return 'id';
+        }
+
+        public function getAuthIdentifier(): mixed
+        {
+            return 10;
+        }
+
+        public function hasVerifiedEmail(): bool
+        {
+            return $this->email_verified_at !== null;
+        }
+
+        public function markEmailAsVerified(): bool
+        {
+            $this->email_verified_at = now();
+
+            return true;
+        }
+
+        public function sendEmailVerificationNotification(): void {}
+
+        public function getEmailForVerification(): string
+        {
+            return (string) $this->email;
+        }
+    };
+
+    $provider = new class($user) implements UserProvider {
+        public function __construct(private Authenticatable $user) {}
+
+        public function retrieveById($identifier)
+        {
+            return ((string) $identifier === '10') ? $this->user : null;
+        }
+
+        public function retrieveByToken($identifier, $token)
+        {
+            return null;
+        }
+
+        public function updateRememberToken(Authenticatable $user, $token): void {}
+
+        public function retrieveByCredentials(array $credentials)
+        {
+            return null;
+        }
+
+        public function validateCredentials(Authenticatable $user, array $credentials): bool
+        {
+            return false;
+        }
+
+        public function rehashPasswordIfRequired(Authenticatable $user, array $credentials, bool $force = false): void {}
+    };
+
+    $guard = new class($provider) implements \Illuminate\Contracts\Auth\StatefulGuard {
+        public array $loggedIn = [];
+
+        public function __construct(private UserProvider $provider) {}
+
+        public function check()
+        {
+            return false;
+        }
+
+        public function guest()
+        {
+            return true;
+        }
+
+        public function user()
+        {
+            return null;
+        }
+
+        public function id()
+        {
+            return null;
+        }
+
+        public function validate(array $credentials = [])
+        {
+            return false;
+        }
+
+        public function hasUser()
+        {
+            return false;
+        }
+
+        public function setUser(Authenticatable $user)
+        {
+            return $this;
+        }
+
+        public function getProvider()
+        {
+            return $this->provider;
+        }
+
+        public function attempt(array $credentials = [], $remember = false)
+        {
+            return false;
+        }
+
+        public function once(array $credentials = [])
+        {
+            return false;
+        }
+
+        public function login(Authenticatable $user, $remember = false)
+        {
+            $this->loggedIn[] = [
+                'id' => (string) $user->getAuthIdentifier(),
+                'remember' => (bool) $remember,
+            ];
+        }
+
+        public function loginUsingId($id, $remember = false)
+        {
+            return null;
+        }
+
+        public function onceUsingId($id)
+        {
+            return false;
+        }
+
+        public function viaRemember()
+        {
+            return false;
+        }
+
+        public function logout() {}
+
+        public function logoutCurrentDevice() {}
+
+        public function attemptWhen(array $credentials = [], $callbacks = null, $remember = false)
+        {
+            return false;
+        }
+    };
+
+    $auth = new class($guard) implements AuthFactory {
+        public function __construct(private \Illuminate\Contracts\Auth\StatefulGuard $guard) {}
+
+        public function guard($name = null)
+        {
+            return $this->guard;
+        }
+
+        public function shouldUse($name) {}
+
+        public function setDefaultDriver($name) {}
+
+        public function getDefaultDriver()
+        {
+            return 'web';
+        }
+
+        public function extend($driver, \Closure $callback) {}
+
+        public function provider($name, \Closure $callback) {}
+    };
+
+    $pending = new PendingEmailVerification(
+        tokens: app(TokenRepositoryContract::class),
+        cache: app('cache')->store(),
+        auth: $auth
+    );
+
+    $token = $pending->createForEmail(
+        email: 'michael@example.com',
+        ttlMinutes: 10,
+        payload: ['user_id' => '10', 'driver' => 'link']
+    );
+
+    $action = new VerifyEmailLinkAction($pending, $auth);
+
+    $result = $action->handle('10', $token);
+
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeTrue()
+        ->and($result->status)->toBe(200)
+        ->and($result->flow?->is('completed'))->toBeTrue()
+        ->and($result->payload?->get('email'))->toBe('michael@example.com')
+        ->and($result->payload?->get('verified'))->toBeTrue()
+        ->and($result->payload?->get('logged_in'))->toBeTrue()
+        ->and($result->payload?->get('driver'))->toBe('link')
+        ->and($result->redirect?->target)->toBe('dashboard');
+
+    Event::assertDispatched(Verified::class);
+    Event::assertDispatched(AuthKitEmailVerified::class, function ($event) use ($user) {
+        return (string) $event->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
+            && $event->driver === 'link';
+    });
+    Event::assertDispatched(AuthKitLoggedIn::class, function ($event) use ($user) {
+        return (string) $event->user->getAuthIdentifier() === (string) $user->getAuthIdentifier()
+            && $event->guard === 'web'
+            && $event->remember === true;
+    });
+});
