@@ -5,6 +5,7 @@ namespace Xul\AuthKit\Http\Requests\PasswordReset;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
+use Xul\AuthKit\Http\Requests\AuthKitFormRequest;
 use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
 
 /**
@@ -16,7 +17,7 @@ use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
  * - Uses the "password_reset_token" schema from authkit.schemas to resolve labels and
  *   allow consumer rule overrides through the rules provider system.
  */
-final class VerifyPasswordResetTokenRequest extends FormRequest
+final class VerifyPasswordResetTokenRequest extends AuthKitFormRequest
 {
     public function authorize(): bool
     {

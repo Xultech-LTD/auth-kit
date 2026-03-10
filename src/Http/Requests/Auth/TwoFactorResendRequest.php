@@ -4,6 +4,7 @@ namespace Xul\AuthKit\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
+use Xul\AuthKit\Http\Requests\AuthKitFormRequest;
 use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
 
 /**
@@ -11,7 +12,7 @@ use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
  *
  * Validates resend requests for a pending login challenge.
  */
-final class TwoFactorResendRequest extends FormRequest
+final class TwoFactorResendRequest extends AuthKitFormRequest
 {
     /**
      * Determine if the user is authorized to make this request.

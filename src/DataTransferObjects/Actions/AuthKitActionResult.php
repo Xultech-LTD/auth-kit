@@ -127,6 +127,41 @@ final class AuthKitActionResult
     }
 
     /**
+     * Create a validation failure result with grouped field messages.
+     *
+     * @param string $message
+     * @param array<int, AuthKitError> $errors
+     * @param array<string, array<int, string>> $fields
+     * @param int $status
+     * @param AuthKitFlowStep|null $flow
+     * @param AuthKitRedirect|null $redirect
+     * @param AuthKitInternalPayload|null $internal
+     * @param array<string, mixed> $payload
+     * @return self
+     */
+    public static function validationFailure(
+        string $message = 'The given data was invalid.',
+        array $errors = [],
+        array $fields = [],
+        int $status = 422,
+        ?AuthKitFlowStep $flow = null,
+        ?AuthKitRedirect $redirect = null,
+        ?AuthKitInternalPayload $internal = null,
+        array $payload = [],
+    ): self {
+        return new self(
+            ok: false,
+            status: $status,
+            message: $message,
+            flow: $flow ?? AuthKitFlowStep::failed(),
+            redirect: $redirect,
+            payload: AuthKitPublicPayload::withFields($fields, $payload),
+            internal: $internal,
+            errors: $errors,
+        );
+    }
+
+    /**
      * Determine whether the result carries structured errors.
      *
      * @return bool

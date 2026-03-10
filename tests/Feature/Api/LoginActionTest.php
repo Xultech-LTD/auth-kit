@@ -84,6 +84,17 @@ beforeEach(function () {
     Config::set('authkit.two_factor.columns.recovery_codes', 'two_factor_recovery_codes');
     Config::set('authkit.two_factor.columns.methods', 'two_factor_methods');
 
+    Config::set('authkit.route_names.web.login', 'authkit.web.login');
+    Config::set('authkit.identity.login.field', 'email');
+    Config::set('authkit.identity.login.normalize', 'lower');
+
+    Route::post('/authkit/login', \Xul\AuthKit\Http\Controllers\Api\Auth\LoginController::class)
+        ->name('authkit.api.login');
+
+    Route::get('/authkit/login', fn () => 'login')
+        ->name('authkit.web.login');
+
+
     Route::get('/authkit/email/verify/link/{id}/{hash}', fn () => 'verify-link')
         ->name('authkit.web.email.verification.verify.link');
 
@@ -307,6 +318,49 @@ it('returns 403 and dispatches AuthKitEmailVerificationRequired when email verif
 
     Event::assertNotDispatched(AuthKitTwoFactorRequired::class);
     Event::assertNotDispatched(AuthKitLoggedIn::class);
+});
+
+it('returns standardized DTO validation response for JSON login requests', function () {
+    $response = $this
+        ->postJson(route('authkit.api.login'), []);
+
+    $response
+        ->assertStatus(422)
+        ->assertJson([
+            'ok' => false,
+            'status' => 422,
+            'message' => 'The given data was invalid.',
+            'flow' => [
+                'name' => 'failed',
+            ],
+        ])
+        ->assertJsonPath('payload.fields.email.0', 'The Email field is required.')
+        ->assertJsonPath('payload.fields.password.0', 'The Password field is required.');
+
+    $errors = $response->json('errors');
+
+    expect($errors)->toBeArray()
+        ->and(count($errors))->toBe(2)
+        ->and($errors[0])->toHaveKeys(['code', 'message', 'field', 'meta'])
+        ->and($errors[1])->toHaveKeys(['code', 'message', 'field', 'meta']);
+
+    expect(collect($errors)->pluck('field')->all())
+        ->toContain('email', 'password');
+
+    expect(collect($errors)->pluck('code')->unique()->values()->all())
+        ->toBe(['validation_error']);
+});
+
+it('normalizes email before validation in JSON login requests', function () {
+    $response = $this->postJson(route('authkit.api.login'), [
+        'email' => '  MICHAEL@EXAMPLE.COM  ',
+        'password' => '',
+    ]);
+
+    $response
+        ->assertStatus(422)
+        ->assertJsonPath('payload.fields.password.0', 'The Password field is required.')
+        ->assertJsonMissingPath('payload.fields.email');
 });
 
 /**

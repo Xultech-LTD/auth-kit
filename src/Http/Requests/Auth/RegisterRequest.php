@@ -5,9 +5,10 @@ namespace Xul\AuthKit\Http\Requests\Auth;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
+use Xul\AuthKit\Http\Requests\AuthKitFormRequest;
 use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
 
-final class RegisterRequest extends FormRequest
+final class RegisterRequest extends AuthKitFormRequest
 {
     /**
      * Determine if the user is authorized to make this request.

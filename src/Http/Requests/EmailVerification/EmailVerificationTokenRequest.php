@@ -4,9 +4,10 @@ namespace Xul\AuthKit\Http\Requests\EmailVerification;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
+use Xul\AuthKit\Http\Requests\AuthKitFormRequest;
 use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
 
-final class EmailVerificationTokenRequest extends FormRequest
+final class EmailVerificationTokenRequest extends AuthKitFormRequest
 {
     public function authorize(): bool
     {

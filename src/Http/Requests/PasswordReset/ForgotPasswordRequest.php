@@ -4,6 +4,7 @@ namespace Xul\AuthKit\Http\Requests\PasswordReset;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
+use Xul\AuthKit\Http\Requests\AuthKitFormRequest;
 use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
 
 /**
@@ -14,7 +15,7 @@ use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
  * This is intentionally small: the action controls privacy behavior
  * and will not reveal whether a user exists.
  */
-final class ForgotPasswordRequest extends FormRequest
+final class ForgotPasswordRequest extends AuthKitFormRequest
 {
     public function authorize(): bool
     {

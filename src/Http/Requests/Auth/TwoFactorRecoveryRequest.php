@@ -4,10 +4,11 @@ namespace Xul\AuthKit\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
+use Xul\AuthKit\Http\Requests\AuthKitFormRequest;
 use Xul\AuthKit\Support\AuthKitSessionKeys;
 use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
 
-final class TwoFactorRecoveryRequest extends FormRequest
+final class TwoFactorRecoveryRequest extends AuthKitFormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
