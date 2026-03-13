@@ -9,13 +9,12 @@ export default defineConfig({
             entry: resolve(__dirname, 'resources/js/authkit/authkit.js'),
             name: 'AuthKit',
             fileName: () => 'authkit.js',
-            formats: ['es'],
+            formats: ['iife'],
         },
         rollupOptions: {
             output: {
                 entryFileNames: 'js/[name].js',
-                chunkFileNames: 'js/[name]-[hash].js',
-                assetFileNames: 'assets/[name]-[hash][extname]',
+                assetFileNames: 'assets/[name][extname]',
             },
         },
     },
