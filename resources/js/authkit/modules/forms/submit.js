@@ -47,7 +47,7 @@
 
 import { request } from '../../core/http.js';
 import { dispatchEvent } from '../../core/events.js';
-import {dataGet, isFunction, isObject, isString, normalizeString} from '../../core/helpers.js';
+import { dataGet, isFunction, isObject, isString, normalizeString } from '../../core/helpers.js';
 import { buildSerializedForm } from './serialize.js';
 import { clearFieldErrors, clearMessage, setMeta, setSubmitting } from './state.js';
 import { handleSuccess } from './handle-success.js';
@@ -154,16 +154,35 @@ export function resolveSubmitHeaders(options = {}) {
  * - mode
  * - redirect
  *
+ * Notes:
+ * - Nullish optional transport values are omitted instead of being forwarded.
+ * - This avoids invalid fetch RequestInit enum values such as mode: null.
+ *
  * @param {Object} [options={}]
  * @returns {Object}
  */
 export function resolveSubmitTransport(options = {}) {
-    return {
+    const transport = {
         credentials: dataGet(options, 'credentials', 'same-origin'),
-        signal: dataGet(options, 'signal', undefined),
-        mode: dataGet(options, 'mode', undefined),
-        redirect: dataGet(options, 'redirect', undefined),
     };
+
+    const signal = dataGet(options, 'signal', undefined);
+    const mode = dataGet(options, 'mode', undefined);
+    const redirect = dataGet(options, 'redirect', undefined);
+
+    if (signal !== undefined && signal !== null) {
+        transport.signal = signal;
+    }
+
+    if (mode !== undefined && mode !== null) {
+        transport.mode = mode;
+    }
+
+    if (redirect !== undefined && redirect !== null) {
+        transport.redirect = redirect;
+    }
+
+    return transport;
 }
 
 
@@ -316,7 +335,6 @@ export function createTransportErrorResult(error) {
     };
 }
 
-
 /**
  * Submit an AuthKit form through the shared runtime HTTP flow.
  *
@@ -368,17 +386,28 @@ export async function submitForm(context, form, formState, options = {}) {
     emitBeforeSubmit(context, form, submitRequest);
     beginSubmitState(formState, submitRequest);
 
+    const requestOptions = {
+        method: submitRequest.method,
+        body: submitRequest.body,
+        asJson: submitRequest.asJson,
+        headers: submitRequest.headers,
+        credentials: submitRequest.credentials,
+    };
+
+    if (submitRequest.signal !== undefined && submitRequest.signal !== null) {
+        requestOptions.signal = submitRequest.signal;
+    }
+
+    if (submitRequest.mode !== undefined && submitRequest.mode !== null) {
+        requestOptions.mode = submitRequest.mode;
+    }
+
+    if (submitRequest.redirect !== undefined && submitRequest.redirect !== null) {
+        requestOptions.redirect = submitRequest.redirect;
+    }
+
     try {
-        const responseResult = await request(submitRequest.url, {
-            method: submitRequest.method,
-            body: submitRequest.body,
-            asJson: submitRequest.asJson,
-            headers: submitRequest.headers,
-            credentials: submitRequest.credentials,
-            signal: submitRequest.signal,
-            mode: submitRequest.mode,
-            redirect: submitRequest.redirect,
-        });
+        const responseResult = await request(submitRequest.url, requestOptions);
 
         const normalizedResult = responseResult?.ok
             ? handleSuccess(context, form, formState, responseResult)

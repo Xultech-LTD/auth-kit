@@ -157,6 +157,37 @@ describe('core/http', () => {
         expect(formOptions.body instanceof FormData).toBe(true);
     });
 
+    it('omits nullish optional transport values from fetch options', () => {
+        const options = buildRequestOptions({
+            method: 'POST',
+            body: { email: 'test@example.com' },
+            mode: null,
+            redirect: null,
+            signal: null,
+        });
+
+        expect(options).not.toHaveProperty('mode');
+        expect(options).not.toHaveProperty('redirect');
+        expect(options).not.toHaveProperty('signal');
+        expect(options.credentials).toBe('same-origin');
+    });
+
+    it('preserves valid optional transport values in fetch options', () => {
+        const controller = new AbortController();
+
+        const options = buildRequestOptions({
+            method: 'POST',
+            body: { email: 'test@example.com' },
+            mode: 'cors',
+            redirect: 'manual',
+            signal: controller.signal,
+        });
+
+        expect(options.mode).toBe('cors');
+        expect(options.redirect).toBe('manual');
+        expect(options.signal).toBe(controller.signal);
+    });
+
     it('performs normalized fetch requests through helper methods', async () => {
         const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
             new Response(JSON.stringify({ success: true }), {

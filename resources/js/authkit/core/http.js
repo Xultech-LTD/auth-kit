@@ -289,6 +289,11 @@ export async function normalizeResponse(response) {
  * Custom AuthKit keys:
  * - asJson: boolean
  *
+ * Notes:
+ * - Fetch enum properties such as `mode` and `redirect` must not be passed as
+ *   null because browsers will throw before sending the request.
+ * - This helper omits nullish optional transport fields entirely.
+ *
  * @param {Object} [options={}]
  * @returns {RequestInit}
  */
@@ -318,15 +323,29 @@ export function buildRequestOptions(options = {}) {
         }
     }
 
-    return {
+    const requestOptions = {
         method,
         headers,
-        body,
         credentials,
-        signal,
-        mode,
-        redirect,
     };
+
+    if (body !== undefined) {
+        requestOptions.body = body;
+    }
+
+    if (signal !== undefined && signal !== null) {
+        requestOptions.signal = signal;
+    }
+
+    if (mode !== undefined && mode !== null) {
+        requestOptions.mode = mode;
+    }
+
+    if (redirect !== undefined && redirect !== null) {
+        requestOptions.redirect = redirect;
+    }
+
+    return requestOptions;
 }
 
 

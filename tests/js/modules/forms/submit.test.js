@@ -199,10 +199,9 @@ describe('modules/forms/submit', () => {
         it('returns normalized transport options with defaults', () => {
             const result = resolveSubmitTransport({});
 
-            expect(result.credentials).toBe('same-origin');
-            expect(result).toHaveProperty('signal');
-            expect(result).toHaveProperty('mode');
-            expect(result).toHaveProperty('redirect');
+            expect(result).toEqual({
+                credentials: 'same-origin',
+            });
         });
 
         it('passes through supported transport options', () => {
@@ -221,6 +220,22 @@ describe('modules/forms/submit', () => {
                 mode: 'cors',
                 redirect: 'manual',
             });
+        });
+
+        it('omits nullish optional transport values', () => {
+            const result = resolveSubmitTransport({
+                credentials: 'same-origin',
+                signal: null,
+                mode: null,
+                redirect: null,
+            });
+
+            expect(result).toEqual({
+                credentials: 'same-origin',
+            });
+            expect(result).not.toHaveProperty('signal');
+            expect(result).not.toHaveProperty('mode');
+            expect(result).not.toHaveProperty('redirect');
         });
     });
 
@@ -267,6 +282,9 @@ describe('modules/forms/submit', () => {
             expect(result.asJson).toBe(false);
             expect(result.headers).toEqual({});
             expect(result.credentials).toBe('same-origin');
+            expect(result).not.toHaveProperty('mode');
+            expect(result).not.toHaveProperty('redirect');
+            expect(result).not.toHaveProperty('signal');
         });
 
         it('builds a normalized request descriptor for json submission', () => {
@@ -298,6 +316,21 @@ describe('modules/forms/submit', () => {
             expect(result.credentials).toBe('include');
             expect(result.mode).toBe('cors');
             expect(result.redirect).toBe('manual');
+        });
+
+        it('does not include null transport values in request descriptor', () => {
+            const form = makeForm();
+
+            const result = buildSubmitRequest(form, {
+                mode: null,
+                redirect: null,
+                signal: null,
+            });
+
+            expect(result.credentials).toBe('same-origin');
+            expect(result).not.toHaveProperty('mode');
+            expect(result).not.toHaveProperty('redirect');
+            expect(result).not.toHaveProperty('signal');
         });
     });
 
@@ -517,6 +550,11 @@ describe('modules/forms/submit', () => {
                 })
             );
 
+            const requestOptions = request.mock.calls[0][1];
+            expect(requestOptions).not.toHaveProperty('mode');
+            expect(requestOptions).not.toHaveProperty('redirect');
+            expect(requestOptions).not.toHaveProperty('signal');
+
             expect(handleSuccess).toHaveBeenCalledTimes(1);
             expect(handleSuccess).toHaveBeenCalledWith(
                 context,
@@ -720,6 +758,38 @@ describe('modules/forms/submit', () => {
                     },
                 })
             );
+        });
+
+        it('allows beforeSubmit to clear null transport values safely', async () => {
+            const form = makeForm();
+            const formState = createFormState(form);
+
+            request.mockResolvedValue({
+                ok: true,
+                status: 200,
+                data: {},
+            });
+
+            handleSuccess.mockReturnValue({
+                ok: true,
+                status: 200,
+                message: 'Done',
+            });
+
+            await submitForm({}, form, formState, {
+                beforeSubmit: async () => ({
+                    mode: null,
+                    redirect: null,
+                    signal: null,
+                }),
+            });
+
+            expect(request).toHaveBeenCalledTimes(1);
+
+            const requestOptions = request.mock.calls[0][1];
+            expect(requestOptions).not.toHaveProperty('mode');
+            expect(requestOptions).not.toHaveProperty('redirect');
+            expect(requestOptions).not.toHaveProperty('signal');
         });
 
         it('ignores invalid beforeSubmit return values', async () => {

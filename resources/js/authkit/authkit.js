@@ -41,17 +41,7 @@ import { bootRuntime, getRuntimeState, hasBooted } from './core/runtime.js';
 import { getModuleRegistry } from './registry/modules.js';
 import { getPageRegistry } from './registry/pages.js';
 
-
-/**
- * Boot the AuthKit runtime using the current browser configuration and built-in
- * registries.
- *
- * This helper is safe to call repeatedly because the runtime core is
- * intentionally idempotent.
- *
- * @returns {Object}
- */
-export function bootAuthKit() {
+function bootAuthKit() {
     return bootRuntime({
         config: getConfig(),
         moduleRegistry: getModuleRegistry(),
@@ -59,30 +49,22 @@ export function bootAuthKit() {
     });
 }
 
-
-/**
- * Resolve a snapshot of the current AuthKit runtime state.
- *
- * @returns {Object}
- */
-export function getAuthKitState() {
+function getAuthKitState() {
     return getRuntimeState();
 }
 
-
-/**
- * Determine whether the AuthKit runtime has already booted.
- *
- * @returns {boolean}
- */
-export function isAuthKitBooted() {
+function isAuthKitBooted() {
     return hasBooted();
 }
 
-
 /**
- * Automatically boot AuthKit when the DOM is ready.
+ * Preserve the existing runtime namespace object created by Blade config.
  */
+window.AuthKit = window.AuthKit || {};
+window.AuthKit.boot = bootAuthKit;
+window.AuthKit.state = getAuthKitState;
+window.AuthKit.isBooted = isAuthKitBooted;
+
 onDomReady(() => {
     bootAuthKit();
 });
