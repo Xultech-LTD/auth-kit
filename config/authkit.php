@@ -1,5 +1,7 @@
 <?php
 
+// config/authkit.php
+
 return [
     /**
      * Authentication configuration.

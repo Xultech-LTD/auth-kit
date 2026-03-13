@@ -29,18 +29,7 @@
  * @license   MIT
  */
 
-import * as loginPage from '../pages/login.js';
-import * as registerPage from '../pages/register.js';
-import * as twoFactorChallengePage from '../pages/two-factor-challenge.js';
-import * as twoFactorRecoveryPage from '../pages/two-factor-recovery.js';
-import * as emailVerificationNoticePage from '../pages/email-verification-notice.js';
-import * as emailVerificationTokenPage from '../pages/email-verification-token.js';
-import * as emailVerificationSuccessPage from '../pages/email-verification-success.js';
-import * as passwordForgotPage from '../pages/password-forgot.js';
-import * as passwordForgotSentPage from '../pages/password-forgot-sent.js';
-import * as passwordResetPage from '../pages/password-reset.js';
-import * as passwordResetTokenPage from '../pages/password-reset-token.js';
-import * as passwordResetSuccessPage from '../pages/password-reset-success.js';
+import { getBuiltInPageModules } from '../pages/index.js';
 import { normalizeString } from '../core/helpers.js';
 
 
@@ -57,20 +46,7 @@ import { normalizeString } from '../core/helpers.js';
  *
  * @type {Record<string, Object>}
  */
-export const pageRegistry = Object.freeze({
-    login: loginPage,
-    register: registerPage,
-    two_factor_challenge: twoFactorChallengePage,
-    two_factor_recovery: twoFactorRecoveryPage,
-    email_verification_notice: emailVerificationNoticePage,
-    email_verification_token: emailVerificationTokenPage,
-    email_verification_success: emailVerificationSuccessPage,
-    password_forgot: passwordForgotPage,
-    password_forgot_sent: passwordForgotSentPage,
-    password_reset: passwordResetPage,
-    password_reset_token: passwordResetTokenPage,
-    password_reset_success: passwordResetSuccessPage,
-});
+export const pageRegistry = Object.freeze(getBuiltInPageModules());
 
 
 /**

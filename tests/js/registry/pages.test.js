@@ -15,10 +15,12 @@
  * - Verify page registry lookup helpers resolve known modules correctly.
  * - Verify invalid page-module lookups fail safely.
  * - Verify registry access returns a shallow clone.
+ * - Verify the registry is aligned with the centralized pages entry map.
  */
 
 import { describe, expect, it } from 'vitest';
 
+import { getBuiltInPageModules } from '../../../public/authkit/js/pages/index.js';
 import {
     getPageModule,
     getPageRegistry,
@@ -48,6 +50,10 @@ describe('registry/pages', () => {
         expect(pageRegistry).toHaveProperty('password_reset_success');
     });
 
+    it('is aligned with the centralized built-in page entry map', () => {
+        expect(pageRegistry).toEqual(getBuiltInPageModules());
+    });
+
     it('returns a shallow clone of the page runtime registry', () => {
         const registry = getPageRegistry();
 
@@ -65,6 +71,7 @@ describe('registry/pages', () => {
         expect(getPageModule('')).toBeNull();
         expect(getPageModule('missing')).toBeNull();
         expect(getPageModule(null)).toBeNull();
+        expect(getPageModule(undefined)).toBeNull();
     });
 
     it('detects whether a page runtime module exists', () => {
@@ -75,5 +82,10 @@ describe('registry/pages', () => {
         expect(hasPageModule('missing')).toBe(false);
         expect(hasPageModule('')).toBe(false);
         expect(hasPageModule(null)).toBe(false);
+        expect(hasPageModule(undefined)).toBe(false);
+    });
+
+    it('exposes an immutable registry object', () => {
+        expect(Object.isFrozen(pageRegistry)).toBe(true);
     });
 });
