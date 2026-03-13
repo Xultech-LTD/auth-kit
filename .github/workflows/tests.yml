@@ -15,7 +15,7 @@ jobs:
       matrix:
         php: ["8.2", "8.3"]
 
-    name: PHP ${{ matrix.php }}
+    name: Pest (PHP ${{ matrix.php }})
 
     steps:
       - name: Checkout code
@@ -39,12 +39,32 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-php-${{ matrix.php }}-composer-${{ hashFiles('composer.json') }}
+          key: ${{ runner.os }}-php-${{ matrix.php }}-composer-${{ hashFiles('composer.lock') }}
           restore-keys: |
             ${{ runner.os }}-php-${{ matrix.php }}-composer-
 
-      - name: Install dependencies
+      - name: Install PHP dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Run test suite
+      - name: Run Pest test suite
         run: ./vendor/bin/pest
+
+  vitest:
+    runs-on: ubuntu-latest
+    name: Vitest (Node 20)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Run Vitest suite
+        run: npx vitest run tests/js
