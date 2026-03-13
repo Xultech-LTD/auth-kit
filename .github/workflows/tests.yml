@@ -51,7 +51,7 @@ jobs:
 
   vitest:
     runs-on: ubuntu-latest
-    name: Vitest (Node 20)
+    name: Vitest (Node 24)
 
     steps:
       - name: Checkout code
@@ -60,11 +60,10 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: "24"
 
       - name: Install Node dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run Vitest suite
         run: npx vitest run tests/js
