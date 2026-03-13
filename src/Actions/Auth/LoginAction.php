@@ -205,7 +205,7 @@ final class LoginAction
 
         return AuthKitActionResult::failure(
             message: 'Email verification required.',
-            status: 403,
+            status: 201,
             flow: AuthKitFlowStep::emailVerificationRequired(),
             redirect: AuthKitRedirect::route(
                 routeName: $routeName,
@@ -216,9 +216,6 @@ final class LoginAction
                 'email' => $email,
                 'driver' => (string) config('authkit.email_verification.driver', 'link'),
             ]),
-            errors: [
-                AuthKitError::make('email_verification_required', 'Email verification required.'),
-            ],
         );
     }
 

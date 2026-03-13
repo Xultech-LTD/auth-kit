@@ -21,6 +21,8 @@
  * - Execute the HTTP request through the shared core HTTP utility.
  * - Route the normalized HTTP result into success or error handlers.
  * - Convert thrown transport failures into normalized error results.
+ * - Apply configured redirect behavior after successful submissions.
+ * - Render normalized success and error feedback into the DOM.
  *
  * Design notes:
  * - This file does not bind DOM event listeners directly.
@@ -29,6 +31,8 @@
  *   - payload creation to serialize.js
  *   - state mutation to state.js
  *   - result normalization to handle-success.js and handle-error.js
+ *   - redirect handling to redirect.js
+ *   - DOM feedback rendering to render-feedback.js
  * - Page modules may extend the submission lifecycle by supplying hooks or
  *   additional request options through the submit options object.
  *
@@ -52,6 +56,9 @@ import { buildSerializedForm } from './serialize.js';
 import { clearFieldErrors, clearMessage, setMeta, setSubmitting } from './state.js';
 import { handleSuccess } from './handle-success.js';
 import { handleError } from './handle-error.js';
+import { handleRedirect } from './redirect.js';
+import { clearRenderedFeedback, renderFormFeedback } from './render-feedback.js';
+import { getConfigValue } from '../../core/config.js';
 
 
 /**
@@ -59,14 +66,26 @@ import { handleError } from './handle-error.js';
  *
  * Resolution order:
  * - options.asJson
+ * - runtime config forms.ajax.submit_json
  * - false fallback
  *
  * @param {Object} [options={}]
  * @returns {boolean}
  */
 export function shouldSubmitAsJson(options = {}) {
-    return dataGet(options, 'asJson', false) === true;
+    const explicit = dataGet(options, 'asJson', null);
+
+    if (explicit === true) {
+        return true;
+    }
+
+    if (explicit === false) {
+        return false;
+    }
+
+    return getConfigValue('forms.ajax.submitJson', false) === true;
 }
+
 
 
 /**
@@ -297,6 +316,10 @@ export function beginSubmitState(formState, submitRequest) {
     clearFieldErrors(formState);
     clearMessage(formState);
 
+    if (submitRequest?.form instanceof HTMLFormElement) {
+        clearRenderedFeedback(submitRequest.form);
+    }
+
     setMeta(formState, {
         requestUrl: submitRequest.url,
         requestMethod: submitRequest.method,
@@ -308,6 +331,7 @@ export function beginSubmitState(formState, submitRequest) {
 
     return formState;
 }
+
 
 
 /**
@@ -413,11 +437,22 @@ export async function submitForm(context, form, formState, options = {}) {
             ? handleSuccess(context, form, formState, responseResult)
             : handleError(context, form, formState, responseResult);
 
+        renderFormFeedback(
+            form,
+            formState,
+            normalizedResult?.ok === true ? 'success' : 'error'
+        );
+
+        if (normalizedResult?.ok === true) {
+            handleRedirect(context, normalizedResult);
+        }
+
         if (isFunction(options.afterSubmit)) {
             await options.afterSubmit(normalizedResult, form, formState, context);
         }
 
         return normalizedResult;
+
     } catch (error) {
         const normalizedResult = handleError(
             context,
@@ -426,10 +461,13 @@ export async function submitForm(context, form, formState, options = {}) {
             createTransportErrorResult(error)
         );
 
+        renderFormFeedback(form, formState, 'error');
+
         if (isFunction(options.afterSubmit)) {
             await options.afterSubmit(normalizedResult, form, formState, context);
         }
 
         return normalizedResult;
+
     }
 }

@@ -16,6 +16,7 @@
  * - Verify submit state preparation.
  * - Verify transport error normalization.
  * - Verify successful, failed, and thrown submission flows.
+ * - Verify redirect and DOM feedback rendering integration.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -47,10 +48,28 @@ vi.mock('../../../../resources/js/authkit/modules/forms/serialize.js', async () 
     };
 });
 
+vi.mock('../../../../resources/js/authkit/modules/forms/redirect.js', () => ({
+    handleRedirect: vi.fn(),
+}));
+
+vi.mock('../../../../resources/js/authkit/modules/forms/render-feedback.js', () => ({
+    clearRenderedFeedback: vi.fn(),
+    renderFormFeedback: vi.fn(),
+}));
+
+import {
+    clearConfigCache,
+    setConfig,
+} from '../../../../resources/js/authkit/core/config.js';
 import { request } from '../../../../resources/js/authkit/core/http.js';
 import { dispatchEvent } from '../../../../resources/js/authkit/core/events.js';
 import { handleSuccess } from '../../../../resources/js/authkit/modules/forms/handle-success.js';
 import { handleError } from '../../../../resources/js/authkit/modules/forms/handle-error.js';
+import { handleRedirect } from '../../../../resources/js/authkit/modules/forms/redirect.js';
+import {
+    clearRenderedFeedback,
+    renderFormFeedback,
+} from '../../../../resources/js/authkit/modules/forms/render-feedback.js';
 
 import {
     beginSubmitState,
@@ -79,6 +98,11 @@ describe('modules/forms/submit', () => {
     beforeEach(async () => {
         document.body.innerHTML = '';
         vi.resetAllMocks();
+        clearConfigCache();
+
+        window.AuthKit = {
+            config: {},
+        };
 
         const actualSerialize = await vi.importActual(
             '../../../../resources/js/authkit/modules/forms/serialize.js'
@@ -106,22 +130,80 @@ describe('modules/forms/submit', () => {
     }
 
     describe('shouldSubmitAsJson', () => {
-        it('returns true only when options.asJson is true', () => {
+        it('prefers explicit options.asJson when true', () => {
+            setConfig({
+                forms: {
+                    ajax: {
+                        submit_json: false,
+                    },
+                },
+            });
+
             expect(shouldSubmitAsJson({ asJson: true })).toBe(true);
+        });
+
+        it('prefers explicit options.asJson when false', () => {
+            setConfig({
+                forms: {
+                    ajax: {
+                        submit_json: true,
+                    },
+                },
+            });
+
             expect(shouldSubmitAsJson({ asJson: false })).toBe(false);
+        });
+
+        it('falls back to runtime config when options.asJson is not provided', () => {
+            setConfig({
+                forms: {
+                    ajax: {
+                        submit_json: true,
+                    },
+                },
+            });
+
+            expect(shouldSubmitAsJson({})).toBe(true);
+            expect(shouldSubmitAsJson(null)).toBe(true);
+        });
+
+        it('falls back to false when neither options nor config enable json submission', () => {
+            setConfig({
+                forms: {
+                    ajax: {
+                        submit_json: false,
+                    },
+                },
+            });
+
             expect(shouldSubmitAsJson({})).toBe(false);
             expect(shouldSubmitAsJson(null)).toBe(false);
         });
     });
 
+
     describe('getSubmitSerialization', () => {
-        it('returns normalized serialization settings', () => {
+        it('returns normalized serialization settings from explicit options', () => {
             expect(getSubmitSerialization({ asJson: true })).toEqual({
                 asJson: true,
             });
 
-            expect(getSubmitSerialization({})).toEqual({
+            expect(getSubmitSerialization({ asJson: false })).toEqual({
                 asJson: false,
+            });
+        });
+
+        it('returns normalized serialization settings from runtime config fallback', () => {
+            setConfig({
+                forms: {
+                    ajax: {
+                        submit_json: true,
+                    },
+                },
+            });
+
+            expect(getSubmitSerialization({})).toEqual({
+                asJson: true,
             });
         });
     });
@@ -399,6 +481,7 @@ describe('modules/forms/submit', () => {
 
     describe('beginSubmitState', () => {
         it('prepares form state for a new submission attempt', () => {
+            const form = makeForm();
             const formState = createFormState();
             formState.fieldErrors = {
                 email: ['Required'],
@@ -409,6 +492,7 @@ describe('modules/forms/submit', () => {
             };
 
             const submitRequest = {
+                form,
                 url: 'https://example.com/login',
                 method: 'POST',
                 asJson: true,
@@ -428,6 +512,8 @@ describe('modules/forms/submit', () => {
                 asJson: true,
                 outcome: null,
             });
+            expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
+            expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
         });
     });
 
@@ -507,6 +593,9 @@ describe('modules/forms/submit', () => {
             expect(request).not.toHaveBeenCalled();
             expect(handleSuccess).not.toHaveBeenCalled();
             expect(dispatchEvent).not.toHaveBeenCalled();
+            expect(handleRedirect).not.toHaveBeenCalled();
+            expect(renderFormFeedback).not.toHaveBeenCalled();
+            expect(clearRenderedFeedback).not.toHaveBeenCalled();
         });
 
         it('submits successfully and routes through handleSuccess', async () => {
@@ -538,6 +627,16 @@ describe('modules/forms/submit', () => {
                 afterSubmit,
             });
 
+            expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
+            expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+
+            expect(renderFormFeedback).toHaveBeenCalledTimes(1);
+            expect(renderFormFeedback).toHaveBeenCalledWith(
+                form,
+                formState,
+                'success'
+            );
+
             expect(request).toHaveBeenCalledTimes(1);
             expect(request).toHaveBeenCalledWith(
                 'https://example.com/login',
@@ -561,6 +660,12 @@ describe('modules/forms/submit', () => {
                 form,
                 formState,
                 responseResult
+            );
+
+            expect(handleRedirect).toHaveBeenCalledTimes(1);
+            expect(handleRedirect).toHaveBeenCalledWith(
+                context,
+                normalizedSuccess
             );
 
             expect(handleError).not.toHaveBeenCalled();
@@ -604,6 +709,16 @@ describe('modules/forms/submit', () => {
                 afterSubmit,
             });
 
+            expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
+            expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+
+            expect(renderFormFeedback).toHaveBeenCalledTimes(1);
+            expect(renderFormFeedback).toHaveBeenCalledWith(
+                form,
+                formState,
+                'error'
+            );
+
             expect(request).toHaveBeenCalledTimes(1);
 
             expect(handleError).toHaveBeenCalledTimes(1);
@@ -615,6 +730,7 @@ describe('modules/forms/submit', () => {
             );
 
             expect(handleSuccess).not.toHaveBeenCalled();
+            expect(handleRedirect).not.toHaveBeenCalled();
 
             expect(afterSubmit).toHaveBeenCalledTimes(1);
             expect(afterSubmit).toHaveBeenCalledWith(
@@ -648,6 +764,16 @@ describe('modules/forms/submit', () => {
                 afterSubmit,
             });
 
+            expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
+            expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+
+            expect(renderFormFeedback).toHaveBeenCalledTimes(1);
+            expect(renderFormFeedback).toHaveBeenCalledWith(
+                form,
+                formState,
+                'error'
+            );
+
             expect(request).toHaveBeenCalledTimes(1);
 
             expect(handleError).toHaveBeenCalledTimes(1);
@@ -667,6 +793,7 @@ describe('modules/forms/submit', () => {
             );
 
             expect(handleSuccess).not.toHaveBeenCalled();
+            expect(handleRedirect).not.toHaveBeenCalled();
 
             expect(afterSubmit).toHaveBeenCalledTimes(1);
             expect(afterSubmit).toHaveBeenCalledWith(
@@ -698,6 +825,16 @@ describe('modules/forms/submit', () => {
             await submitForm(null, form, formState, {
                 asJson: true,
             });
+
+            expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
+            expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+
+            expect(renderFormFeedback).toHaveBeenCalledTimes(1);
+            expect(renderFormFeedback).toHaveBeenCalledWith(
+                form,
+                formState,
+                'success'
+            );
 
             expect(request).toHaveBeenCalledWith(
                 'https://example.com/login',
@@ -748,6 +885,15 @@ describe('modules/forms/submit', () => {
             });
 
             expect(beforeSubmit).toHaveBeenCalledTimes(1);
+            expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
+            expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+
+            expect(renderFormFeedback).toHaveBeenCalledTimes(1);
+            expect(renderFormFeedback).toHaveBeenCalledWith(
+                form,
+                formState,
+                'success'
+            );
 
             expect(request).toHaveBeenCalledWith(
                 'https://example.com/override',
@@ -784,6 +930,16 @@ describe('modules/forms/submit', () => {
                 }),
             });
 
+            expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
+            expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+
+            expect(renderFormFeedback).toHaveBeenCalledTimes(1);
+            expect(renderFormFeedback).toHaveBeenCalledWith(
+                form,
+                formState,
+                'success'
+            );
+
             expect(request).toHaveBeenCalledTimes(1);
 
             const requestOptions = request.mock.calls[0][1];
@@ -814,6 +970,16 @@ describe('modules/forms/submit', () => {
                 beforeSubmit,
             });
 
+            expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
+            expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+
+            expect(renderFormFeedback).toHaveBeenCalledTimes(1);
+            expect(renderFormFeedback).toHaveBeenCalledWith(
+                form,
+                formState,
+                'success'
+            );
+
             expect(request).toHaveBeenCalledWith(
                 'https://example.com/login',
                 expect.objectContaining({
@@ -841,6 +1007,16 @@ describe('modules/forms/submit', () => {
             const result = await submitForm(null, form, formState, {
                 afterSubmit: null,
             });
+
+            expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
+            expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+
+            expect(renderFormFeedback).toHaveBeenCalledTimes(1);
+            expect(renderFormFeedback).toHaveBeenCalledWith(
+                form,
+                formState,
+                'success'
+            );
 
             expect(result).toEqual({
                 ok: true,
@@ -880,6 +1056,16 @@ describe('modules/forms/submit', () => {
                 },
             });
 
+            expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
+            expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+
+            expect(renderFormFeedback).toHaveBeenCalledTimes(1);
+            expect(renderFormFeedback).toHaveBeenCalledWith(
+                form,
+                formState,
+                'success'
+            );
+
             expect(request).toHaveBeenCalledTimes(1);
         });
 
@@ -904,6 +1090,16 @@ describe('modules/forms/submit', () => {
             await submitForm(null, form, formState, {
                 asJson: true,
             });
+
+            expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
+            expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+
+            expect(renderFormFeedback).toHaveBeenCalledTimes(1);
+            expect(renderFormFeedback).toHaveBeenCalledWith(
+                form,
+                formState,
+                'success'
+            );
 
             expect(formState.submitting).toBe(true);
             expect(formState.fieldErrors).toEqual({});

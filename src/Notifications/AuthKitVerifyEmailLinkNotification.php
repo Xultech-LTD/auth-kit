@@ -3,6 +3,7 @@
 namespace Xul\AuthKit\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
 
@@ -11,7 +12,7 @@ use Illuminate\Notifications\Messages\MailMessage;
  *
  * Sends a signed verification link for the link driver.
  */
-final class AuthKitVerifyEmailLinkNotification extends Notification
+final class AuthKitVerifyEmailLinkNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
