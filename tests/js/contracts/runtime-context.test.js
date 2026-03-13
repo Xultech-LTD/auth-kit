@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: runtime-context.test.js
+ * File: tests/js/contracts/runtime-context.test.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

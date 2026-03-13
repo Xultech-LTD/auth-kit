@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: runtime.test.js
+ * File: tests/js/core/runtime.test.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: theme-test-helpers.js
+ * File: tests/js/modules/theme/support/theme-test-helpers.js
  * Author: Michael Erastus
  * Package: AuthKit
  *
@@ -20,7 +20,7 @@
  * - They assume Vitest + jsdom.
  */
 
-import { clearConfigCache } from '../../../../public/authkit/js/core/config.js';
+import { clearConfigCache } from '../../../../../public/authkit/js/core/config.js';
 
 
 /**

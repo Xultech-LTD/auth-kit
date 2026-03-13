@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: toggles.test.js
+ * File: tests/js/modules/theme/toggles.test.js
  * Author: Michael Erastus
  * Package: AuthKit
  *
@@ -26,7 +26,7 @@ import {
     getToggleControls,
     readToggleOptionMode,
     syncToggleState,
-} from '../../../public/authkit/js/modules/theme/toggles.js';
+} from '../../../../public/authkit/js/modules/theme/toggles.js';
 
 import {
     installAuthKitConfig,

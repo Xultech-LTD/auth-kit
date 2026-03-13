@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: resolve-mode.test.js
+ * File: tests/js/modules/theme/resolve-mode.test.js
  * Author: Michael Erastus
  * Package: AuthKit
  *
@@ -29,7 +29,7 @@ import {
     normalizeMode,
     resolveModeState,
     supportsSystemColorScheme,
-} from '../../../public/authkit/js/modules/theme/resolve-mode.js';
+} from '../../../../public/authkit/js/modules/theme/resolve-mode.js';
 
 import {
     installAuthKitConfig,

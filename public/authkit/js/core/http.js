@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: http.js
+ * File: js/core/http.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

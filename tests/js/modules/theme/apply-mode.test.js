@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: apply-mode.test.js
+ * File: tests/js/modules/theme/apply-mode.test.js
  * Author: Michael Erastus
  * Package: AuthKit
  *
@@ -24,7 +24,7 @@ import {
     applyResolvedMode,
     readAppliedPreferredMode,
     readAppliedResolvedMode,
-} from '../../../public/authkit/js/modules/theme/apply-mode.js';
+} from '../../../../public/authkit/js/modules/theme/apply-mode.js';
 
 import {
     resetThemeTestEnvironment,

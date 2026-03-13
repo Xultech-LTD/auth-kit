@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: page.test.js
+ * File: tests/js/core/page.test.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

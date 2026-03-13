@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: helpers.js
+ * File: js/core/helpers.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

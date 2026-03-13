@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: config.js
+ * File: js/core/config.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

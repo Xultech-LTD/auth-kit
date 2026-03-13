@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: pages.js
+ * File: js/registry/pages.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: state.js
+ * File: js/modules/forms/state.js
  * Author: Michael Erastus
  * Package: AuthKit
  *
@@ -43,7 +43,7 @@
  */
 
 import { isObject, normalizeString } from '../../core/helpers.js';
-import { isElement } from '../../core/dom.js';
+import {isElement, isHTMLFormElement} from '../../core/dom.js';
 
 
 /**
@@ -65,7 +65,7 @@ import { isElement } from '../../core/dom.js';
  */
 export function createFormState(form = null) {
     return {
-        form: isElement(form) ? form : null,
+        form: isHTMLFormElement(form) ? form : null,
         submitting: false,
         submitted: false,
         lastResult: null,

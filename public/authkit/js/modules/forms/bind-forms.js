@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: bind-forms.js
+ * File: js/modules/forms/bind-forms.js
  * Author: Michael Erastus
  * Package: AuthKit
  *
@@ -37,6 +37,7 @@
 
 import { getAjaxForms } from '../../core/dom.js';
 import { isFunction } from '../../core/helpers.js';
+import { createFormState } from './state.js';
 import { submitForm } from './submit.js';
 
 
@@ -48,10 +49,11 @@ import { submitForm } from './submit.js';
  * Stored value shape:
  * - {
  *     handler: Function,
- *     cleanup: Function
+ *     cleanup: Function,
+ *     state: Object
  *   }
  *
- * @type {WeakMap<HTMLFormElement, {handler: Function, cleanup: Function}>}
+ * @type {WeakMap<HTMLFormElement, {handler: Function, cleanup: Function, state: Object}>}
  */
 const formBindings = new WeakMap();
 
@@ -86,7 +88,7 @@ export function isFormBound(form) {
  * Resolve the stored binding entry for a form.
  *
  * @param {HTMLFormElement|null} form
- * @returns {{handler: Function, cleanup: Function}|null}
+ * @returns {{handler: Function, cleanup: Function, state: Object}|null}
  */
 export function getFormBinding(form) {
     if (!isFormElement(form)) {
@@ -126,11 +128,12 @@ export function unbindForm(form) {
  * The submit handler receives:
  * - the original submit event
  * - the bound form element
+ * - the per-form runtime state
  *
  * The default browser submit is prevented automatically.
  *
  * @param {HTMLFormElement|null} form
- * @param {(event: SubmitEvent, form: HTMLFormElement) => void} submitHandler
+ * @param {(event: SubmitEvent, form: HTMLFormElement, formState: Object) => void} submitHandler
  * @returns {Function}
  */
 export function bindForm(form, submitHandler) {
@@ -144,10 +147,12 @@ export function bindForm(form, submitHandler) {
         return existing.cleanup;
     }
 
+    const formState = createFormState(form);
+
     const handler = (event) => {
         event.preventDefault();
 
-        submitHandler(event, form);
+        submitHandler(event, form, formState);
     };
 
     form.addEventListener('submit', handler);
@@ -160,6 +165,7 @@ export function bindForm(form, submitHandler) {
     formBindings.set(form, {
         handler,
         cleanup,
+        state: formState,
     });
 
     return cleanup;
@@ -172,7 +178,7 @@ export function bindForm(form, submitHandler) {
  * Returns a single cleanup callback that removes all successful bindings.
  *
  * @param {Array<*>} forms
- * @param {(event: SubmitEvent, form: HTMLFormElement) => void} submitHandler
+ * @param {(event: SubmitEvent, form: HTMLFormElement, formState: Object) => void} submitHandler
  * @returns {Function}
  */
 export function bindForms(forms, submitHandler) {
@@ -217,7 +223,7 @@ export function unbindForms(forms) {
  * This first removes any existing binding, then binds the new handler.
  *
  * @param {HTMLFormElement|null} form
- * @param {(event: SubmitEvent, form: HTMLFormElement) => void} submitHandler
+ * @param {(event: SubmitEvent, form: HTMLFormElement, formState: Object) => void} submitHandler
  * @returns {Function}
  */
 export function rebindForm(form, submitHandler) {
@@ -255,8 +261,10 @@ export function bootForms(context) {
 
     const forms = getAjaxForms(ajaxAttribute);
 
-    const cleanup = bindForms(forms, (event, form) => {
-        void submitForm(context, form, event);
+    const cleanup = bindForms(forms, (event, form, formState) => {
+        void submitForm(context, form, formState, {
+            event,
+        });
     });
 
     return {

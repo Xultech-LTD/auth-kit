@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: submit.js
+ * File: js/modules/forms/submit.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

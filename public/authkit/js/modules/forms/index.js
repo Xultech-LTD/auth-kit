@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: index.js
+ * File: js/modules/forms/index.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

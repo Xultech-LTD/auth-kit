@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: resolve-mode.js
+ * File: js/modules/theme/resolve-mode.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

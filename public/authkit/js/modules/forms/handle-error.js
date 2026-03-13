@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: handle-error.js
+ * File: js/modules/forms/handle-error.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

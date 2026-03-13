@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: storage.js
+ * File: js/core/storage.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

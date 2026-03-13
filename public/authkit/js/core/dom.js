@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: dom.js
+ * File: js/core/dom.js
  * Author: Michael Erastus
  * Package: AuthKit
  *
@@ -101,6 +101,17 @@ export function queryAll(selector, scope = document) {
  */
 export function isElement(value) {
     return value instanceof Element;
+}
+
+
+/**
+ * Determine whether the given element is a DOM Element.
+ *
+ * @param {*} value
+ * @returns {boolean}
+ */
+export function isHTMLFormElement (value) {
+    return value instanceof HTMLFormElement ;
 }
 
 

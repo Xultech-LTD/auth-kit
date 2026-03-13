@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: modules.js
+ * File: js/registry/modules.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

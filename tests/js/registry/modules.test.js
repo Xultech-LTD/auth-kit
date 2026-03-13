@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: modules.test.js
+ * File: tests/js/registry/modules.test.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

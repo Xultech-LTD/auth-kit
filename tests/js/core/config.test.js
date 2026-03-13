@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: config.test.js
+ * File: tests/js/core/config.test.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

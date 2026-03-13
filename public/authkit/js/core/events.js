@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: events.js
+ * File: js/core/events.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

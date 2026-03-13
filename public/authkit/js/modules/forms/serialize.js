@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: serialize.js
+ * File: js/modules/forms/serialize.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

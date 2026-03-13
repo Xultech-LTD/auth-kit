@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: handle-success.js
+ * File: js/modules/forms/handle-success.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

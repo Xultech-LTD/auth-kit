@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: dom.test.js
+ * File: tests/js/core/dom.test.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

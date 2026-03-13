@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: system-listener.js
+ * File: js/modules/theme/system-listener.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

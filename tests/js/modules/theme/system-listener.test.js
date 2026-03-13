@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: system-listener.test.js
+ * File: tests/js/modules/theme/system-listener.test.js
  * Author: Michael Erastus
  * Package: AuthKit
  *
@@ -24,7 +24,7 @@ import {
     getSystemColorSchemeMediaQuery,
     supportsLegacyMediaQueryListeners,
     supportsModernMediaQueryListeners,
-} from '../../../public/authkit/js/modules/theme/system-listener.js';
+} from '../../../../public/authkit/js/modules/theme/system-listener.js';
 
 import {
     installAuthKitConfig,

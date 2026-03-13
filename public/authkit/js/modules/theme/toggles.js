@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: toggles.js
+ * File: js/modules/theme/toggles.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

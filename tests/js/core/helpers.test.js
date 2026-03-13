@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: helpers.test.js
+ * File: tests/js/core/helpers.test.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

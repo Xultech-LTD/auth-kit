@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: persistence.js
+ * File: js/modules/theme/persistence.js
  * Author: Michael Erastus
  * Package: AuthKit
  *

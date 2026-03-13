@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: persistence.test.js
+ * File: tests/js/modules/theme/persistence.test.js
  * Author: Michael Erastus
  * Package: AuthKit
  *
@@ -27,7 +27,7 @@ import {
     persistMode,
     readPersistedMode,
     readRawPersistedMode,
-} from '../../../public/authkit/js/modules/theme/persistence.js';
+} from '../../../../public/authkit/js/modules/theme/persistence.js';
 
 import {
     installAuthKitConfig,

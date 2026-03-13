@@ -1,7 +1,7 @@
 /**
  * AuthKit
  * -----------------------------------------------------------------------------
- * File: apply-mode.js
+ * File: js/modules/theme/apply-mode.js
  * Author: Michael Erastus
  * Package: AuthKit
  *
