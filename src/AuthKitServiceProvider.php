@@ -367,10 +367,6 @@ final class AuthKitServiceProvider extends ServiceProvider
         ], 'authkit-migrations');
 
         $this->publishes([
-            __DIR__ . '/../src/Http/Controllers' => app_path('Http/Controllers/AuthKit'),
-        ], 'authkit-controllers');
-
-        $this->publishes([
             __DIR__ . '/Routes/web.php' => base_path('routes/authkit-web.php'),
             __DIR__ . '/Routes/api.php' => base_path('routes/authkit-api.php'),
         ], 'authkit-routes');

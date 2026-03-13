@@ -51,7 +51,7 @@ Route::middleware(array_values(array_filter(array_merge(
              * Register action.
              */
             Route::post(
-                '/register',
+                '/register/process',
                 ControllerResolver::resolve('api', 'register', RegisterController::class)
             )->name((string) ($apiNames['register'] ?? 'authkit.api.auth.register'));
 
@@ -59,7 +59,7 @@ Route::middleware(array_values(array_filter(array_merge(
              * Login action.
              */
             Route::post(
-                '/login',
+                '/login/process',
                 ControllerResolver::resolve('api', 'login', LoginController::class)
             )
                 ->middleware(array_values(array_filter([
@@ -71,7 +71,7 @@ Route::middleware(array_values(array_filter(array_merge(
              * Forgot password action (send reset link/token).
              */
             Route::post(
-                '/forgot-password',
+                '/forgot-password/process',
                 ControllerResolver::resolve('api', 'password_forgot', ForgotPasswordController::class)
             )
                 ->middleware(array_values(array_filter([
@@ -86,7 +86,7 @@ Route::middleware(array_values(array_filter(array_merge(
              * The verification is "peek-only" and must not consume the token.
              */
             Route::post(
-                '/reset-password/verify-token',
+                '/reset-password/verify-token/process',
                 ControllerResolver::resolve('api', 'password_verify_token', VerifyPasswordResetTokenController::class)
             )
                 ->middleware(array_values(array_filter([
@@ -98,7 +98,7 @@ Route::middleware(array_values(array_filter(array_merge(
              * Reset password action (consume token + set new password).
              */
             Route::post(
-                '/reset-password',
+                '/reset-password/process',
                 ControllerResolver::resolve('api', 'password_reset', ResetPasswordController::class)
             )
                 ->middleware(array_values(array_filter([
@@ -112,7 +112,7 @@ Route::middleware(array_values(array_filter(array_merge(
              * Used during login flow when a user must satisfy a pending 2FA challenge.
              */
             Route::post(
-                '/two-factor/challenge',
+                '/two-factor/challenge/process',
                 ControllerResolver::resolve('api', 'two_factor_challenge', TwoFactorChallengeController::class)
             )
                 ->middleware(array_values(array_filter([
@@ -126,7 +126,7 @@ Route::middleware(array_values(array_filter(array_merge(
              * Resends a challenge delivery for the current pending login context.
              */
             Route::post(
-                '/two-factor/resend',
+                '/two-factor/resend/process',
                 ControllerResolver::resolve('api', 'two_factor_resend', TwoFactorResendController::class)
             )
                 ->middleware(array_values(array_filter([
@@ -140,7 +140,7 @@ Route::middleware(array_values(array_filter(array_merge(
              * Verifies a recovery code for the current pending login context.
              */
             Route::post(
-                '/two-factor/recovery',
+                '/two-factor/recovery/process',
                 ControllerResolver::resolve('api', 'two_factor_recovery', TwoFactorRecoveryController::class)
             )
                 ->middleware(array_values(array_filter([
@@ -152,7 +152,7 @@ Route::middleware(array_values(array_filter(array_merge(
              * Verify email using token (token driver).
              */
             Route::post(
-                '/email/verify/token',
+                '/email/verify/token/process',
                 ControllerResolver::resolve('api', 'email_verify_token', VerifyEmailTokenController::class)
             )
                 ->middleware(array_values(array_filter([
@@ -172,7 +172,7 @@ Route::middleware(array_values(array_filter(array_merge(
          * Send email verification notification (link or token depending on config).
          */
         Route::post(
-            '/email/verification-notification',
+            '/email/verification-notification/process',
             ControllerResolver::resolve('api', 'email_send_verification', SendEmailVerificationController::class)
         )
             ->middleware(array_values(array_filter([
@@ -184,7 +184,7 @@ Route::middleware(array_values(array_filter(array_merge(
          * Logout action.
          */
         Route::post(
-            '/logout',
+            '/logout/process',
             ControllerResolver::resolve('api', 'logout', LogoutController::class)
         )->name((string) ($apiNames['logout'] ?? 'authkit.api.auth.logout'));
 
