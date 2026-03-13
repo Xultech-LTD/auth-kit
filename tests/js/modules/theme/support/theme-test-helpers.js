@@ -20,7 +20,7 @@
  * - They assume Vitest + jsdom.
  */
 
-import { clearConfigCache } from '../../../../../public/authkit/js/core/config.js';
+import { clearConfigCache } from '../../../../../resources/js/authkit/core/config.js';
 
 
 /**

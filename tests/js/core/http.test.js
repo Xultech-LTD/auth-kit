@@ -34,7 +34,7 @@ import {
     post,
     postJson,
     request,
-} from '../../../public/authkit/js/core/http.js';
+} from '../../../resources/js/authkit/core/http.js';
 
 import { resetCoreTestEnvironment } from './support/core-test-helpers.js';
 

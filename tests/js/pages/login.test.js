@@ -30,7 +30,7 @@ import {
     isPasswordControl,
     isSubmitControl,
     isVisibleFormControl,
-} from '../../../public/authkit/js/pages/login.js';
+} from '../../../resources/js/authkit/pages/login.js';
 
 
 /**

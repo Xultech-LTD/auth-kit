@@ -24,7 +24,7 @@ import {
     applyResolvedMode,
     readAppliedPreferredMode,
     readAppliedResolvedMode,
-} from '../../../../public/authkit/js/modules/theme/apply-mode.js';
+} from '../../../../resources/js/authkit/modules/theme/apply-mode.js';
 
 import {
     resetThemeTestEnvironment,

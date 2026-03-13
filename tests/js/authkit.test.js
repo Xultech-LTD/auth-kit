@@ -28,7 +28,7 @@ import {
     bootAuthKit,
     getAuthKitState,
     isAuthKitBooted,
-} from '../../public/authkit/js/authkit.js';
+} from '../../resources/js/authkit/authkit.js';
 
 
 describe('authkit', () => {

@@ -26,7 +26,7 @@ import {
     getToggleControls,
     readToggleOptionMode,
     syncToggleState,
-} from '../../../../public/authkit/js/modules/theme/toggles.js';
+} from '../../../../resources/js/authkit/modules/theme/toggles.js';
 
 import {
     installAuthKitConfig,

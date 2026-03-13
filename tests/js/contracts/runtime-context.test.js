@@ -20,7 +20,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
     assertRuntimeContext,
     isRuntimeContext,
-} from '../../../public/authkit/js/contracts/runtime-context.js';
+} from '../../../resources/js/authkit/contracts/runtime-context.js';
 
 
 describe('contracts/runtime-context', () => {

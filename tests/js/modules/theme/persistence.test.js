@@ -27,7 +27,7 @@ import {
     persistMode,
     readPersistedMode,
     readRawPersistedMode,
-} from '../../../../public/authkit/js/modules/theme/persistence.js';
+} from '../../../../resources/js/authkit/modules/theme/persistence.js';
 
 import {
     installAuthKitConfig,

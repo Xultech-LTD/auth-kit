@@ -24,7 +24,7 @@ import {
     getSystemColorSchemeMediaQuery,
     supportsLegacyMediaQueryListeners,
     supportsModernMediaQueryListeners,
-} from '../../../../public/authkit/js/modules/theme/system-listener.js';
+} from '../../../../resources/js/authkit/modules/theme/system-listener.js';
 
 import {
     installAuthKitConfig,

@@ -7,41 +7,11 @@
  * Responsibilities:
  * - Defines the HTML document shell (doctype, head, body).
  * - Resolves the active UI engine, theme, and appearance mode.
- * - Loads packaged AuthKit theme assets when enabled.
+ * - Loads published AuthKit built assets.
  * - Loads optional extension CSS/JS declared in configuration.
  * - Exposes stable root hooks for package CSS, JavaScript, and consumer overrides.
+ * - Exposes AuthKit browser runtime configuration on window.AuthKit.config.
  * - Renders the packaged theme toggle by default when enabled.
- *
- * Styling model:
- * - AuthKit uses semantic package classes in Blade components.
- * - Visual appearance is selected through:
- *   - ui.engine : styling family (for example: tailwind or bootstrap)
- *   - ui.theme  : color/brand skin within that family
- *   - ui.mode   : light, dark, or system
- * - Theme stylesheets are resolved using the configured flat filename pattern:
- *   {engine}-{theme}.css
- *
- * Data attributes:
- * - When enabled, the layout emits:
- *   - data-authkit-engine
- *   - data-authkit-theme
- *   - data-authkit-mode
- *
- * Notes:
- * - When ui.mode is "system", JavaScript may replace the initial fallback mode
- *   at runtime using prefers-color-scheme and persisted user preference.
- * - Consumers may disable packaged asset loading and provide their own styles/scripts.
- * - Consumers may publish this view to reposition or remove the packaged toggle.
- *
- * Slots:
- * - $slot : Page body content.
- * - $head : Optional additional head content (meta tags, extra links, inline styles, etc.).
- *
- * Props:
- * - title  : Document title.
- * - theme  : Optional theme override.
- * - engine : Optional UI engine override.
- * - mode   : Optional appearance mode override.
  */
 --}}
 
@@ -53,21 +23,14 @@
 ])
 
 @php
-    /**
-     * Asset base path.
-     */
-    $basePath = (string) config('authkit.assets.base_path', 'vendor/authkit');
+    $basePath = trim((string) config('authkit.assets.base_path', 'vendor/authkit'), '/');
 
-    /**
-     * UI configuration.
-     */
     $ui = (array) config('authkit.ui', []);
     $themes = (array) config('authkit.themes', []);
     $components = (array) config('authkit.components', []);
+    $javascript = (array) config('authkit.javascript', []);
+    $forms = (array) config('authkit.forms', []);
 
-    /**
-     * Resolve UI state with prop overrides taking precedence over config.
-     */
     $resolvedEngine = is_string($engine) && $engine !== ''
         ? $engine
         : (string) data_get($ui, 'engine', 'tailwind');
@@ -80,69 +43,52 @@
         ? $mode
         : (string) data_get($ui, 'mode', 'system');
 
-    /**
-     * Theme filename resolution.
-     *
-     * Flat naming convention example:
-     * - tailwind-forest.css
-     * - bootstrap-red-beige.css
-     */
     $themeFilePattern = (string) data_get($themes, 'file_pattern', '{engine}-{theme}.css');
     $themeFile = strtr($themeFilePattern, [
         '{engine}' => $resolvedEngine,
         '{theme}' => $resolvedTheme,
     ]);
 
-    /**
-     * Asset loading toggles.
-     */
     $loadStylesheet = (bool) data_get($ui, 'load_stylesheet', true);
     $loadScript = (bool) data_get($ui, 'load_script', true);
+    $javascriptEnabled = (bool) data_get($javascript, 'enabled', true);
 
-    /**
-     * Data-attribute root hooks.
-     */
     $useDataAttributes = (bool) data_get($ui, 'use_data_attributes', true);
     $enableRootHooks = (bool) data_get($ui, 'extensions.enable_root_hooks', true);
 
-    /**
-     * Theme toggle configuration.
-     */
     $toggleEnabled = (bool) data_get($ui, 'toggle.enabled', true);
     $themeToggleComponent = (string) data_get($components, 'theme_toggle', 'authkit::theme-toggle');
 
-    /**
-     * Extension assets loaded after packaged AuthKit assets.
-     */
-    $extraCss = array_values(array_filter((array) data_get($ui, 'extensions.extra_css', []), fn ($path) => is_string($path) && $path !== ''));
-    $extraJs = array_values(array_filter((array) data_get($ui, 'extensions.extra_js', []), fn ($path) => is_string($path) && $path !== ''));
+    $extraCss = array_values(array_filter(
+        (array) data_get($ui, 'extensions.extra_css', []),
+        fn ($path) => is_string($path) && $path !== ''
+    ));
 
-    /**
-     * Base assets.
-     *
-     * These are optional generic AuthKit assets declared under authkit.assets.base.
-     * They remain separate from packaged theme CSS resolution.
-     */
+    $extraJs = array_values(array_filter(
+        (array) data_get($ui, 'extensions.extra_js', []),
+        fn ($path) => is_string($path) && $path !== ''
+    ));
+
     $baseAssets = (array) config('authkit.assets.base', []);
-    $baseCss = array_values(array_filter((array) data_get($baseAssets, 'css', []), fn ($path) => is_string($path) && $path !== ''));
-    $baseJs = array_values(array_filter((array) data_get($baseAssets, 'js', []), fn ($path) => is_string($path) && $path !== ''));
+    $baseCss = array_values(array_filter(
+        (array) data_get($baseAssets, 'css', []),
+        fn ($path) => is_string($path) && $path !== ''
+    ));
+
+    $baseJs = array_values(array_filter(
+        (array) data_get($baseAssets, 'js', []),
+        fn ($path) => is_string($path) && $path !== ''
+    ));
 
     /**
-     * Backward-compatibility fallback for base JS.
+     * Default built asset fallbacks.
      *
-     * If no base JS is configured and packaged script loading is enabled,
-     * AuthKit falls back to the default base client script.
+     * These are the compiled assets expected to exist after package build + publish.
      */
-    if ($loadScript && empty($baseJs)) {
+    if ($loadScript && $javascriptEnabled && empty($baseJs)) {
         $baseJs = ['js/authkit.js'];
     }
 
-    /**
-     * Root attributes for the <html> element.
-     *
-     * When mode="system", emit "system" as the declared preference.
-     * JavaScript may later resolve the active runtime mode.
-     */
     $htmlAttributes = new \Illuminate\View\ComponentAttributeBag([
         'lang' => str_replace('_', '-', app()->getLocale()),
     ]);
@@ -161,11 +107,68 @@
         ]);
     }
 
-    /**
-     * UI persistence settings exposed to JavaScript.
-     */
     $storageEnabled = (bool) data_get($ui, 'persistence.enabled', true);
     $storageKey = (string) data_get($ui, 'persistence.storage_key', 'authkit.ui.mode');
+
+    /**
+     * Browser config payload normalized to the shape expected by AuthKit JS.
+     */
+    $browserPages = collect((array) data_get($javascript, 'pages', []))
+        ->mapWithKeys(function ($page, $key) {
+            return [
+                $key => [
+                    'enabled' => (bool) data_get($page, 'enabled', true),
+                    'pageKey' => (string) data_get($page, 'page_key', $key),
+                ],
+            ];
+        })
+        ->all();
+
+    $browserConfig = [
+        'runtime' => [
+            'windowKey' => (string) data_get($javascript, 'runtime.window_key', 'AuthKit'),
+            'dispatchEvents' => (bool) data_get($javascript, 'runtime.dispatch_events', true),
+            'eventTarget' => (string) data_get($javascript, 'runtime.event_target', 'document'),
+        ],
+        'ui' => [
+            'mode' => $resolvedMode,
+            'persistence' => [
+                'enabled' => $storageEnabled,
+                'storageKey' => $storageKey,
+            ],
+            'toggle' => [
+                'attribute' => (string) data_get($ui, 'toggle.attribute', 'data-authkit-theme-toggle'),
+                'allowSystem' => (bool) data_get($ui, 'toggle.allow_system', true),
+            ],
+        ],
+        'events' => [
+            'ready' => (string) data_get($javascript, 'events.ready', 'authkit:ready'),
+            'theme_ready' => (string) data_get($javascript, 'events.theme_ready', 'authkit:theme:ready'),
+            'theme_changed' => (string) data_get($javascript, 'events.theme_changed', 'authkit:theme:changed'),
+            'form_before_submit' => (string) data_get($javascript, 'events.form_before_submit', 'authkit:form:before-submit'),
+            'form_success' => (string) data_get($javascript, 'events.form_success', 'authkit:form:success'),
+            'form_error' => (string) data_get($javascript, 'events.form_error', 'authkit:form:error'),
+            'page_ready' => (string) data_get($javascript, 'events.page_ready', 'authkit:page:ready'),
+        ],
+        'modules' => [
+            'theme' => [
+                'enabled' => (bool) data_get($javascript, 'modules.theme.enabled', true),
+            ],
+            'forms' => [
+                'enabled' => (bool) data_get($javascript, 'modules.forms.enabled', true),
+            ],
+        ],
+        'pages' => $browserPages,
+        'forms' => [
+            'mode' => (string) data_get($forms, 'mode', 'http'),
+            'ajax' => [
+                'attribute' => (string) data_get($forms, 'ajax.attribute', 'data-authkit-ajax'),
+                'submitJson' => (bool) data_get($forms, 'ajax.submit_json', true),
+                'successBehavior' => (string) data_get($forms, 'ajax.success_behavior', 'redirect'),
+                'fallbackRedirect' => data_get($forms, 'ajax.fallback_redirect'),
+            ],
+        ],
+    ];
 @endphp
 
         <!doctype html>
@@ -207,32 +210,37 @@
                     root.setAttribute('data-authkit-mode-resolved', finalMode);
                     root.setAttribute('data-authkit-mode', finalMode);
                 } catch (e) {
-                    // Fail silently to preserve page rendering.
+                    // Preserve rendering if mode preboot fails.
                 }
             })();
         </script>
     @endif
 
+    <script>
+        window.AuthKit = window.AuthKit || {};
+        window.AuthKit.config = @json($browserConfig);
+    </script>
+
     @foreach ($baseCss as $path)
-        <link rel="stylesheet" href="{{ asset($basePath.'/'.ltrim($path, '/')) }}">
+        <link rel="stylesheet" href="{{ asset($basePath . '/' . ltrim($path, '/')) }}">
     @endforeach
 
     @if ($loadStylesheet)
-        <link rel="stylesheet" href="{{ asset($basePath.'/themes/'.$themeFile) }}">
+        <link rel="stylesheet" href="{{ asset($basePath . '/css/themes/' . $themeFile) }}">
     @endif
 
     @foreach ($extraCss as $path)
-        <link rel="stylesheet" href="{{ asset($basePath.'/'.ltrim($path, '/')) }}">
+        <link rel="stylesheet" href="{{ asset($basePath . '/' . ltrim($path, '/')) }}">
     @endforeach
 
     {{ $head ?? '' }}
 
     @foreach ($baseJs as $path)
-        <script src="{{ asset($basePath.'/'.ltrim($path, '/')) }}" defer></script>
+        <script src="{{ asset($basePath . '/' . ltrim($path, '/')) }}" defer></script>
     @endforeach
 
     @foreach ($extraJs as $path)
-        <script src="{{ asset($basePath.'/'.ltrim($path, '/')) }}" defer></script>
+        <script src="{{ asset($basePath . '/' . ltrim($path, '/')) }}" defer></script>
     @endforeach
 </head>
 <body class="authkit-body">

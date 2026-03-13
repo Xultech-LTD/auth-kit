@@ -44,7 +44,7 @@ import {
     queryOne,
     removeClass,
     setDataAttribute,
-} from '../../../public/authkit/js/core/dom.js';
+} from '../../../resources/js/authkit/core/dom.js';
 
 import { resetCoreTestEnvironment } from './support/core-test-helpers.js';
 

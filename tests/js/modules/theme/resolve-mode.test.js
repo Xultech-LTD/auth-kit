@@ -29,7 +29,7 @@ import {
     normalizeMode,
     resolveModeState,
     supportsSystemColorScheme,
-} from '../../../../public/authkit/js/modules/theme/resolve-mode.js';
+} from '../../../../resources/js/authkit/modules/theme/resolve-mode.js';
 
 import {
     installAuthKitConfig,

@@ -39,7 +39,7 @@ import {
     setMessage,
     setMeta,
     setSubmitting,
-} from '../../../../public/authkit/js/modules/forms/state.js';
+} from '../../../../resources/js/authkit/modules/forms/state.js';
 
 
 describe('modules/forms/state', () => {

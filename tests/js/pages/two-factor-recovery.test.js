@@ -33,7 +33,7 @@ import {
     isPasswordControl,
     isSubmitControl,
     isVisibleFormControl,
-} from '../../../public/authkit/js/pages/two-factor-recovery.js';
+} from '../../../resources/js/authkit/pages/two-factor-recovery.js';
 
 
 /**

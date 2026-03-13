@@ -34,7 +34,7 @@ import {
     isPasswordControl,
     isSubmitControl,
     isVisibleFormControl,
-} from '../../../public/authkit/js/pages/email-verification-token.js';
+} from '../../../resources/js/authkit/pages/email-verification-token.js';
 
 
 /**

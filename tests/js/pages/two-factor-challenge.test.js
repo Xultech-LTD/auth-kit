@@ -34,7 +34,7 @@ import {
     isPasswordControl,
     isSubmitControl,
     isVisibleFormControl,
-} from '../../../public/authkit/js/pages/two-factor-challenge.js';
+} from '../../../resources/js/authkit/pages/two-factor-challenge.js';
 
 
 /**

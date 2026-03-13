@@ -32,7 +32,7 @@ import {
     isPasswordControl,
     isSubmitControl,
     isVisibleFormControl,
-} from '../../../public/authkit/js/pages/password-forgot.js';
+} from '../../../resources/js/authkit/pages/password-forgot.js';
 
 
 /**

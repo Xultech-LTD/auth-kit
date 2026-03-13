@@ -49,7 +49,7 @@ import {persistMode, readPersistedMode} from './persistence.js';
 import {bindThemeToggles, syncToggleState} from './toggles.js';
 
 import {bindSystemModeListener} from './system-listener.js';
-import {isObject} from "../../core/helpers";
+import {isObject} from "../../core/helpers.js";
 
 
 /**

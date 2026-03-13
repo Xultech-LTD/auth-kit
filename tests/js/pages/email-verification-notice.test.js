@@ -32,7 +32,7 @@ import {
     isPasswordControl,
     isSubmitControl,
     isVisibleFormControl,
-} from '../../../public/authkit/js/pages/email-verification-notice.js';
+} from '../../../resources/js/authkit/pages/email-verification-notice.js';
 
 
 /**

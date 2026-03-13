@@ -25,7 +25,7 @@ import {
     getPrimaryActionLink,
     getSuccessPageForms,
     getSuccessPageLinks,
-} from '../../../public/authkit/js/pages/password-reset-success.js';
+} from '../../../resources/js/authkit/pages/password-reset-success.js';
 
 
 /**

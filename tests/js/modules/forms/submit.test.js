@@ -20,25 +20,25 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../public/authkit/js/core/http.js', () => ({
+vi.mock('../../../../resources/js/authkit/core/http.js', () => ({
     request: vi.fn(),
 }));
 
-vi.mock('../../../../public/authkit/js/core/events.js', () => ({
+vi.mock('../../../../resources/js/authkit/core/events.js', () => ({
     dispatchEvent: vi.fn(),
 }));
 
-vi.mock('../../../../public/authkit/js/modules/forms/handle-success.js', () => ({
+vi.mock('../../../../resources/js/authkit/modules/forms/handle-success.js', () => ({
     handleSuccess: vi.fn(),
 }));
 
-vi.mock('../../../../public/authkit/js/modules/forms/handle-error.js', () => ({
+vi.mock('../../../../resources/js/authkit/modules/forms/handle-error.js', () => ({
     handleError: vi.fn(),
 }));
 
-vi.mock('../../../../public/authkit/js/modules/forms/serialize.js', async () => {
+vi.mock('../../../../resources/js/authkit/modules/forms/serialize.js', async () => {
     const actual = await vi.importActual(
-        '../../../../public/authkit/js/modules/forms/serialize.js'
+        '../../../../resources/js/authkit/modules/forms/serialize.js'
     );
 
     return {
@@ -47,10 +47,10 @@ vi.mock('../../../../public/authkit/js/modules/forms/serialize.js', async () => 
     };
 });
 
-import { request } from '../../../../public/authkit/js/core/http.js';
-import { dispatchEvent } from '../../../../public/authkit/js/core/events.js';
-import { handleSuccess } from '../../../../public/authkit/js/modules/forms/handle-success.js';
-import { handleError } from '../../../../public/authkit/js/modules/forms/handle-error.js';
+import { request } from '../../../../resources/js/authkit/core/http.js';
+import { dispatchEvent } from '../../../../resources/js/authkit/core/events.js';
+import { handleSuccess } from '../../../../resources/js/authkit/modules/forms/handle-success.js';
+import { handleError } from '../../../../resources/js/authkit/modules/forms/handle-error.js';
 
 import {
     beginSubmitState,
@@ -66,13 +66,13 @@ import {
     resolveSubmitUrl,
     shouldSubmitAsJson,
     submitForm,
-} from '../../../../public/authkit/js/modules/forms/submit.js';
+} from '../../../../resources/js/authkit/modules/forms/submit.js';
 
 import {
     buildSerializedForm,
-} from '../../../../public/authkit/js/modules/forms/serialize.js';
+} from '../../../../resources/js/authkit/modules/forms/serialize.js';
 
-import { createFormState } from '../../../../public/authkit/js/modules/forms/state.js';
+import { createFormState } from '../../../../resources/js/authkit/modules/forms/state.js';
 
 
 describe('modules/forms/submit', () => {
@@ -81,7 +81,7 @@ describe('modules/forms/submit', () => {
         vi.resetAllMocks();
 
         const actualSerialize = await vi.importActual(
-            '../../../../public/authkit/js/modules/forms/serialize.js'
+            '../../../../resources/js/authkit/modules/forms/serialize.js'
         );
 
         buildSerializedForm.mockImplementation(actualSerialize.buildSerializedForm);

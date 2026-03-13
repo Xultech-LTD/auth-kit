@@ -37,7 +37,7 @@ import {
     isPasswordControl,
     isSubmitControl,
     isVisibleFormControl,
-} from '../../../public/authkit/js/pages/password-reset-token.js';
+} from '../../../resources/js/authkit/pages/password-reset-token.js';
 
 
 /**

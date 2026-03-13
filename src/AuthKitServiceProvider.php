@@ -359,7 +359,7 @@ final class AuthKitServiceProvider extends ServiceProvider
         ], 'authkit-views');
 
         $this->publishes([
-            __DIR__ . '/../public/authkit' => public_path('vendor/authkit'),
+            __DIR__ . '/../dist' => public_path('vendor/authkit'),
         ], 'authkit-assets');
 
         $this->publishes([

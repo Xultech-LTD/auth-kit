@@ -30,7 +30,7 @@ import {
     isPageEnabled,
     matchesCurrentPage,
     resolveActivePage,
-} from '../../../public/authkit/js/core/page.js';
+} from '../../../resources/js/authkit/core/page.js';
 
 import {
     installAuthKitConfig,

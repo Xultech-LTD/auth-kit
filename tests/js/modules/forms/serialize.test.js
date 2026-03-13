@@ -32,7 +32,7 @@ import {
     mergeSerializedData,
     serializeForm,
     serializeFormToFormData,
-} from '../../../../public/authkit/js/modules/forms/serialize.js';
+} from '../../../../resources/js/authkit/modules/forms/serialize.js';
 
 
 describe('modules/forms/serialize', () => {

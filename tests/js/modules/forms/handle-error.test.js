@@ -19,11 +19,11 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../public/authkit/js/core/events.js', () => ({
+vi.mock('../../../../resources/js/authkit/core/events.js', () => ({
     dispatchEvent: vi.fn(),
 }));
 
-import { dispatchEvent } from '../../../../public/authkit/js/core/events.js';
+import { dispatchEvent } from '../../../../resources/js/authkit/core/events.js';
 
 import {
     applyErrorState,
@@ -31,9 +31,9 @@ import {
     normalizeErrorResult,
     normalizeFieldErrors,
     resolveErrorMessage,
-} from '../../../../public/authkit/js/modules/forms/handle-error.js';
+} from '../../../../resources/js/authkit/modules/forms/handle-error.js';
 
-import { createFormState } from '../../../../public/authkit/js/modules/forms';
+import { createFormState } from '../../../../resources/js/authkit/modules/forms';
 
 
 describe('modules/forms/handle-error', () => {

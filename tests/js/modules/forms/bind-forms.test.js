@@ -19,8 +19,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../public/authkit/js/core/dom.js', async () => {
-    const actual = await vi.importActual('../../../../public/authkit/js/core/dom.js');
+vi.mock('../../../../resources/js/authkit/core/dom.js', async () => {
+    const actual = await vi.importActual('../../../../resources/js/authkit/core/dom.js');
 
     return {
         ...actual,
@@ -28,12 +28,12 @@ vi.mock('../../../../public/authkit/js/core/dom.js', async () => {
     };
 });
 
-vi.mock('../../../../public/authkit/js/modules/forms/submit.js', () => ({
+vi.mock('../../../../resources/js/authkit/modules/forms/submit.js', () => ({
     submitForm: vi.fn(),
 }));
 
-import { getAjaxForms } from '../../../../public/authkit/js/core/dom.js';
-import { submitForm } from '../../../../public/authkit/js/modules/forms/submit.js';
+import { getAjaxForms } from '../../../../resources/js/authkit/core/dom.js';
+import { submitForm } from '../../../../resources/js/authkit/modules/forms/submit.js';
 
 import {
     bindForm,
@@ -45,7 +45,7 @@ import {
     rebindForm,
     unbindForm,
     unbindForms,
-} from '../../../../public/authkit/js/modules/forms/bind-forms.js';
+} from '../../../../resources/js/authkit/modules/forms/bind-forms.js';
 
 
 describe('modules/forms/bind-forms', () => {

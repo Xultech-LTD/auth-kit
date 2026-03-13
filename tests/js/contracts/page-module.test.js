@@ -21,7 +21,7 @@ import {
     assertPageModule,
     getPageModuleBoot,
     isPageModule,
-} from '../../../public/authkit/js/contracts/page-module.js';
+} from '../../../resources/js/authkit/contracts/page-module.js';
 
 
 describe('contracts/page-module', () => {

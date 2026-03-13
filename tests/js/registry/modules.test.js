@@ -24,7 +24,7 @@ import {
     getModuleRegistry,
     hasModule,
     moduleRegistry,
-} from '../../../public/authkit/js/registry/modules.js';
+} from '../../../resources/js/authkit/registry/modules.js';
 
 
 describe('registry/modules', () => {

@@ -27,7 +27,7 @@ import {
     resolveStorage,
     setItem,
     setJson,
-} from '../../../public/authkit/js/core/storage.js';
+} from '../../../resources/js/authkit/core/storage.js';
 
 import { resetCoreTestEnvironment } from './support/core-test-helpers.js';
 

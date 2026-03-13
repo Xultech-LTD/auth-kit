@@ -31,7 +31,7 @@ import {
     normalizeString,
     toArray,
     toBoolean,
-} from '../../../public/authkit/js/core/helpers.js';
+} from '../../../resources/js/authkit/core/helpers.js';
 
 
 describe('core/helpers', () => {

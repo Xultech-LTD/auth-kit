@@ -1,14 +1,19 @@
 {
   "private": true,
+  "type": "module",
   "devDependencies": {
     "jsdom": "^28.1.0",
-    "vitepress": "^1.6.4",
+    "vite": "^7.3.1",
+    "vitepress": "^2.0.0-alpha.16",
     "vitest": "^4.0.18"
   },
   "scripts": {
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
-    "test": "vitest"
+    "test": "vitest",
+    "build:js": "vite build",
+    "build:css": "node scripts/copy-themes.mjs",
+    "build": "npm run build:js && npm run build:css"
   }
 }

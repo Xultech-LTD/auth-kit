@@ -34,7 +34,7 @@ import {
     isPageEnabled,
     setConfig,
     shouldDispatchEvents,
-} from '../../../public/authkit/js/core/config.js';
+} from '../../../resources/js/authkit/core/config.js';
 
 import {
     installAuthKitConfig,

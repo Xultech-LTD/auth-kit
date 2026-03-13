@@ -49,7 +49,7 @@ describe('core/runtime', () => {
     });
 
     it('creates a normalized runtime context', async () => {
-        const runtime = await import('../../../public/authkit/js/core/runtime.js');
+        const runtime = await import('../../../resources/js/authkit/core/runtime.js');
 
         const context = runtime.createRuntimeContext({
             config: window.AuthKit.config,
@@ -63,7 +63,7 @@ describe('core/runtime', () => {
     });
 
     it('ensures the AuthKit global namespace exists without replacing config', async () => {
-        const runtime = await import('../../../public/authkit/js/core/runtime.js');
+        const runtime = await import('../../../resources/js/authkit/core/runtime.js');
 
         const namespace = runtime.ensureGlobalNamespace();
 
@@ -72,7 +72,7 @@ describe('core/runtime', () => {
     });
 
     it('boots individual shared modules safely', async () => {
-        const runtime = await import('../../../public/authkit/js/core/runtime.js');
+        const runtime = await import('../../../resources/js/authkit/core/runtime.js');
 
         const moduleRegistry = {
             theme: {
@@ -99,7 +99,7 @@ describe('core/runtime', () => {
     });
 
     it('boots configured modules through bootModules', async () => {
-        const runtime = await import('../../../public/authkit/js/core/runtime.js');
+        const runtime = await import('../../../resources/js/authkit/core/runtime.js');
 
         const moduleRegistry = {
             theme: {
@@ -128,7 +128,7 @@ describe('core/runtime', () => {
     });
 
     it('boots the active page module safely', async () => {
-        const runtime = await import('../../../public/authkit/js/core/runtime.js');
+        const runtime = await import('../../../resources/js/authkit/core/runtime.js');
 
         const pageRegistry = {
             login: {
@@ -150,7 +150,7 @@ describe('core/runtime', () => {
     });
 
     it('builds and exposes the public runtime api under window.AuthKit.runtime', async () => {
-        const runtime = await import('../../../public/authkit/js/core/runtime.js');
+        const runtime = await import('../../../resources/js/authkit/core/runtime.js');
 
         const api = runtime.exposeRuntimeApi();
 
@@ -160,7 +160,7 @@ describe('core/runtime', () => {
     });
 
     it('boots the full runtime once and preserves global config', async () => {
-        const runtime = await import('../../../public/authkit/js/core/runtime.js');
+        const runtime = await import('../../../resources/js/authkit/core/runtime.js');
 
         const moduleRegistry = {
             theme: {
@@ -195,7 +195,7 @@ describe('core/runtime', () => {
     });
 
     it('returns existing state when runtime is booted again', async () => {
-        const runtime = await import('../../../public/authkit/js/core/runtime.js');
+        const runtime = await import('../../../resources/js/authkit/core/runtime.js');
 
         const first = runtime.bootRuntime({
             config: {

@@ -38,7 +38,7 @@ describe('theme/index', () => {
     });
 
     it('boots and applies an initial theme state to the document root', async () => {
-        const themeModule = await import('../../../../public/authkit/js/modules/theme/index.js');
+        const themeModule = await import('../../../../resources/js/authkit/modules/theme/index.js');
 
         const api = themeModule.boot({});
 
@@ -58,7 +58,7 @@ describe('theme/index', () => {
     it('restores a persisted mode during boot', async () => {
         window.localStorage.setItem('authkit.ui.mode', 'dark');
 
-        const themeModule = await import('../../../../public/authkit/js/modules/theme/index.js');
+        const themeModule = await import('../../../../resources/js/authkit/modules/theme/index.js');
 
         themeModule.boot({});
 
@@ -72,7 +72,7 @@ describe('theme/index', () => {
     });
 
     it('updates theme state when setPreferredMode is called', async () => {
-        const themeModule = await import('../../../../public/authkit/js/modules/theme/index.js');
+        const themeModule = await import('../../../../resources/js/authkit/modules/theme/index.js');
 
         const api = themeModule.boot({});
 
@@ -97,7 +97,7 @@ describe('theme/index', () => {
         document.addEventListener('authkit:theme:ready', onThemeReady);
         document.addEventListener('authkit:theme:changed', onThemeChanged);
 
-        const themeModule = await import('../../../../public/authkit/js/modules/theme/index.js');
+        const themeModule = await import('../../../../resources/js/authkit/modules/theme/index.js');
 
         const api = themeModule.boot({});
 
@@ -114,7 +114,7 @@ describe('theme/index', () => {
             <button data-authkit-theme-toggle-cycle="1">Cycle</button>
         `;
 
-        const themeModule = await import('../../../../public/authkit/js/modules/theme/index.js');
+        const themeModule = await import('../../../../resources/js/authkit/modules/theme/index.js');
 
         const api = themeModule.boot({});
 

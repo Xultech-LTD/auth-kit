@@ -33,7 +33,7 @@ import {
     onReady,
     onThemeChanged,
     shouldDispatchEvents,
-} from '../../../public/authkit/js/core/events.js';
+} from '../../../resources/js/authkit/core/events.js';
 
 import {
     installAuthKitConfig,

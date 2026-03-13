@@ -34,7 +34,7 @@ import {
     isPasswordControl,
     isSubmitControl,
     isVisibleFormControl,
-} from '../../../public/authkit/js/pages/password-reset.js';
+} from '../../../resources/js/authkit/pages/password-reset.js';
 
 
 /**

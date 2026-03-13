@@ -20,13 +20,13 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { getBuiltInPageModules } from '../../../public/authkit/js/pages/index.js';
+import { getBuiltInPageModules } from '../../../resources/js/authkit/pages/index.js';
 import {
     getPageModule,
     getPageRegistry,
     hasPageModule,
     pageRegistry,
-} from '../../../public/authkit/js/registry/pages.js';
+} from '../../../resources/js/authkit/registry/pages.js';
 
 
 describe('registry/pages', () => {

@@ -968,14 +968,13 @@ return [
         'base_path' => 'vendor/authkit',
 
         /**
-         * Base assets (optional).
+         * Base built assets (optional).
          *
-         * These can be used by the layout to automatically include AuthKit CSS/JS.
-         * Paths are relative to public/{assets.base_path}.
+         * These paths are relative to public/{assets.base_path}.
          *
          * Example resolved public paths:
-         * - public/vendor/authkit/css/authkit.css
          * - public/vendor/authkit/js/authkit.js
+         * - public/vendor/authkit/css/themes/tailwind-forest.css
          */
         'base' => [
             'css' => [
@@ -2286,7 +2285,7 @@ return [
      * - bootstrap-red-beige.css
      *
      * These files are expected under:
-     *   public/{assets.base_path}/themes/
+     *   public/{assets.base_path}/css/themes/
      *
      * Notes:
      * - The ui.engine and ui.theme values select which theme file is loaded by default.

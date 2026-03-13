@@ -25,7 +25,7 @@ import {
     getPrimaryActionLink,
     getSuccessPageForms,
     getSuccessPageLinks,
-} from '../../../public/authkit/js/pages/email-verification-success.js';
+} from '../../../resources/js/authkit/pages/email-verification-success.js';
 
 
 /**
