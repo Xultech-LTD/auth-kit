@@ -1,1 +1,0 @@
-import{_ as e,o as t,c as o}from"./chunks/framework.BDE4Q1Xl.js";const d=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"login.md","filePath":"login.md"}'),a={name:"login.md"};function n(r,s,c,i,l,p){return t(),o("div")}const m=e(a,[["render",n]]);export{d as __pageData,m as default};
