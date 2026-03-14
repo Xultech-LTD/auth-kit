@@ -264,7 +264,7 @@ it('returns 401 when credentials are invalid', function () {
  * Ensures an unverified user is not logged in, does not enter two-factor flow,
  * and dispatches AuthKitEmailVerificationRequired.
  */
-it('returns 403 and dispatches AuthKitEmailVerificationRequired when email verification is required', function () {
+it('returns 201 and dispatches AuthKitEmailVerificationRequired when email verification is required', function () {
     Event::fake();
 
     Config::set('authkit.two_factor.enabled', true);
@@ -291,7 +291,7 @@ it('returns 403 and dispatches AuthKitEmailVerificationRequired when email verif
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
         ->and($result->ok)->toBeFalse()
-        ->and($result->status)->toBe(403)
+        ->and($result->status)->toBe(201)
         ->and($result->flow?->is('email_verification_required'))->toBeTrue()
         ->and($result->payload?->get('email'))->toBe('michael@example.com')
         ->and($result->payload?->get('driver'))->toBe('link')
