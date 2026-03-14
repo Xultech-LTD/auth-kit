@@ -1,0 +1,22 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/label.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Form label component styles for AuthKit.
+ *
+ * Labels provide descriptive text for form controls such as
+ * inputs, selects, textareas, and OTP fields.
+ */
+
+.authkit-label {
+    display: inline-block;
+    margin-bottom: var(--authkit-space-2);
+    color: var(--authkit-color-text);
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-medium);
+    line-height: var(--authkit-line-height-base);
+}

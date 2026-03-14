@@ -1,0 +1,130 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/themes/forest.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Forest theme tokens for AuthKit.
+ *
+ * Purpose:
+ * - Defines the forest color palette used by AuthKit components.
+ * - Supplies semantic surface, text, border, action, and feedback colors.
+ * - Works across both packaged engines:
+ *   - tailwind
+ *   - bootstrap
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - This file is theme-only.
+ * - It should not redefine structural component rules.
+ * - Engine files are responsible for visual language, while this file provides
+ *   the brand/color identity.
+ */
+
+:root,
+[data-authkit-theme="forest"] {
+    --authkit-color-bg: #eef5f0;
+    --authkit-color-surface: #ffffff;
+    --authkit-color-surface-alt: #f5faf6;
+
+    --authkit-color-text: #163126;
+    --authkit-color-text-muted: #5f786b;
+
+    --authkit-color-border: #d6e4da;
+    --authkit-color-border-strong: #b7ccbe;
+
+    --authkit-color-primary: #1f6f43;
+    --authkit-color-primary-hover: #185a36;
+    --authkit-color-primary-contrast: #ffffff;
+
+    --authkit-color-danger: #c0392b;
+    --authkit-color-success: #18794e;
+    --authkit-color-warning: #b7791f;
+
+    --authkit-color-focus-ring: rgba(31, 111, 67, 0.22);
+
+    --authkit-color-selection-bg: rgba(31, 111, 67, 0.16);
+    --authkit-color-selection-text: #10241c;
+}
+
+[data-authkit-theme="forest"][data-authkit-mode="dark"] {
+    --authkit-color-bg: #0f1713;
+    --authkit-color-surface: #16211b;
+    --authkit-color-surface-alt: #1b2921;
+
+    --authkit-color-text: #e7f2ea;
+    --authkit-color-text-muted: #a5bbaf;
+
+    --authkit-color-border: #2b3b32;
+    --authkit-color-border-strong: #395043;
+
+    --authkit-color-primary: #4aa36f;
+    --authkit-color-primary-hover: #5ab57d;
+    --authkit-color-primary-contrast: #08110c;
+
+    --authkit-color-danger: #e06b5f;
+    --authkit-color-success: #59b987;
+    --authkit-color-warning: #d7a24c;
+
+    --authkit-color-focus-ring: rgba(90, 181, 125, 0.28);
+
+    --authkit-color-selection-bg: rgba(90, 181, 125, 0.22);
+    --authkit-color-selection-text: #f2fbf5;
+}
+
+
+/* -------------------------------------------------------------
+ | Global themed surfaces
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="forest"] .authkit-body {
+    background-color: var(--authkit-color-bg);
+    color: var(--authkit-color-text);
+}
+
+[data-authkit-theme="forest"] ::selection {
+    background: var(--authkit-color-selection-bg);
+    color: var(--authkit-color-selection-text);
+}
+
+
+/* -------------------------------------------------------------
+ | Forest-specific visual polish
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="forest"] .authkit-card {
+    background-image: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--authkit-color-surface) 88%, #ffffff 12%) 0%,
+            var(--authkit-color-surface) 100%
+    );
+}
+
+[data-authkit-theme="forest"] .authkit-alert--success {
+    background-color: color-mix(in srgb, var(--authkit-color-success) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="forest"] .authkit-alert--danger,
+[data-authkit-theme="forest"] .authkit-alert--error {
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 9%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="forest"] .authkit-alert--warning {
+    background-color: color-mix(in srgb, var(--authkit-color-warning) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="forest"] .authkit-alert--info,
+[data-authkit-theme="forest"] .authkit-alert--default {
+    background-color: color-mix(in srgb, var(--authkit-color-primary) 8%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="forest"] .authkit-form-errors {
+    border-color: color-mix(in srgb, var(--authkit-color-danger) 28%, var(--authkit-color-border));
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 7%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="forest"] .authkit-divider {
+    border-top-color: color-mix(in srgb, var(--authkit-color-border) 86%, transparent);
+}

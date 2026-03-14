@@ -1,0 +1,51 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/errors.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Styles for the form-level validation error summary component.
+ *
+ * This component renders a list of validation errors at the top of a form.
+ *
+ * Structure:
+ * -----------------------------------------------------------------------------
+ * .authkit-form-errors
+ *   ├── .authkit-form-errors__title
+ *   └── .authkit-form-errors__list
+ *        └── .authkit-form-errors__item
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - This file only provides base structure and spacing.
+ * - Theme engines may extend colors, borders, or backgrounds.
+ */
+
+.authkit-form-errors {
+    margin-bottom: var(--authkit-space-4);
+}
+
+.authkit-form-errors__title {
+    margin-bottom: var(--authkit-space-2);
+    color: var(--authkit-color-danger);
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-semibold);
+}
+
+.authkit-form-errors__list {
+    margin: 0;
+    padding-left: var(--authkit-space-4);
+    list-style: disc;
+}
+
+.authkit-form-errors__item {
+    color: var(--authkit-color-danger);
+    font-size: var(--authkit-font-size-sm);
+    line-height: var(--authkit-line-height-relaxed);
+}
+
+.authkit-form-errors__item + .authkit-form-errors__item {
+    margin-top: var(--authkit-space-1);
+}

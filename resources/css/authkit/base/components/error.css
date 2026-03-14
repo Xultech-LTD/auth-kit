@@ -1,0 +1,20 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/error.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Inline validation error styles for individual form fields.
+ *
+ * This component is rendered beneath a single field when Laravel validation
+ * returns an error for that field.
+ */
+
+.authkit-form-error {
+    margin-top: var(--authkit-space-1);
+    color: var(--authkit-color-danger);
+    font-size: var(--authkit-font-size-xs);
+    line-height: var(--authkit-line-height-relaxed);
+}

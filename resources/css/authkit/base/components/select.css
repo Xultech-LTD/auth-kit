@@ -1,0 +1,112 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/select.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Select dropdown control styles for AuthKit.
+ *
+ * This component styles standard HTML <select> controls used in forms.
+ *
+ * Supported variants:
+ * - .authkit-select--default
+ * - .authkit-select--error
+ * - .authkit-select--success
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - Native select UI varies slightly across browsers.
+ * - Engine styles may later refine appearance, shadows, or dropdown indicators.
+ */
+
+.authkit-select {
+    display: block;
+    width: 100%;
+    min-height: var(--authkit-control-height);
+
+    padding: var(--authkit-input-padding-y) var(--authkit-input-padding-x);
+
+    border: var(--authkit-border-width) solid var(--authkit-color-border);
+    border-radius: var(--authkit-radius-lg);
+
+    background-color: var(--authkit-color-surface);
+    color: var(--authkit-color-text);
+
+    font-size: var(--authkit-font-size-md);
+    line-height: var(--authkit-line-height-base);
+
+    transition:
+            border-color var(--authkit-transition-fast),
+            box-shadow var(--authkit-transition-fast),
+            background-color var(--authkit-transition-fast),
+            color var(--authkit-transition-fast);
+}
+
+.authkit-select:hover {
+    border-color: var(--authkit-color-text-muted);
+}
+
+.authkit-select:focus,
+.authkit-select:focus-visible {
+    outline: none;
+    border-color: var(--authkit-color-primary);
+
+    box-shadow:
+            0 0 0 var(--authkit-focus-ring-offset) var(--authkit-color-surface),
+            0 0 0 calc(var(--authkit-focus-ring-offset) + var(--authkit-focus-ring-width))
+            var(--authkit-color-focus-ring);
+}
+
+.authkit-select:disabled,
+.authkit-select[disabled] {
+    background-color: var(--authkit-color-surface-alt);
+    color: var(--authkit-color-text-muted);
+    cursor: not-allowed;
+}
+
+/* -------------------------------------------------------------
+ | Multiple select behavior
+ |------------------------------------------------------------- */
+
+.authkit-select[multiple] {
+    min-height: calc(var(--authkit-control-height) * 2.5);
+    padding: var(--authkit-space-2);
+}
+
+/* -------------------------------------------------------------
+ | Error variant
+ |------------------------------------------------------------- */
+
+.authkit-select--error {
+    border-color: var(--authkit-color-danger);
+}
+
+.authkit-select--error:focus,
+.authkit-select--error:focus-visible {
+    border-color: var(--authkit-color-danger);
+
+    box-shadow:
+            0 0 0 var(--authkit-focus-ring-offset) var(--authkit-color-surface),
+            0 0 0 calc(var(--authkit-focus-ring-offset) + var(--authkit-focus-ring-width))
+            color-mix(in srgb, var(--authkit-color-danger) 22%, transparent);
+}
+
+/* -------------------------------------------------------------
+ | Success variant
+ |------------------------------------------------------------- */
+
+.authkit-select--success {
+    border-color: var(--authkit-color-success);
+}
+
+.authkit-select--success:focus,
+.authkit-select--success:focus-visible {
+    border-color: var(--authkit-color-success);
+
+    box-shadow:
+            0 0 0 var(--authkit-focus-ring-offset) var(--authkit-color-surface),
+            0 0 0 calc(var(--authkit-focus-ring-offset) + var(--authkit-focus-ring-width))
+            color-mix(in srgb, var(--authkit-color-success) 22%, transparent);
+}

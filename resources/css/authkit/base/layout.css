@@ -1,0 +1,155 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/layout.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Base layout rules for AuthKit pages.
+ *
+ * This file provides structural styling for:
+ *
+ * - AuthKit page layout
+ * - Page centering
+ * - Container alignment
+ * - Global resets scoped to AuthKit
+ *
+ * Important:
+ * -----------------------------------------------------------------------------
+ * Layout rules apply only within the `.authkit` scope to prevent interference
+ * with host applications using AuthKit.
+ *
+ * No component styling should be placed here.
+ */
+
+.authkit,
+.authkit * {
+    box-sizing: border-box;
+}
+
+
+/* -------------------------------------------------------------
+ | Root AuthKit container
+ |--------------------------------------------------------------
+ | Applies base font, smoothing, and background.
+ */
+
+.authkit {
+    min-height: 100%;
+    font-family: var(--authkit-font-family);
+    background-color: var(--authkit-color-bg);
+    color: var(--authkit-color-text);
+
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* -------------------------------------------------------------
+ | Body context inside AuthKit layout
+ |-------------------------------------------------------------- */
+
+.authkit body,
+.authkit .authkit-body {
+    margin: 0;
+    min-height: 100vh;
+
+    background-color: var(--authkit-color-bg);
+    color: var(--authkit-color-text);
+
+    font-family: var(--authkit-font-family);
+    font-size: var(--authkit-font-size-md);
+    line-height: var(--authkit-line-height-base);
+}
+
+
+/* -------------------------------------------------------------
+ | Page container
+ |--------------------------------------------------------------
+ | Centers authentication cards vertically and horizontally.
+ */
+
+.authkit-page {
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: var(--authkit-space-8) var(--authkit-space-4);
+    position: relative;
+}
+
+.authkit-page-container {
+    width: 100%;
+}
+
+
+/* -------------------------------------------------------------
+ | Auth page modifier
+ |-------------------------------------------------------------- */
+
+.authkit-auth-page {
+    min-height: 100vh;
+}
+
+
+/* -------------------------------------------------------------
+ | Theme toggle placement
+ |--------------------------------------------------------------
+ | Fixed button used to switch themes.
+ */
+
+.authkit-layout-toggle {
+    position: fixed;
+
+    top: var(--authkit-space-4);
+    right: var(--authkit-space-4);
+
+    z-index: 40;
+}
+
+
+/* -------------------------------------------------------------
+ | Media elements
+ |-------------------------------------------------------------- */
+
+.authkit img,
+.authkit svg,
+.authkit video,
+.authkit canvas {
+    display: block;
+    max-width: 100%;
+}
+
+
+/* -------------------------------------------------------------
+ | Form control inheritance
+ |-------------------------------------------------------------- */
+
+.authkit button,
+.authkit input,
+.authkit select,
+.authkit textarea {
+    font: inherit;
+}
+
+
+/* -------------------------------------------------------------
+ | Anchor defaults
+ |-------------------------------------------------------------- */
+
+.authkit a {
+    color: inherit;
+}
+
+
+/* -------------------------------------------------------------
+ | Hidden utility
+ |-------------------------------------------------------------- */
+
+.authkit [hidden] {
+    display: none !important;
+}

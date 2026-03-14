@@ -1,0 +1,25 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/field.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Field wrapper component styles for AuthKit.
+ *
+ * The field wrapper groups a form label, control, help text,
+ * and validation error into a single layout block.
+ *
+ * Supported modifiers:
+ * - .authkit-field
+ * - .authkit-field--checkbox
+ */
+
+.authkit-field {
+    display: block;
+}
+
+.authkit-field--checkbox {
+    display: block;
+}

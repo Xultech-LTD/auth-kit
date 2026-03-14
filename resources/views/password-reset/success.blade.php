@@ -15,7 +15,7 @@
 
     $status = (string) session('status', session('message', 'Password reset successful.'));
     $pageComponent = (string) data_get($c, 'page', 'authkit::page');
-    $pageKey = (string) data_get(config('authkit.javascript.pages', []),'password_reset_success.page_key','password_reset_success');
+    $pageKey = (string) data_get(config('authkit.javascript.pages', []), 'password_reset_success.page_key', 'password_reset_success');
 @endphp
 
 {{-- Layout Wrapper --}}
@@ -40,7 +40,7 @@
             </x-dynamic-component>
 
             {{-- Primary Action --}}
-            <div style="margin-top:14px;">
+            <div class="authkit-primary-action">
                 <x-dynamic-component
                         :component="data_get($c, 'link')"
                         :href="route($loginPage)"

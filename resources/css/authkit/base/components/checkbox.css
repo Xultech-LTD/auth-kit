@@ -1,0 +1,73 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/checkbox.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Checkbox component styles for AuthKit.
+ *
+ * This file styles the checkbox wrapper, checkbox input, and checkbox label
+ * text used by the AuthKit form checkbox component.
+ *
+ * Structure:
+ * -----------------------------------------------------------------------------
+ * .authkit-checkbox
+ *   ├── .authkit-checkbox__input
+ *   └── .authkit-checkbox__label
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - The wrapper is a <label> element so the text remains clickable.
+ * - The visual checkbox styling applies to the input element, not the wrapper.
+ * - Accent color is used for broad browser support and a simple native feel.
+ */
+
+.authkit-checkbox {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: var(--authkit-space-2);
+
+    cursor: pointer;
+    user-select: none;
+}
+
+
+/* -------------------------------------------------------------
+ | Checkbox input
+ |------------------------------------------------------------- */
+
+.authkit-checkbox__input {
+    width: 1rem;
+    height: 1rem;
+
+    margin: 0.2rem 0 0;
+    flex: 0 0 auto;
+
+    border: var(--authkit-border-width) solid var(--authkit-color-border);
+    border-radius: var(--authkit-radius-sm);
+
+    accent-color: var(--authkit-color-primary);
+    cursor: pointer;
+}
+
+.authkit-checkbox__input:focus-visible {
+    outline: none;
+    box-shadow:
+            0 0 0 var(--authkit-focus-ring-offset) var(--authkit-color-surface),
+            0 0 0 calc(var(--authkit-focus-ring-offset) + var(--authkit-focus-ring-width))
+            var(--authkit-color-focus-ring);
+}
+
+
+/* -------------------------------------------------------------
+ | Checkbox label
+ |------------------------------------------------------------- */
+
+.authkit-checkbox__label {
+    min-width: 0;
+    color: var(--authkit-color-text);
+    font-size: var(--authkit-font-size-sm);
+    line-height: var(--authkit-line-height-relaxed);
+}

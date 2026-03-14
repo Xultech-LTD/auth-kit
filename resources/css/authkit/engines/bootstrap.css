@@ -1,0 +1,220 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/engines/bootstrap.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Bootstrap-inspired engine refinements for AuthKit.
+ *
+ * Purpose:
+ * - Applies a familiar component-library visual language on top of the shared
+ *   AuthKit base layer.
+ * - Refines borders, spacing rhythm, corner treatment, control density, and
+ *   action presentation while preserving the same semantic component contract.
+ *
+ * Scope:
+ * - This file does not define brand colors.
+ * - Theme identity must continue to come from shared tokens and theme files.
+ * - This engine focuses on presentation style rather than color selection.
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - Base component styles live in:
+ *   resources/css/authkit/base/
+ * - Theme colors live in:
+ *   resources/css/authkit/themes/
+ * - Build outputs later compose:
+ *   base + engine + theme
+ */
+
+
+/* -------------------------------------------------------------
+ | Root engine feel
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="bootstrap"] .authkit-body,
+.authkit[data-authkit-engine="bootstrap"] .authkit-body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: auto;
+}
+
+
+/* -------------------------------------------------------------
+ | Page shell
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="bootstrap"] .authkit-page,
+.authkit[data-authkit-engine="bootstrap"] .authkit-page {
+    width: 100%;
+}
+
+[data-authkit-engine="bootstrap"] .authkit-page-container,
+.authkit[data-authkit-engine="bootstrap"] .authkit-page-container {
+    width: 100%;
+}
+
+
+/* -------------------------------------------------------------
+ | Card
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="bootstrap"] .authkit-card,
+.authkit[data-authkit-engine="bootstrap"] .authkit-card {
+    border-radius: var(--authkit-radius-lg);
+    box-shadow: var(--authkit-shadow-sm);
+}
+
+
+/* -------------------------------------------------------------
+ | Alerts
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="bootstrap"] .authkit-alert,
+.authkit[data-authkit-engine="bootstrap"] .authkit-alert {
+    border-radius: var(--authkit-radius-md);
+    box-shadow: none;
+}
+
+
+/* -------------------------------------------------------------
+ | Buttons
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="bootstrap"] .authkit-btn,
+.authkit[data-authkit-engine="bootstrap"] .authkit-btn {
+    min-height: calc(var(--authkit-control-height) + 0.0625rem);
+    border-radius: var(--authkit-radius-md);
+    box-shadow: none;
+}
+
+[data-authkit-engine="bootstrap"] .authkit-btn--default,
+.authkit[data-authkit-engine="bootstrap"] .authkit-btn--default,
+[data-authkit-engine="bootstrap"] .authkit-btn--primary,
+.authkit[data-authkit-engine="bootstrap"] .authkit-btn--primary,
+[data-authkit-engine="bootstrap"] .authkit-btn--secondary,
+.authkit[data-authkit-engine="bootstrap"] .authkit-btn--secondary,
+[data-authkit-engine="bootstrap"] .authkit-btn--danger,
+.authkit[data-authkit-engine="bootstrap"] .authkit-btn--danger,
+[data-authkit-engine="bootstrap"] .authkit-btn--ghost,
+.authkit[data-authkit-engine="bootstrap"] .authkit-btn--ghost {
+    border-color: transparent;
+}
+
+[data-authkit-engine="bootstrap"] .authkit-btn--secondary,
+.authkit[data-authkit-engine="bootstrap"] .authkit-btn--secondary,
+[data-authkit-engine="bootstrap"] .authkit-btn--ghost,
+.authkit[data-authkit-engine="bootstrap"] .authkit-btn--ghost {
+    border-color: var(--authkit-color-border);
+}
+
+
+/* -------------------------------------------------------------
+ | Links
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="bootstrap"] .authkit-link,
+.authkit[data-authkit-engine="bootstrap"] .authkit-link {
+    font-weight: var(--authkit-font-weight-medium);
+}
+
+
+/* -------------------------------------------------------------
+ | Inputs, textarea, select, otp
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="bootstrap"] .authkit-input,
+.authkit[data-authkit-engine="bootstrap"] .authkit-input,
+[data-authkit-engine="bootstrap"] .authkit-textarea,
+.authkit[data-authkit-engine="bootstrap"] .authkit-textarea,
+[data-authkit-engine="bootstrap"] .authkit-select,
+.authkit[data-authkit-engine="bootstrap"] .authkit-select,
+[data-authkit-engine="bootstrap"] .authkit-otp,
+.authkit[data-authkit-engine="bootstrap"] .authkit-otp {
+    border-radius: var(--authkit-radius-md);
+    box-shadow: none;
+}
+
+[data-authkit-engine="bootstrap"] .authkit-input,
+.authkit[data-authkit-engine="bootstrap"] .authkit-input,
+[data-authkit-engine="bootstrap"] .authkit-select,
+.authkit[data-authkit-engine="bootstrap"] .authkit-select,
+[data-authkit-engine="bootstrap"] .authkit-otp,
+.authkit[data-authkit-engine="bootstrap"] .authkit-otp {
+    min-height: calc(var(--authkit-control-height) + 0.0625rem);
+}
+
+[data-authkit-engine="bootstrap"] .authkit-textarea,
+.authkit[data-authkit-engine="bootstrap"] .authkit-textarea {
+    min-height: 7rem;
+}
+
+[data-authkit-engine="bootstrap"] .authkit-input:hover,
+.authkit[data-authkit-engine="bootstrap"] .authkit-input:hover,
+[data-authkit-engine="bootstrap"] .authkit-textarea:hover,
+.authkit[data-authkit-engine="bootstrap"] .authkit-textarea:hover,
+[data-authkit-engine="bootstrap"] .authkit-select:hover,
+.authkit[data-authkit-engine="bootstrap"] .authkit-select:hover,
+[data-authkit-engine="bootstrap"] .authkit-otp:hover,
+.authkit[data-authkit-engine="bootstrap"] .authkit-otp:hover {
+    border-color: var(--authkit-color-text-muted);
+}
+
+
+/* -------------------------------------------------------------
+ | Checkbox
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="bootstrap"] .authkit-checkbox__input,
+.authkit[data-authkit-engine="bootstrap"] .authkit-checkbox__input {
+    border-radius: 0.25rem;
+}
+
+
+/* -------------------------------------------------------------
+ | Error summary
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="bootstrap"] .authkit-form-errors,
+.authkit[data-authkit-engine="bootstrap"] .authkit-form-errors {
+    padding: var(--authkit-space-3) var(--authkit-space-4);
+    border: var(--authkit-border-width) solid var(--authkit-color-border);
+    border-radius: var(--authkit-radius-md);
+    background-color: var(--authkit-color-surface-alt);
+}
+
+
+/* -------------------------------------------------------------
+ | Theme toggle
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="bootstrap"] .authkit-theme-toggle__button,
+.authkit[data-authkit-engine="bootstrap"] .authkit-theme-toggle__button,
+[data-authkit-engine="bootstrap"] .authkit-theme-toggle__icon-button,
+.authkit[data-authkit-engine="bootstrap"] .authkit-theme-toggle__icon-button,
+[data-authkit-engine="bootstrap"] .authkit-theme-toggle__select,
+.authkit[data-authkit-engine="bootstrap"] .authkit-theme-toggle__select {
+    border-radius: var(--authkit-radius-md);
+    box-shadow: none;
+}
+
+[data-authkit-engine="bootstrap"] .authkit-theme-toggle__button[data-authkit-theme-toggle-active="true"],
+.authkit[data-authkit-engine="bootstrap"] .authkit-theme-toggle__button[data-authkit-theme-toggle-active="true"] {
+    border-color: var(--authkit-color-primary);
+}
+
+
+/* -------------------------------------------------------------
+ | Header / footer polish
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="bootstrap"] .authkit-auth-header__title,
+.authkit[data-authkit-engine="bootstrap"] .authkit-auth-header__title {
+    letter-spacing: normal;
+}
+
+[data-authkit-engine="bootstrap"] .authkit-auth-footer,
+.authkit[data-authkit-engine="bootstrap"] .authkit-auth-footer {
+    gap: var(--authkit-space-2);
+}

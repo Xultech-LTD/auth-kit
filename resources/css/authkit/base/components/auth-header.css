@@ -1,0 +1,43 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/auth-header.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Authentication page header component styles.
+ *
+ * The auth header is used at the top of cards to display:
+ * - the primary page title
+ * - an optional subtitle or supporting description
+ *
+ * Elements:
+ * - .authkit-auth-header
+ * - .authkit-auth-header__title
+ * - .authkit-auth-header__subtitle
+ */
+
+.authkit-auth-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--authkit-space-2);
+    margin-bottom: var(--authkit-space-5);
+}
+
+.authkit-auth-header__title {
+    margin: 0;
+    color: var(--authkit-color-text);
+    font-size: var(--authkit-font-size-xl);
+    font-weight: var(--authkit-font-weight-bold);
+    line-height: var(--authkit-line-height-tight);
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+}
+
+.authkit-auth-header__subtitle {
+    margin: 0;
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-sm);
+    line-height: var(--authkit-line-height-relaxed);
+}

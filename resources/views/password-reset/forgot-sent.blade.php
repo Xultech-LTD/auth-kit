@@ -42,7 +42,7 @@
 
     $resendLabel = $driver === 'token' ? 'Resend reset code' : 'Resend reset link';
     $pageComponent = (string) data_get($c, 'page', 'authkit::page');
-    $pageKey = (string) data_get(config('authkit.javascript.pages', []),'password_forgot_sent.page_key','password_forgot_sent');
+    $pageKey = (string) data_get(config('authkit.javascript.pages', []), 'password_forgot_sent.page_key', 'password_forgot_sent');
 @endphp
 
 <x-dynamic-component :component="$pageComponent" title="Reset email sent" :page-key="$pageKey">
@@ -68,13 +68,13 @@
             @endif
 
             @if ($email !== '')
-                <div style="margin:12px 0;opacity:.85;">
+                <div class="authkit-note authkit-note--muted">
                     Reset instructions will be sent to <strong>{{ $email }}</strong>
                 </div>
             @endif
 
             @if ($driver === 'token')
-                <div style="margin-top:12px;">
+                <div class="authkit-secondary-actions">
                     <x-dynamic-component
                             :component="data_get($c, 'link')"
                             :href="route($tokenPage, ['email' => $email])"
@@ -94,9 +94,11 @@
                     :fields="$fields"
             />
 
-            <x-dynamic-component :component="data_get($c, 'button')">
-                {{ $resendLabel }}
-            </x-dynamic-component>
+            <div class="authkit-form-actions">
+                <x-dynamic-component :component="data_get($c, 'button')">
+                    {{ $resendLabel }}
+                </x-dynamic-component>
+            </div>
             </form>
 
             <x-dynamic-component :component="data_get($c, 'divider')" />

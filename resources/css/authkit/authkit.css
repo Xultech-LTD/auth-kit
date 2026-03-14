@@ -1,0 +1,51 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/authkit.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Shared base stylesheet entry for AuthKit.
+ *
+ * This file imports the complete base layer used by every AuthKit build.
+ *
+ * Composition order:
+ * - design tokens
+ * - reset
+ * - layout
+ * - utilities
+ * - base components
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - This file does not include an engine or theme directly.
+ * - Engine/theme-specific builds should import this file first, then their
+ *   selected engine and theme files.
+ */
+
+@import "./base/tokens.css";
+@import "./base/reset.css";
+@import "./base/layout.css";
+@import "./base/utilities.css";
+
+@import "./base/components/page.css";
+@import "./base/components/container.css";
+@import "./base/components/card.css";
+@import "./base/components/alert.css";
+@import "./base/components/divider.css";
+@import "./base/components/button.css";
+@import "./base/components/link.css";
+@import "./base/components/auth-header.css";
+@import "./base/components/auth-footer.css";
+@import "./base/components/field.css";
+@import "./base/components/label.css";
+@import "./base/components/input.css";
+@import "./base/components/textarea.css";
+@import "./base/components/select.css";
+@import "./base/components/checkbox.css";
+@import "./base/components/otp.css";
+@import "./base/components/help.css";
+@import "./base/components/error.css";
+@import "./base/components/errors.css";
+@import "./base/components/theme-toggle.css";

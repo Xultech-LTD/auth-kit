@@ -44,7 +44,7 @@
 
     $fieldsComponent = (string) data_get($c, 'fields', 'authkit::form.fields');
     $pageComponent = (string) data_get($c, 'page', 'authkit::page');
-    $pageKey = (string) data_get(config('authkit.javascript.pages', []),'password_forgot.page_key','password_forgot');
+    $pageKey = (string) data_get(config('authkit.javascript.pages', []), 'password_forgot.page_key', 'password_forgot');
 @endphp
 
 <x-dynamic-component :component="$pageComponent" title="Forgot password" :page-key="$pageKey">
@@ -77,7 +77,7 @@
                     :fields="$fields"
             />
 
-            <div style="margin-top:14px;">
+            <div class="authkit-form-actions">
                 <x-dynamic-component :component="data_get($c, 'button')">
                     {{ $submitLabel }}
                 </x-dynamic-component>

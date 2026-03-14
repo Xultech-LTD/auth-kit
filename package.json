@@ -12,8 +12,6 @@
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "test": "vitest",
-    "build:js": "vite build",
-    "build:css": "node scripts/copy-themes.mjs",
-    "build": "npm run build:js && npm run build:css"
+    "build": "vite build"
   }
 }

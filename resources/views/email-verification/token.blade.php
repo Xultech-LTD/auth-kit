@@ -42,7 +42,7 @@
 
     $fieldsComponent = (string) data_get($c, 'fields', 'authkit::form.fields');
     $pageComponent = (string) data_get($c, 'page', 'authkit::page');
-    $pageKey = (string) data_get(config('authkit.javascript.pages', []),'email_verification_token.page_key','email_verification_token');
+    $pageKey = (string) data_get(config('authkit.javascript.pages', []), 'email_verification_token.page_key', 'email_verification_token');
 @endphp
 
 <x-dynamic-component :component="$pageComponent" title="Verify your email" :page-key="$pageKey">
@@ -68,7 +68,7 @@
             @endif
 
             @if ($email !== '')
-                <div style="margin:12px 0;opacity:.85;">
+                <div class="authkit-note authkit-note--muted">
                     Verifying <strong>{{ $email }}</strong>
                 </div>
 
@@ -80,7 +80,7 @@
                         :fields="$fields"
                 />
 
-                <div style="margin-top:14px;">
+                <div class="authkit-form-actions">
                     <x-dynamic-component :component="data_get($c, 'button')">
                         {{ $submitLabel }}
                     </x-dynamic-component>

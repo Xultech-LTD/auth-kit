@@ -1,0 +1,35 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/page.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Page-level component styles for AuthKit.
+ *
+ * This file provides the semantic page shell layer used by AuthKit pages.
+ * It complements layout-level rules by defining stable hooks for:
+ *
+ * - .authkit-page
+ * - .authkit-page-container
+ * - page variants such as .authkit-auth-page
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - Structural centering and viewport layout are primarily handled in
+ *   base/layout.css.
+ * - This file keeps page-level component hooks stable for themes and engines.
+ */
+
+.authkit-page {
+    width: 100%;
+}
+
+.authkit-page-container {
+    width: 100%;
+}
+
+.authkit-auth-page {
+    width: 100%;
+}

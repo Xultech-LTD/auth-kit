@@ -40,7 +40,7 @@
 
     $fieldsComponent = (string) data_get($c, 'fields', 'authkit::form.fields');
     $pageComponent = (string) data_get($c, 'page', 'authkit::page');
-    $pageKey = (string) data_get(config('authkit.javascript.pages', []),'two_factor_recovery.page_key','two_factor_recovery');
+    $pageKey = (string) data_get(config('authkit.javascript.pages', []), 'two_factor_recovery.page_key', 'two_factor_recovery');
 @endphp
 
 <x-dynamic-component :component="$pageComponent" title="Recovery code" :page-key="$pageKey">
@@ -63,7 +63,7 @@
                     :fields="$fields"
             />
 
-            <div style="margin-top:16px;">
+            <div class="authkit-form-actions">
                 <x-dynamic-component :component="data_get($c, 'button')">
                     {{ $submitLabel }}
                 </x-dynamic-component>

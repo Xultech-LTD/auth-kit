@@ -1,0 +1,233 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/engines/tailwind.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Tailwind-inspired engine refinements for AuthKit.
+ *
+ * Purpose:
+ * - Applies a modern, utility-inspired visual language on top of the shared
+ *   AuthKit base component layer.
+ * - Keeps component contracts intact while refining radius, density, borders,
+ *   shadows, and interaction feel.
+ *
+ * Scope:
+ * - This file should not redefine theme identity.
+ * - Colors must continue to come from tokens and theme files.
+ * - This file should focus on structure, feel, and presentation polish.
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - Base styles live in:
+ *   resources/css/authkit/base/
+ * - Theme colors live in:
+ *   resources/css/authkit/themes/
+ * - Build outputs later compose:
+ *   base + engine + theme
+ */
+
+
+/* -------------------------------------------------------------
+ | Root engine feel
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="tailwind"] .authkit-body,
+.authkit[data-authkit-engine="tailwind"] .authkit-body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* -------------------------------------------------------------
+ | Page shell
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="tailwind"] .authkit-page,
+.authkit[data-authkit-engine="tailwind"] .authkit-page {
+    position: relative;
+}
+
+[data-authkit-engine="tailwind"] .authkit-page-container,
+.authkit[data-authkit-engine="tailwind"] .authkit-page-container {
+    width: 100%;
+}
+
+
+/* -------------------------------------------------------------
+ | Card
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="tailwind"] .authkit-card,
+.authkit[data-authkit-engine="tailwind"] .authkit-card {
+    border-radius: calc(var(--authkit-radius-xl) + 0.125rem);
+    box-shadow: var(--authkit-shadow-lg);
+    backdrop-filter: blur(6px);
+}
+
+@media (max-width: 640px) {
+    [data-authkit-engine="tailwind"] .authkit-card,
+    .authkit[data-authkit-engine="tailwind"] .authkit-card {
+        padding: var(--authkit-space-5);
+        border-radius: var(--authkit-radius-xl);
+    }
+}
+
+
+/* -------------------------------------------------------------
+ | Alerts
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="tailwind"] .authkit-alert,
+.authkit[data-authkit-engine="tailwind"] .authkit-alert {
+    border-radius: var(--authkit-radius-lg);
+    box-shadow: var(--authkit-shadow-sm);
+}
+
+
+/* -------------------------------------------------------------
+ | Buttons
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="tailwind"] .authkit-btn,
+.authkit[data-authkit-engine="tailwind"] .authkit-btn {
+    min-height: calc(var(--authkit-control-height) + 0.125rem);
+    border-radius: var(--authkit-radius-lg);
+    box-shadow: var(--authkit-shadow-sm);
+}
+
+[data-authkit-engine="tailwind"] .authkit-btn:hover,
+.authkit[data-authkit-engine="tailwind"] .authkit-btn:hover {
+    transform: translateY(-1px);
+}
+
+[data-authkit-engine="tailwind"] .authkit-btn:active,
+.authkit[data-authkit-engine="tailwind"] .authkit-btn:active {
+    transform: translateY(0);
+}
+
+[data-authkit-engine="tailwind"] .authkit-btn--secondary,
+.authkit[data-authkit-engine="tailwind"] .authkit-btn--secondary,
+[data-authkit-engine="tailwind"] .authkit-btn--ghost,
+.authkit[data-authkit-engine="tailwind"] .authkit-btn--ghost {
+    box-shadow: none;
+}
+
+
+/* -------------------------------------------------------------
+ | Links
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="tailwind"] .authkit-link,
+.authkit[data-authkit-engine="tailwind"] .authkit-link {
+    font-weight: var(--authkit-font-weight-semibold);
+}
+
+
+/* -------------------------------------------------------------
+ | Inputs, textarea, select, otp
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="tailwind"] .authkit-input,
+.authkit[data-authkit-engine="tailwind"] .authkit-input,
+[data-authkit-engine="tailwind"] .authkit-textarea,
+.authkit[data-authkit-engine="tailwind"] .authkit-textarea,
+[data-authkit-engine="tailwind"] .authkit-select,
+.authkit[data-authkit-engine="tailwind"] .authkit-select,
+[data-authkit-engine="tailwind"] .authkit-otp,
+.authkit[data-authkit-engine="tailwind"] .authkit-otp {
+    border-radius: var(--authkit-radius-lg);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-authkit-engine="tailwind"] .authkit-input,
+.authkit[data-authkit-engine="tailwind"] .authkit-input,
+[data-authkit-engine="tailwind"] .authkit-select,
+.authkit[data-authkit-engine="tailwind"] .authkit-select,
+[data-authkit-engine="tailwind"] .authkit-otp,
+.authkit[data-authkit-engine="tailwind"] .authkit-otp {
+    min-height: calc(var(--authkit-control-height) + 0.125rem);
+}
+
+[data-authkit-engine="tailwind"] .authkit-textarea,
+.authkit[data-authkit-engine="tailwind"] .authkit-textarea {
+    min-height: 7.5rem;
+}
+
+[data-authkit-engine="tailwind"] .authkit-input:hover,
+.authkit[data-authkit-engine="tailwind"] .authkit-input:hover,
+[data-authkit-engine="tailwind"] .authkit-textarea:hover,
+.authkit[data-authkit-engine="tailwind"] .authkit-textarea:hover,
+[data-authkit-engine="tailwind"] .authkit-select:hover,
+.authkit[data-authkit-engine="tailwind"] .authkit-select:hover,
+[data-authkit-engine="tailwind"] .authkit-otp:hover,
+.authkit[data-authkit-engine="tailwind"] .authkit-otp:hover {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+
+/* -------------------------------------------------------------
+ | Checkbox
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="tailwind"] .authkit-checkbox__input,
+.authkit[data-authkit-engine="tailwind"] .authkit-checkbox__input {
+    border-radius: calc(var(--authkit-radius-sm) + 1px);
+}
+
+
+/* -------------------------------------------------------------
+ | Form errors
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="tailwind"] .authkit-form-errors,
+.authkit[data-authkit-engine="tailwind"] .authkit-form-errors {
+    padding: var(--authkit-space-4);
+    border: var(--authkit-border-width) solid var(--authkit-color-border);
+    border-radius: var(--authkit-radius-lg);
+    background-color: var(--authkit-color-surface-alt);
+}
+
+
+/* -------------------------------------------------------------
+ | Theme toggle
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="tailwind"] .authkit-theme-toggle__button,
+.authkit[data-authkit-engine="tailwind"] .authkit-theme-toggle__button,
+[data-authkit-engine="tailwind"] .authkit-theme-toggle__icon-button,
+.authkit[data-authkit-engine="tailwind"] .authkit-theme-toggle__icon-button,
+[data-authkit-engine="tailwind"] .authkit-theme-toggle__select,
+.authkit[data-authkit-engine="tailwind"] .authkit-theme-toggle__select {
+    border-radius: var(--authkit-radius-pill);
+    box-shadow: var(--authkit-shadow-sm);
+}
+
+[data-authkit-engine="tailwind"] .authkit-theme-toggle__button:hover,
+.authkit[data-authkit-engine="tailwind"] .authkit-theme-toggle__button:hover,
+[data-authkit-engine="tailwind"] .authkit-theme-toggle__icon-button:hover,
+.authkit[data-authkit-engine="tailwind"] .authkit-theme-toggle__icon-button:hover {
+    transform: translateY(-1px);
+}
+
+[data-authkit-engine="tailwind"] .authkit-theme-toggle__button[data-authkit-theme-toggle-active="true"],
+.authkit[data-authkit-engine="tailwind"] .authkit-theme-toggle__button[data-authkit-theme-toggle-active="true"] {
+    box-shadow: none;
+}
+
+
+/* -------------------------------------------------------------
+ | Auth header / footer polish
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="tailwind"] .authkit-auth-header__title,
+.authkit[data-authkit-engine="tailwind"] .authkit-auth-header__title {
+    letter-spacing: -0.02em;
+}
+
+[data-authkit-engine="tailwind"] .authkit-auth-footer,
+.authkit[data-authkit-engine="tailwind"] .authkit-auth-footer {
+    gap: var(--authkit-space-1);
+}

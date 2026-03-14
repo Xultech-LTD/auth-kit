@@ -1,0 +1,64 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/alert.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Alert component styles used for status, info, success, warning,
+ * and error feedback messages.
+ *
+ * Supported variants:
+ * - .authkit-alert--default
+ * - .authkit-alert--success
+ * - .authkit-alert--info
+ * - .authkit-alert--warning
+ * - .authkit-alert--danger
+ * - .authkit-alert--error
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - The "error" variant is treated as an alias of "danger".
+ * - Base styles remain intentionally lightweight.
+ * - Engine and theme layers may further refine colors and emphasis.
+ */
+
+.authkit-alert {
+    margin-bottom: var(--authkit-space-4);
+    padding: var(--authkit-space-4);
+
+    border: var(--authkit-border-width) solid var(--authkit-color-border);
+    border-radius: var(--authkit-radius-md);
+
+    background-color: var(--authkit-color-surface-alt);
+    color: var(--authkit-color-text);
+
+    font-size: var(--authkit-font-size-sm);
+    line-height: var(--authkit-line-height-relaxed);
+}
+
+.authkit-alert--default {
+    border-color: var(--authkit-color-border);
+}
+
+.authkit-alert--success {
+    border-color: var(--authkit-color-success);
+    color: var(--authkit-color-success);
+}
+
+.authkit-alert--info {
+    border-color: var(--authkit-color-primary);
+    color: var(--authkit-color-primary);
+}
+
+.authkit-alert--warning {
+    border-color: var(--authkit-color-warning);
+    color: var(--authkit-color-warning);
+}
+
+.authkit-alert--danger,
+.authkit-alert--error {
+    border-color: var(--authkit-color-danger);
+    color: var(--authkit-color-danger);
+}

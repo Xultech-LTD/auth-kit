@@ -16,7 +16,7 @@
 
     $login = (string) ($webNames['login'] ?? 'authkit.web.login');
     $pageComponent = (string) data_get($c, 'page', 'authkit::page');
-    $pageKey = (string) data_get(config('authkit.javascript.pages', []),'email_verification_success.page_key','email_verification_success');
+    $pageKey = (string) data_get(config('authkit.javascript.pages', []), 'email_verification_success.page_key', 'email_verification_success');
 @endphp
 
 {{-- Layout Wrapper --}}
@@ -41,7 +41,7 @@
             </x-dynamic-component>
 
             {{-- Primary Action --}}
-            <div style="margin-top:14px;">
+            <div class="authkit-primary-action">
                 <x-dynamic-component :component="data_get($c, 'link')" :href="route($login)">
                     Continue to login
                 </x-dynamic-component>

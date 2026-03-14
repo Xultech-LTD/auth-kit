@@ -501,7 +501,7 @@ return [
                     'inputmode' => 'email',
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => 'margin-bottom:12px;',
+                        'class' => 'authkit-field',
                     ],
                 ],
                 'password' => [
@@ -511,7 +511,7 @@ return [
                     'autocomplete' => 'current-password',
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => 'margin-bottom:12px;',
+                        'class' => 'authkit-field',
                     ],
                 ],
                 'remember' => [
@@ -520,7 +520,7 @@ return [
                     'checked' => true,
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => 'margin-bottom:16px;',
+                        'class' => 'authkit-field authkit-field--checkbox',
                     ],
                 ],
             ],
@@ -554,7 +554,7 @@ return [
                     'autocomplete' => 'name',
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => 'margin-bottom:12px;',
+                        'class' => 'authkit-field',
                     ],
                 ],
                 'email' => [
@@ -566,7 +566,7 @@ return [
                     'inputmode' => 'email',
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => 'margin-bottom:12px;',
+                        'class' => 'authkit-field',
                     ],
                 ],
                 'password' => [
@@ -576,7 +576,7 @@ return [
                     'autocomplete' => 'new-password',
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => 'margin-bottom:12px;',
+                        'class' => 'authkit-field',
                     ],
                 ],
                 'password_confirmation' => [
@@ -586,7 +586,7 @@ return [
                     'autocomplete' => 'new-password',
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => 'margin-bottom:16px;',
+                        'class' => 'authkit-field',
                     ],
                 ],
             ],
@@ -626,7 +626,7 @@ return [
                     'inputmode' => 'numeric',
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => 'margin-bottom:12px;',
+                        'class' => 'authkit-field',
                     ],
                 ],
             ],
@@ -690,7 +690,7 @@ return [
                     'autocomplete' => 'one-time-code',
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => 'margin-bottom:12px;',
+                        'class' => 'authkit-field',
                     ],
                 ],
                 'remember' => [
@@ -699,7 +699,7 @@ return [
                     'checked' => false,
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => 'margin-bottom:16px;',
+                        'class' => 'authkit-field authkit-field--checkbox',
                     ],
                 ],
             ],
@@ -737,7 +737,7 @@ return [
                     'inputmode' => 'numeric',
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => 'margin-top:12px;',
+                        'class' => 'authkit-field authkit-field--offset',
                     ],
                 ],
             ],
@@ -858,7 +858,7 @@ return [
                     'autocomplete' => 'new-password',
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => null,
+                        'class' => 'authkit-field',
                     ],
                 ],
                 'password_confirmation' => [
@@ -868,7 +868,7 @@ return [
                     'autocomplete' => 'new-password',
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => 'margin-top:12px;',
+                        'class' => 'authkit-field',
                     ],
                 ],
             ],
@@ -907,7 +907,7 @@ return [
                     'inputmode' => 'numeric',
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => null,
+                        'class' => 'authkit-field',
                     ],
                 ],
                 'password' => [
@@ -917,7 +917,7 @@ return [
                     'autocomplete' => 'new-password',
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => 'margin-top:12px;',
+                        'class' => 'authkit-field',
                     ],
                 ],
                 'password_confirmation' => [
@@ -927,7 +927,7 @@ return [
                     'autocomplete' => 'new-password',
                     'attributes' => [],
                     'wrapper' => [
-                        'style' => 'margin-top:12px;',
+                        'class' => 'authkit-field',
                     ],
                 ],
             ],

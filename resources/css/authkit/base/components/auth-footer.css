@@ -1,0 +1,31 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/auth-footer.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Authentication page footer component styles.
+ *
+ * The auth footer is used for secondary navigation and contextual actions
+ * beneath forms and dividers.
+ *
+ * Examples:
+ * - Already have an account? Login
+ * - Back to login
+ * - Use a recovery code
+ */
+
+.authkit-auth-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--authkit-space-2);
+
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-sm);
+    line-height: var(--authkit-line-height-relaxed);
+    text-align: center;
+}

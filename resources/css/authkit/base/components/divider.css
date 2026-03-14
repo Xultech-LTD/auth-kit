@@ -1,0 +1,25 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/divider.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Divider component styles for AuthKit.
+ *
+ * Dividers are used to visually separate sections within cards, especially
+ * between forms and footer navigation.
+ */
+
+.authkit-divider {
+    width: 100%;
+    flex-shrink: 0;
+
+    margin-block: var(--authkit-space-6);
+
+    border: 0;
+    border-top: var(--authkit-border-width) solid var(--authkit-color-border);
+
+    opacity: 1;
+}

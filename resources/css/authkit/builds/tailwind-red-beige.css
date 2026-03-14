@@ -1,0 +1,19 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/builds/tailwind-red-beige.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Tailwind engine + Red-Beige theme build for AuthKit.
+ *
+ * Composition order:
+ * - base layer
+ * - tailwind engine
+ * - red-beige theme
+ */
+
+@import "../authkit.css";
+@import "../engines/tailwind.css";
+@import "../themes/red-beige.css";

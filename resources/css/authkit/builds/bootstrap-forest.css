@@ -1,0 +1,19 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/builds/bootstrap-forest.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Bootstrap engine + Forest theme build for AuthKit.
+ *
+ * Composition order:
+ * - base layer
+ * - bootstrap engine
+ * - forest theme
+ */
+
+@import "../authkit.css";
+@import "../engines/bootstrap.css";
+@import "../themes/forest.css";

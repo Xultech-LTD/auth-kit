@@ -1,0 +1,195 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/tokens.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Design tokens used throughout the AuthKit styling system.
+ *
+ * Tokens represent the primitive design values used by all AuthKit components.
+ * They define spacing, typography, radii, shadows, transitions, and layout
+ * constants used across engines and themes.
+ *
+ * Architecture Role:
+ * -----------------------------------------------------------------------------
+ * Tokens sit at the very bottom of the styling architecture.
+ *
+ *    Blade Components
+ *          ↓
+ *    Component CSS
+ *          ↓
+ *       Engines
+ *          ↓
+ *       Themes
+ *          ↓
+ *        Tokens
+ *
+ * Engines and themes consume these tokens instead of hardcoding values.
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - Tokens DO NOT contain component styling.
+ * - Tokens SHOULD NOT contain theme-specific colors.
+ * - Tokens may define default fallback color variables which themes override.
+ *
+ * Prefix Convention:
+ * -----------------------------------------------------------------------------
+ * All variables are prefixed with:
+ *
+ *     --authkit-
+ *
+ * This prevents collisions with host applications.
+ */
+
+.authkit {
+
+    /* -------------------------------------------------------------
+     | Typography
+     |--------------------------------------------------------------
+     | Core font family and size scale used by AuthKit UI.
+     */
+
+    --authkit-font-family:
+            Inter,
+            ui-sans-serif,
+            system-ui,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
+
+    --authkit-font-size-xs: 0.75rem;
+    --authkit-font-size-sm: 0.875rem;
+    --authkit-font-size-md: 1rem;
+    --authkit-font-size-lg: 1.125rem;
+    --authkit-font-size-xl: 1.5rem;
+    --authkit-font-size-2xl: 2rem;
+
+    --authkit-line-height-tight: 1.2;
+    --authkit-line-height-base: 1.5;
+    --authkit-line-height-relaxed: 1.7;
+
+    --authkit-font-weight-normal: 400;
+    --authkit-font-weight-medium: 500;
+    --authkit-font-weight-semibold: 600;
+    --authkit-font-weight-bold: 700;
+
+
+    /* -------------------------------------------------------------
+     | Spacing Scale
+     |--------------------------------------------------------------
+     | Used for margins, paddings, component spacing, and layout
+     | rhythm throughout the AuthKit UI.
+     */
+
+    --authkit-space-0: 0;
+    --authkit-space-1: 0.25rem;
+    --authkit-space-2: 0.5rem;
+    --authkit-space-3: 0.75rem;
+    --authkit-space-4: 1rem;
+    --authkit-space-5: 1.25rem;
+    --authkit-space-6: 1.5rem;
+    --authkit-space-8: 2rem;
+    --authkit-space-10: 2.5rem;
+    --authkit-space-12: 3rem;
+
+
+    /* -------------------------------------------------------------
+     | Border Radius
+     |--------------------------------------------------------------
+     | Defines corner rounding used across controls and cards.
+     */
+
+    --authkit-radius-sm: 0.375rem;
+    --authkit-radius-md: 0.625rem;
+    --authkit-radius-lg: 0.875rem;
+    --authkit-radius-xl: 1.25rem;
+    --authkit-radius-pill: 9999px;
+
+
+    /* -------------------------------------------------------------
+     | Shadows
+     |--------------------------------------------------------------
+     | Elevation system for cards and surfaces.
+     */
+
+    --authkit-shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+    --authkit-shadow-md: 0 8px 24px rgba(0,0,0,0.10);
+    --authkit-shadow-lg: 0 18px 50px rgba(0,0,0,0.14);
+
+
+    /* -------------------------------------------------------------
+     | Controls
+     |--------------------------------------------------------------
+     | Input and button baseline sizing.
+     */
+
+    --authkit-border-width: 1px;
+
+    --authkit-control-height: 3rem;
+
+    --authkit-input-padding-x: 0.875rem;
+    --authkit-input-padding-y: 0.75rem;
+
+    --authkit-button-padding-x: 1rem;
+    --authkit-button-padding-y: 0.875rem;
+
+
+    /* -------------------------------------------------------------
+     | Layout
+     |--------------------------------------------------------------
+     | Maximum widths used by containers and authentication cards.
+     */
+
+    --authkit-container-sm: 24rem;
+    --authkit-container-md: 28rem;
+    --authkit-container-lg: 36rem;
+
+
+    /* -------------------------------------------------------------
+     | Motion
+     |--------------------------------------------------------------
+     | Shared animation timing values.
+     */
+
+    --authkit-transition-fast: 160ms ease;
+    --authkit-transition-base: 220ms ease;
+
+
+    /* -------------------------------------------------------------
+     | Focus Ring
+     |--------------------------------------------------------------
+     | Used for accessibility focus states across controls.
+     */
+
+    --authkit-focus-ring-width: 3px;
+    --authkit-focus-ring-offset: 2px;
+
+
+    /* -------------------------------------------------------------
+     | Default Color Fallbacks
+     |--------------------------------------------------------------
+     | Themes override these values.
+     */
+
+    --authkit-color-bg: #f6f8f7;
+    --authkit-color-surface: #ffffff;
+    --authkit-color-surface-alt: #f1f4f2;
+
+    --authkit-color-text: #15201a;
+    --authkit-color-text-muted: #5f6f66;
+
+    --authkit-color-border: #d8e0db;
+
+    --authkit-color-primary: #1f6b4f;
+    --authkit-color-primary-hover: #19543f;
+    --authkit-color-primary-contrast: #ffffff;
+
+    --authkit-color-success: #18794e;
+    --authkit-color-danger: #c0392b;
+    --authkit-color-warning: #b7791f;
+
+    --authkit-color-focus-ring: rgba(31,107,79,0.22);
+}

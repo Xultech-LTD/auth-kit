@@ -1,0 +1,41 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/card.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Card component styles for AuthKit.
+ *
+ * The card is the primary content surface used for authentication forms,
+ * notices, success states, and related page content.
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - Visual language may be refined by engine styles.
+ * - Colors are driven by theme variables.
+ */
+
+.authkit-card {
+    position: relative;
+    width: 100%;
+
+    padding: var(--authkit-space-6);
+
+    border: var(--authkit-border-width) solid var(--authkit-color-border);
+    border-radius: var(--authkit-radius-xl);
+
+    background-color: var(--authkit-color-surface);
+    box-shadow: var(--authkit-shadow-md);
+
+    overflow: hidden;
+}
+
+@media (max-width: 480px) {
+    .authkit-card {
+        padding: var(--authkit-space-5);
+        border-radius: var(--authkit-radius-lg);
+        box-shadow: var(--authkit-shadow-sm);
+    }
+}

@@ -1,0 +1,74 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/link.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Link component styles for AuthKit.
+ *
+ * Links are used for secondary navigation and contextual actions such as:
+ * - Register
+ * - Back to login
+ * - Forgot password
+ * - Enter verification code
+ *
+ * Supported variants:
+ * - .authkit-link--default
+ * - .authkit-link--muted
+ * - .authkit-link--primary
+ * - .authkit-link--danger
+ */
+
+.authkit-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--authkit-space-1);
+
+    color: var(--authkit-color-primary);
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-medium);
+    text-decoration: none;
+
+    transition:
+            color var(--authkit-transition-fast),
+            opacity var(--authkit-transition-fast);
+}
+
+.authkit-link:hover {
+    color: var(--authkit-color-primary-hover);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.16em;
+}
+
+.authkit-link:focus-visible {
+    outline: none;
+    border-radius: var(--authkit-radius-sm);
+    box-shadow:
+            0 0 0 var(--authkit-focus-ring-offset) var(--authkit-color-surface),
+            0 0 0 calc(var(--authkit-focus-ring-offset) + var(--authkit-focus-ring-width)) var(--authkit-color-focus-ring);
+}
+
+.authkit-link[aria-disabled="true"] {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.authkit-link--default,
+.authkit-link--primary {
+    color: var(--authkit-color-primary);
+}
+
+.authkit-link--muted {
+    color: var(--authkit-color-text-muted);
+}
+
+.authkit-link--muted:hover {
+    color: var(--authkit-color-text);
+}
+
+.authkit-link--danger {
+    color: var(--authkit-color-danger);
+}

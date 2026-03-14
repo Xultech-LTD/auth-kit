@@ -19,7 +19,7 @@
  * - $slot
  *
  * Props:
- * - unstyled: when true, prevents default package classes from being applied
+ * - unstyled: When true, prevents default package classes from being applied.
  */
 --}}
 

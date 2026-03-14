@@ -1,0 +1,109 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/button.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Button component styles for AuthKit.
+ *
+ * Buttons are used for primary and secondary form actions throughout AuthKit.
+ *
+ * Supported variants:
+ * - .authkit-btn--default
+ * - .authkit-btn--primary
+ * - .authkit-btn--secondary
+ * - .authkit-btn--danger
+ * - .authkit-btn--ghost
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - The default button currently behaves as the primary button.
+ * - Engine styles may refine sizing, shadows, and border treatment.
+ */
+
+.authkit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--authkit-space-2);
+
+    width: 100%;
+    min-height: var(--authkit-control-height);
+
+    padding: var(--authkit-button-padding-y) var(--authkit-button-padding-x);
+
+    border: var(--authkit-border-width) solid transparent;
+    border-radius: var(--authkit-radius-lg);
+
+    font-size: var(--authkit-font-size-md);
+    font-weight: var(--authkit-font-weight-semibold);
+    line-height: 1.2;
+    text-align: center;
+    cursor: pointer;
+
+    transition:
+            background-color var(--authkit-transition-fast),
+            border-color var(--authkit-transition-fast),
+            color var(--authkit-transition-fast),
+            box-shadow var(--authkit-transition-fast),
+            transform var(--authkit-transition-fast);
+}
+
+.authkit-btn:focus-visible {
+    outline: none;
+    box-shadow:
+            0 0 0 var(--authkit-focus-ring-offset) var(--authkit-color-surface),
+            0 0 0 calc(var(--authkit-focus-ring-offset) + var(--authkit-focus-ring-width)) var(--authkit-color-focus-ring);
+}
+
+.authkit-btn:active {
+    transform: translateY(1px);
+}
+
+.authkit-btn:disabled,
+.authkit-btn[disabled] {
+    pointer-events: none;
+    opacity: 0.65;
+}
+
+.authkit-btn--default,
+.authkit-btn--primary {
+    background-color: var(--authkit-color-primary);
+    color: var(--authkit-color-primary-contrast);
+}
+
+.authkit-btn--default:hover,
+.authkit-btn--primary:hover {
+    background-color: var(--authkit-color-primary-hover);
+}
+
+.authkit-btn--secondary {
+    background-color: var(--authkit-color-surface-alt);
+    color: var(--authkit-color-text);
+    border-color: var(--authkit-color-border);
+}
+
+.authkit-btn--secondary:hover {
+    background-color: var(--authkit-color-surface);
+}
+
+.authkit-btn--danger {
+    background-color: var(--authkit-color-danger);
+    color: #ffffff;
+}
+
+.authkit-btn--danger:hover {
+    filter: brightness(0.96);
+}
+
+.authkit-btn--ghost {
+    background-color: transparent;
+    color: var(--authkit-color-text);
+    border-color: var(--authkit-color-border);
+}
+
+.authkit-btn--ghost:hover {
+    background-color: var(--authkit-color-surface-alt);
+}

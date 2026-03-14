@@ -42,7 +42,7 @@
 
     $fieldsComponent = (string) data_get($c, 'fields', 'authkit::form.fields');
     $pageComponent = (string) data_get($c, 'page', 'authkit::page');
-    $pageKey = (string) data_get(config('authkit.javascript.pages', []),'password_reset_token.page_key','password_reset_token');
+    $pageKey = (string) data_get(config('authkit.javascript.pages', []), 'password_reset_token.page_key', 'password_reset_token');
 @endphp
 
 <x-dynamic-component :component="$pageComponent" title="Enter reset code" :page-key="$pageKey">
@@ -68,7 +68,7 @@
             @endif
 
             @if ($email !== '')
-                <div style="margin:12px 0;opacity:.85;">
+                <div class="authkit-note authkit-note--muted">
                     Reset code was sent to <strong>{{ $email }}</strong>
                 </div>
             @endif
@@ -81,7 +81,7 @@
                     :fields="$fields"
             />
 
-            <div style="margin-top:14px;">
+            <div class="authkit-form-actions">
                 <x-dynamic-component :component="data_get($c, 'button')">
                     {{ $submitLabel }}
                 </x-dynamic-component>

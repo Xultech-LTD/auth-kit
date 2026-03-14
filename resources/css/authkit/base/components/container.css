@@ -1,0 +1,43 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/container.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Container component styles for AuthKit.
+ *
+ * The container provides horizontal centering and width constraints for AuthKit
+ * pages and cards. It is primarily used to keep authentication content compact,
+ * readable, and visually centered.
+ *
+ * Supported modifiers:
+ * - .authkit-container--sm
+ * - .authkit-container--md
+ * - .authkit-container--lg
+ */
+
+.authkit-container {
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: var(--authkit-space-4);
+}
+
+.authkit-container--sm {
+    max-width: var(--authkit-container-sm);
+}
+
+.authkit-container--md {
+    max-width: var(--authkit-container-md);
+}
+
+.authkit-container--lg {
+    max-width: var(--authkit-container-lg);
+}
+
+@media (max-width: 480px) {
+    .authkit-container {
+        padding-inline: var(--authkit-space-3);
+    }
+}

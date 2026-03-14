@@ -1,0 +1,166 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/reset.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Scoped reset rules for AuthKit components.
+ *
+ * This file normalizes browser inconsistencies and establishes predictable
+ * default styling for AuthKit elements.
+ *
+ * IMPORTANT DESIGN RULE:
+ * -----------------------------------------------------------------------------
+ * This reset is **scoped to `.authkit` only** to prevent interference with
+ * the host application's CSS.
+ *
+ * AuthKit is a reusable package and must never apply global resets that
+ * modify the entire document.
+ *
+ * Reset Goals:
+ * -----------------------------------------------------------------------------
+ * - Normalize box sizing
+ * - Remove inconsistent margins
+ * - Normalize form control inheritance
+ * - Standardize media behavior
+ * - Ensure predictable layout calculations
+ *
+ * This reset is intentionally minimal and avoids destructive rules.
+ */
+
+
+/* -------------------------------------------------------------
+ | Box Model
+ |--------------------------------------------------------------
+ | Ensure padding and borders are included in element width.
+ */
+
+.authkit,
+.authkit *,
+.authkit *::before,
+.authkit *::after {
+    box-sizing: border-box;
+}
+
+
+/* -------------------------------------------------------------
+ | Remove default margins
+ |--------------------------------------------------------------
+ | Browsers apply margins inconsistently to headings and text.
+ */
+
+.authkit h1,
+.authkit h2,
+.authkit h3,
+.authkit h4,
+.authkit h5,
+.authkit h6,
+.authkit p,
+.authkit figure,
+.authkit blockquote,
+.authkit dl,
+.authkit dd {
+    margin: 0;
+}
+
+
+/* -------------------------------------------------------------
+ | List normalization
+ |--------------------------------------------------------------
+ */
+
+.authkit ul,
+.authkit ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+
+/* -------------------------------------------------------------
+ | Media elements
+ |--------------------------------------------------------------
+ | Prevent images and media from overflowing containers.
+ */
+
+.authkit img,
+.authkit picture,
+.authkit video,
+.authkit canvas,
+.authkit svg {
+    display: block;
+    max-width: 100%;
+}
+
+
+/* -------------------------------------------------------------
+ | Form control normalization
+ |--------------------------------------------------------------
+ | Ensure controls inherit typography settings.
+ */
+
+.authkit input,
+.authkit button,
+.authkit textarea,
+.authkit select {
+    font: inherit;
+    color: inherit;
+}
+
+
+/* -------------------------------------------------------------
+ | Button normalization
+ |--------------------------------------------------------------
+ */
+
+.authkit button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+
+/* -------------------------------------------------------------
+ | Link normalization
+ |--------------------------------------------------------------
+ */
+
+.authkit a {
+    text-decoration: none;
+    color: inherit;
+}
+
+
+/* -------------------------------------------------------------
+ | Table normalization
+ |--------------------------------------------------------------
+ */
+
+.authkit table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+
+/* -------------------------------------------------------------
+ | Hidden attribute
+ |--------------------------------------------------------------
+ */
+
+.authkit [hidden] {
+    display: none !important;
+}
+
+
+/* -------------------------------------------------------------
+ | Disabled elements
+ |--------------------------------------------------------------
+ */
+
+.authkit [disabled] {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
