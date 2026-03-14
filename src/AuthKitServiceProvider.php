@@ -184,13 +184,10 @@ final class AuthKitServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(PasswordUpdaterContract::class, function ($app) {
-            $class = (string) config(
-                'authkit.password_reset.password_updater.class',
-                \Xul\AuthKit\Support\PasswordReset\DefaultPasswordUpdater::class
-            );
+            $class = config('authkit.password_reset.password_updater.class');
 
-            if ($class === '') {
-                throw new InvalidArgumentException('AuthKit: password updater class is empty.');
+            if (! is_string($class) || trim($class) === '') {
+                $class = \Xul\AuthKit\Support\PasswordReset\DefaultPasswordUpdater::class;
             }
 
             $instance = $app->make($class);
