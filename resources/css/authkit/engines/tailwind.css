@@ -96,10 +96,26 @@
     min-height: calc(var(--authkit-control-height) + 0.125rem);
     border-radius: var(--authkit-radius-lg);
     box-shadow: var(--authkit-shadow-sm);
+    appearance: none;
+    -webkit-appearance: none;
 }
 
-[data-authkit-engine="tailwind"] .authkit-btn:hover,
-.authkit[data-authkit-engine="tailwind"] .authkit-btn:hover {
+[data-authkit-engine="tailwind"] .authkit-btn--default,
+.authkit[data-authkit-engine="tailwind"] .authkit-btn--default,
+[data-authkit-engine="tailwind"] .authkit-btn--primary,
+.authkit[data-authkit-engine="tailwind"] .authkit-btn--primary {
+    background-color: var(--authkit-color-primary);
+    border-color: var(--authkit-color-primary);
+    color: var(--authkit-color-primary-contrast);
+}
+
+[data-authkit-engine="tailwind"] .authkit-btn--default:hover,
+.authkit[data-authkit-engine="tailwind"] .authkit-btn--default:hover,
+[data-authkit-engine="tailwind"] .authkit-btn--primary:hover,
+.authkit[data-authkit-engine="tailwind"] .authkit-btn--primary:hover {
+    background-color: var(--authkit-color-primary-hover);
+    border-color: var(--authkit-color-primary-hover);
+    color: var(--authkit-color-primary-contrast);
     transform: translateY(-1px);
 }
 

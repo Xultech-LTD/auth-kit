@@ -1,0 +1,144 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/themes/ivory-gold.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Ivory Gold theme tokens for AuthKit.
+ *
+ * Purpose:
+ * - Provides a refined premium palette built around soft ivory surfaces,
+ *   deep ink text, and restrained gold accents.
+ * - Gives AuthKit an elegant and polished visual identity.
+ * - Works across both packaged engines:
+ *   - tailwind
+ *   - bootstrap
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - This file defines theme colors and theme-specific polish only.
+ * - Layout and structure remain in the base layer.
+ * - Engine files continue to control component language and visual feel.
+ */
+
+:root,
+[data-authkit-theme="ivory-gold"] {
+    --authkit-color-bg: #f7f3ea;
+    --authkit-color-surface: #fffdfa;
+    --authkit-color-surface-alt: #f4ede1;
+
+    --authkit-color-text: #241c14;
+    --authkit-color-text-muted: #7c6c57;
+
+    --authkit-color-border: #e4d7c2;
+    --authkit-color-border-strong: #d1c0a4;
+
+    --authkit-color-primary: #b68a3c;
+    --authkit-color-primary-hover: #9e7632;
+    --authkit-color-primary-contrast: #fffdfa;
+
+    --authkit-color-danger: #c24e3f;
+    --authkit-color-success: #2f8a57;
+    --authkit-color-warning: #c28a2e;
+
+    --authkit-color-focus-ring: rgba(182, 138, 60, 0.22);
+
+    --authkit-color-selection-bg: rgba(182, 138, 60, 0.18);
+    --authkit-color-selection-text: #241c14;
+}
+
+[data-authkit-theme="ivory-gold"][data-authkit-mode="dark"] {
+    --authkit-color-bg: #14110d;
+    --authkit-color-surface: #1b1712;
+    --authkit-color-surface-alt: #231d16;
+
+    --authkit-color-text: #f4ede4;
+    --authkit-color-text-muted: #c3b39b;
+
+    --authkit-color-border: #3b3126;
+    --authkit-color-border-strong: #504230;
+
+    --authkit-color-primary: #d6a955;
+    --authkit-color-primary-hover: #e2b86b;
+    --authkit-color-primary-contrast: #1b1409;
+
+    --authkit-color-danger: #e27967;
+    --authkit-color-success: #55b37b;
+    --authkit-color-warning: #d7a956;
+
+    --authkit-color-focus-ring: rgba(214, 169, 85, 0.28);
+
+    --authkit-color-selection-bg: rgba(214, 169, 85, 0.22);
+    --authkit-color-selection-text: #fff8ef;
+}
+
+
+/* -------------------------------------------------------------
+ | Global themed surfaces
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="ivory-gold"] .authkit-body {
+    background-color: var(--authkit-color-bg);
+    color: var(--authkit-color-text);
+}
+
+[data-authkit-theme="ivory-gold"] ::selection {
+    background: var(--authkit-color-selection-bg);
+    color: var(--authkit-color-selection-text);
+}
+
+
+/* -------------------------------------------------------------
+ | Ivory Gold theme-specific polish
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="ivory-gold"] .authkit-card {
+    background-image: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--authkit-color-surface) 92%, #ffffff 8%) 0%,
+            var(--authkit-color-surface) 100%
+    );
+    border-color: color-mix(in srgb, var(--authkit-color-border) 88%, #ffffff 12%);
+}
+
+[data-authkit-theme="ivory-gold"] .authkit-alert--success {
+    background-color: color-mix(in srgb, var(--authkit-color-success) 10%, var(--authkit-color-surface));
+    border-color: color-mix(in srgb, var(--authkit-color-success) 22%, var(--authkit-color-border));
+}
+
+[data-authkit-theme="ivory-gold"] .authkit-alert--danger,
+[data-authkit-theme="ivory-gold"] .authkit-alert--error {
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 9%, var(--authkit-color-surface));
+    border-color: color-mix(in srgb, var(--authkit-color-danger) 22%, var(--authkit-color-border));
+}
+
+[data-authkit-theme="ivory-gold"] .authkit-alert--warning {
+    background-color: color-mix(in srgb, var(--authkit-color-warning) 10%, var(--authkit-color-surface));
+    border-color: color-mix(in srgb, var(--authkit-color-warning) 22%, var(--authkit-color-border));
+}
+
+[data-authkit-theme="ivory-gold"] .authkit-alert--info,
+[data-authkit-theme="ivory-gold"] .authkit-alert--default {
+    background-color: color-mix(in srgb, var(--authkit-color-primary) 8%, var(--authkit-color-surface));
+    border-color: color-mix(in srgb, var(--authkit-color-primary) 18%, var(--authkit-color-border));
+}
+
+[data-authkit-theme="ivory-gold"] .authkit-form-errors {
+    border-color: color-mix(in srgb, var(--authkit-color-danger) 24%, var(--authkit-color-border));
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 7%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="ivory-gold"] .authkit-divider {
+    border-top-color: color-mix(in srgb, var(--authkit-color-border) 86%, transparent);
+}
+
+[data-authkit-theme="ivory-gold"] .authkit-btn--default,
+[data-authkit-theme="ivory-gold"] .authkit-btn--primary {
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--authkit-color-primary) 16%, transparent);
+}
+
+[data-authkit-theme="ivory-gold"] .authkit-theme-toggle__button[data-authkit-theme-toggle-active="true"] {
+    box-shadow: 0 8px 18px color-mix(in srgb, var(--authkit-color-primary) 16%, transparent);
+}

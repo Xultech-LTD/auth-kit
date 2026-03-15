@@ -2066,7 +2066,7 @@ return [
          * - tailwind + forest => tailwind-forest.css
          * - bootstrap + red-beige => bootstrap-red-beige.css
          */
-        'theme' => 'forest',
+        'theme' => 'aurora',
 
         /**
          * Default appearance mode.
@@ -2079,7 +2079,7 @@ return [
          * When "system" is used, AuthKit JavaScript may resolve the active mode
          * using prefers-color-scheme and apply the final mode at runtime.
          */
-        'mode' => 'system',
+        'mode' => 'light',
 
         /**
          * Whether AuthKit should emit data attributes for UI state.
@@ -2185,7 +2185,7 @@ return [
              * This controls only the packaged toggle component's default UI.
              * Consumers may still publish/override the component and render it differently.
              */
-            'variant' => 'auto',
+            'variant' => 'icon',
 
             /**
              * Whether the toggle should offer the "system" option in addition
@@ -2197,7 +2197,7 @@ return [
              * When false:
              * - packaged toggle UIs may expose only light and dark
              */
-            'allow_system' => true,
+            'allow_system' => false,
 
             /**
              * Whether the packaged toggle component should show labels
@@ -2315,12 +2315,34 @@ return [
          */
         'available' => [
             'tailwind' => [
+                'amber-silk',
+                'aurora',
                 'forest',
+                'imperial-gold',
+                'ivory-gold',
+                'midnight-blue',
+                'neutral',
+                'noir-grid',
+                'ocean-mist',
+                'paper-ink',
                 'red-beige',
+                'rose-ash',
+                'slate-gold',
             ],
             'bootstrap' => [
+                'amber-silk',
+                'aurora',
                 'forest',
+                'imperial-gold',
+                'ivory-gold',
+                'midnight-blue',
+                'neutral',
+                'noir-grid',
+                'ocean-mist',
+                'paper-ink',
                 'red-beige',
+                'rose-ash',
+                'slate-gold',
             ],
         ],
 

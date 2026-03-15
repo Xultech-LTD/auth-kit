@@ -1,0 +1,171 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/themes/midnight-blue.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Midnight Blue theme tokens for AuthKit.
+ *
+ * Purpose:
+ * - Provides a refined blue-led theme with calm light surfaces and a deep
+ *   midnight-inspired dark mode.
+ * - Gives AuthKit a polished professional aesthetic suitable for modern SaaS,
+ *   admin, and developer-facing authentication flows.
+ * - Works across both packaged engines:
+ *   - tailwind
+ *   - bootstrap
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - This file defines theme colors and theme-specific polish only.
+ * - Structure and layout remain in the base layer.
+ * - Engine files continue to control component language and visual feel.
+ */
+
+:root,
+[data-authkit-theme="midnight-blue"] {
+    --authkit-color-bg: #f2f6fb;
+    --authkit-color-surface: #ffffff;
+    --authkit-color-surface-alt: #edf3fa;
+
+    --authkit-color-text: #16283d;
+    --authkit-color-text-muted: #6d8096;
+
+    --authkit-color-border: #d6e0ec;
+    --authkit-color-border-strong: #bccbdb;
+
+    --authkit-color-primary: #2557a7;
+    --authkit-color-primary-hover: #1f4a8d;
+    --authkit-color-primary-contrast: #ffffff;
+
+    --authkit-color-danger: #cf4c5f;
+    --authkit-color-success: #237a5b;
+    --authkit-color-warning: #c18a2b;
+
+    --authkit-color-focus-ring: rgba(37, 87, 167, 0.24);
+
+    --authkit-color-selection-bg: rgba(37, 87, 167, 0.16);
+    --authkit-color-selection-text: #102030;
+}
+
+[data-authkit-theme="midnight-blue"][data-authkit-mode="dark"] {
+    --authkit-color-bg: #08101c;
+    --authkit-color-surface: #0d1727;
+    --authkit-color-surface-alt: #132034;
+
+    --authkit-color-text: #e8f0fb;
+    --authkit-color-text-muted: #9eb0c8;
+
+    --authkit-color-border: #203148;
+    --authkit-color-border-strong: #2c4462;
+
+    --authkit-color-primary: #5f8fff;
+    --authkit-color-primary-hover: #79a1ff;
+    --authkit-color-primary-contrast: #06101d;
+
+    --authkit-color-danger: #ff7f91;
+    --authkit-color-success: #4fc497;
+    --authkit-color-warning: #dfae58;
+
+    --authkit-color-focus-ring: rgba(95, 143, 255, 0.28);
+
+    --authkit-color-selection-bg: rgba(95, 143, 255, 0.22);
+    --authkit-color-selection-text: #f5f9ff;
+}
+
+
+/* -------------------------------------------------------------
+ | Global themed surfaces
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="midnight-blue"] .authkit-body {
+    background-color: var(--authkit-color-bg);
+    color: var(--authkit-color-text);
+}
+
+[data-authkit-theme="midnight-blue"] ::selection {
+    background: var(--authkit-color-selection-bg);
+    color: var(--authkit-color-selection-text);
+}
+
+
+/* -------------------------------------------------------------
+ | Theme-specific polish
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="midnight-blue"] .authkit-card {
+    background-image: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--authkit-color-surface) 90%, #ffffff 10%) 0%,
+            color-mix(in srgb, var(--authkit-color-surface) 95%, var(--authkit-color-primary) 5%) 100%
+    );
+}
+
+[data-authkit-theme="midnight-blue"][data-authkit-mode="dark"] .authkit-card {
+    background-image:
+            radial-gradient(
+                    circle at top right,
+                    color-mix(in srgb, var(--authkit-color-primary) 12%, transparent) 0%,
+                    transparent 38%
+            ),
+            linear-gradient(
+                    180deg,
+                    color-mix(in srgb, var(--authkit-color-surface) 95%, #ffffff 5%) 0%,
+                    var(--authkit-color-surface) 100%
+            );
+}
+
+[data-authkit-theme="midnight-blue"] .authkit-alert--success {
+    background-color: color-mix(in srgb, var(--authkit-color-success) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="midnight-blue"] .authkit-alert--danger,
+[data-authkit-theme="midnight-blue"] .authkit-alert--error {
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 9%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="midnight-blue"] .authkit-alert--warning {
+    background-color: color-mix(in srgb, var(--authkit-color-warning) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="midnight-blue"] .authkit-alert--info,
+[data-authkit-theme="midnight-blue"] .authkit-alert--default {
+    background-color: color-mix(in srgb, var(--authkit-color-primary) 8%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="midnight-blue"] .authkit-form-errors {
+    border-color: color-mix(in srgb, var(--authkit-color-danger) 28%, var(--authkit-color-border));
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 7%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="midnight-blue"] .authkit-divider {
+    border-top-color: color-mix(in srgb, var(--authkit-color-border) 86%, transparent);
+}
+
+[data-authkit-theme="midnight-blue"] .authkit-input,
+[data-authkit-theme="midnight-blue"] .authkit-textarea,
+[data-authkit-theme="midnight-blue"] .authkit-select,
+[data-authkit-theme="midnight-blue"] .authkit-otp {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 95%, var(--authkit-color-primary) 5%);
+}
+
+[data-authkit-theme="midnight-blue"][data-authkit-mode="dark"] .authkit-input,
+[data-authkit-theme="midnight-blue"][data-authkit-mode="dark"] .authkit-textarea,
+[data-authkit-theme="midnight-blue"][data-authkit-mode="dark"] .authkit-select,
+[data-authkit-theme="midnight-blue"][data-authkit-mode="dark"] .authkit-otp {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 94%, #000000 6%);
+}
+
+[data-authkit-theme="midnight-blue"] .authkit-theme-toggle__button,
+[data-authkit-theme="midnight-blue"] .authkit-theme-toggle__icon-button,
+[data-authkit-theme="midnight-blue"] .authkit-theme-toggle__select {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 93%, var(--authkit-color-primary) 7%);
+}
+
+[data-authkit-theme="midnight-blue"][data-authkit-mode="dark"] .authkit-theme-toggle__button,
+[data-authkit-theme="midnight-blue"][data-authkit-mode="dark"] .authkit-theme-toggle__icon-button,
+[data-authkit-theme="midnight-blue"][data-authkit-mode="dark"] .authkit-theme-toggle__select {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 91%, #000000 9%);
+}

@@ -134,7 +134,7 @@ describe('modules/forms/submit', () => {
             setConfig({
                 forms: {
                     ajax: {
-                        submit_json: false,
+                        submitJson: false,
                     },
                 },
             });
@@ -146,7 +146,7 @@ describe('modules/forms/submit', () => {
             setConfig({
                 forms: {
                     ajax: {
-                        submit_json: true,
+                        submitJson: true,
                     },
                 },
             });
@@ -158,7 +158,7 @@ describe('modules/forms/submit', () => {
             setConfig({
                 forms: {
                     ajax: {
-                        submit_json: true,
+                        submitJson: true,
                     },
                 },
             });
@@ -171,7 +171,7 @@ describe('modules/forms/submit', () => {
             setConfig({
                 forms: {
                     ajax: {
-                        submit_json: false,
+                        submitJson: false,
                     },
                 },
             });
@@ -197,7 +197,7 @@ describe('modules/forms/submit', () => {
             setConfig({
                 forms: {
                     ajax: {
-                        submit_json: true,
+                        submitJson: true,
                     },
                 },
             });

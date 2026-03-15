@@ -1,0 +1,164 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/themes/amber-silk.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Amber Silk theme tokens for AuthKit.
+ *
+ * Purpose:
+ * - Provides a soft warm-neutral palette with amber accents.
+ * - Creates an elegant and inviting aesthetic suitable for premium SaaS,
+ *   service platforms, creative products, and polished customer portals.
+ * - Works across both packaged engines:
+ *   - tailwind
+ *   - bootstrap
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - This file defines theme colors and theme-specific polish only.
+ * - Structure and layout remain in the base layer.
+ * - Engine files continue to control component language and interaction feel.
+ */
+
+:root,
+[data-authkit-theme="amber-silk"] {
+    --authkit-color-bg: #faf5ee;
+    --authkit-color-surface: #ffffff;
+    --authkit-color-surface-alt: #f6efe5;
+
+    --authkit-color-text: #33281c;
+    --authkit-color-text-muted: #8a7460;
+
+    --authkit-color-border: #eadcc8;
+    --authkit-color-border-strong: #dcc7a8;
+
+    --authkit-color-primary: #d08b2f;
+    --authkit-color-primary-hover: #b77522;
+    --authkit-color-primary-contrast: #ffffff;
+
+    --authkit-color-danger: #c85a4c;
+    --authkit-color-success: #3d8b69;
+    --authkit-color-warning: #c58d23;
+
+    --authkit-color-focus-ring: rgba(208, 139, 47, 0.24);
+
+    --authkit-color-selection-bg: rgba(208, 139, 47, 0.16);
+    --authkit-color-selection-text: #2b2117;
+}
+
+[data-authkit-theme="amber-silk"][data-authkit-mode="dark"] {
+    --authkit-color-bg: #17110c;
+    --authkit-color-surface: #211811;
+    --authkit-color-surface-alt: #2a1f17;
+
+    --authkit-color-text: #f7ede1;
+    --authkit-color-text-muted: #cfb79f;
+
+    --authkit-color-border: #3b2d22;
+    --authkit-color-border-strong: #513d2d;
+
+    --authkit-color-primary: #ebb15a;
+    --authkit-color-primary-hover: #f2bf73;
+    --authkit-color-primary-contrast: #1c130d;
+
+    --authkit-color-danger: #f08676;
+    --authkit-color-success: #59b08a;
+    --authkit-color-warning: #e1ae51;
+
+    --authkit-color-focus-ring: rgba(235, 177, 90, 0.28);
+
+    --authkit-color-selection-bg: rgba(235, 177, 90, 0.22);
+    --authkit-color-selection-text: #fff8f2;
+}
+
+
+/* -------------------------------------------------------------
+ | Global themed surfaces
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="amber-silk"] .authkit-body {
+    background-color: var(--authkit-color-bg);
+    color: var(--authkit-color-text);
+}
+
+[data-authkit-theme="amber-silk"] ::selection {
+    background: var(--authkit-color-selection-bg);
+    color: var(--authkit-color-selection-text);
+}
+
+
+/* -------------------------------------------------------------
+ | Theme-specific polish
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="amber-silk"] .authkit-card {
+    background-image: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--authkit-color-surface) 91%, #fffaf3 9%) 0%,
+            var(--authkit-color-surface) 100%
+    );
+}
+
+[data-authkit-theme="amber-silk"][data-authkit-mode="dark"] .authkit-card {
+    background-image:
+            radial-gradient(
+                    circle at top right,
+                    color-mix(in srgb, var(--authkit-color-primary) 12%, transparent) 0%,
+                    transparent 42%
+            ),
+            linear-gradient(
+                    180deg,
+                    color-mix(in srgb, var(--authkit-color-surface) 95%, #ffffff 5%) 0%,
+                    var(--authkit-color-surface) 100%
+            );
+}
+
+[data-authkit-theme="amber-silk"] .authkit-alert--success {
+    background-color: color-mix(in srgb, var(--authkit-color-success) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="amber-silk"] .authkit-alert--danger,
+[data-authkit-theme="amber-silk"] .authkit-alert--error {
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 9%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="amber-silk"] .authkit-alert--warning {
+    background-color: color-mix(in srgb, var(--authkit-color-warning) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="amber-silk"] .authkit-alert--info,
+[data-authkit-theme="amber-silk"] .authkit-alert--default {
+    background-color: color-mix(in srgb, var(--authkit-color-primary) 8%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="amber-silk"] .authkit-form-errors {
+    border-color: color-mix(in srgb, var(--authkit-color-danger) 28%, var(--authkit-color-border));
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 7%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="amber-silk"] .authkit-divider {
+    border-top-color: color-mix(in srgb, var(--authkit-color-border) 86%, transparent);
+}
+
+[data-authkit-theme="amber-silk"] .authkit-input,
+[data-authkit-theme="amber-silk"] .authkit-textarea,
+[data-authkit-theme="amber-silk"] .authkit-select,
+[data-authkit-theme="amber-silk"] .authkit-otp {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 96%, var(--authkit-color-primary) 4%);
+}
+
+[data-authkit-theme="amber-silk"][data-authkit-mode="dark"] .authkit-input,
+[data-authkit-theme="amber-silk"][data-authkit-mode="dark"] .authkit-textarea,
+[data-authkit-theme="amber-silk"][data-authkit-mode="dark"] .authkit-select,
+[data-authkit-theme="amber-silk"][data-authkit-mode="dark"] .authkit-otp {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 94%, #000000 6%);
+}
+
+[data-authkit-theme="amber-silk"] .authkit-theme-toggle__button,
+[data-authkit-theme="amber-silk"] .authkit-theme-toggle__icon-button,
+[data-authkit-theme="amber-silk"] .authkit-theme-toggle__select {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 93%, var(--authkit-color-primary) 7%);
+}

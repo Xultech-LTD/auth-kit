@@ -1,0 +1,19 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/builds/bootstrap-noir-grid.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Bootstrap engine + Noir Grid theme build for AuthKit.
+ *
+ * Composition order:
+ * - base layer
+ * - bootstrap engine
+ * - noir-grid theme
+ */
+
+@import "../authkit.css";
+@import "../engines/bootstrap.css";
+@import "../themes/noir-grid.css";

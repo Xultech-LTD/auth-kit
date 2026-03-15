@@ -1,0 +1,10 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/builds/tailwind-ocean-mist.css
+ * Author: Michael Erastus
+ */
+
+@import "../authkit.css";
+@import "../engines/tailwind.css";
+@import "../themes/ocean-mist.css";

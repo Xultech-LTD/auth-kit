@@ -1,0 +1,14 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/builds/tailwind-amber-silk.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Tailwind engine + Amber Silk theme build for AuthKit.
+ */
+
+@import "../authkit.css";
+@import "../engines/tailwind.css";
+@import "../themes/amber-silk.css";

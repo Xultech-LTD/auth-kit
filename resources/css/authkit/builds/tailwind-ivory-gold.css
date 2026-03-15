@@ -1,0 +1,19 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/builds/tailwind-ivory-gold.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Tailwind engine + Ivory Gold theme build for AuthKit.
+ *
+ * Composition order:
+ * - base layer
+ * - tailwind engine
+ * - ivory-gold theme
+ */
+
+@import "../authkit.css";
+@import "../engines/tailwind.css";
+@import "../themes/ivory-gold.css";

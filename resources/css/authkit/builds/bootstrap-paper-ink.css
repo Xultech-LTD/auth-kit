@@ -1,0 +1,14 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/builds/bootstrap-paper-ink.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Bootstrap engine + Paper Ink theme build for AuthKit.
+ */
+
+@import "../authkit.css";
+@import "../engines/bootstrap.css";
+@import "../themes/paper-ink.css";

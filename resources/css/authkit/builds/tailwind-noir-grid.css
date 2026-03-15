@@ -1,0 +1,19 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/builds/tailwind-noir-grid.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Tailwind engine + Noir Grid theme build for AuthKit.
+ *
+ * Composition order:
+ * - base layer
+ * - tailwind engine
+ * - noir-grid theme
+ */
+
+@import "../authkit.css";
+@import "../engines/tailwind.css";
+@import "../themes/noir-grid.css";

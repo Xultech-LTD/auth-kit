@@ -1,0 +1,164 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/themes/slate-gold.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Slate Gold theme tokens for AuthKit.
+ *
+ * Purpose:
+ * - Provides a premium slate-based palette with elegant gold accents.
+ * - Creates a calm executive aesthetic suitable for enterprise products,
+ *   finance platforms, and high-end SaaS interfaces.
+ * - Works across both packaged engines:
+ *   - tailwind
+ *   - bootstrap
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - This file defines theme colors and theme-specific polish only.
+ * - Structure and layout remain in the base layer.
+ * - Engine files continue to control component language and interaction feel.
+ */
+
+:root,
+[data-authkit-theme="slate-gold"] {
+    --authkit-color-bg: #f3f4f6;
+    --authkit-color-surface: #ffffff;
+    --authkit-color-surface-alt: #eef0f3;
+
+    --authkit-color-text: #1f2933;
+    --authkit-color-text-muted: #6b7280;
+
+    --authkit-color-border: #d7dce2;
+    --authkit-color-border-strong: #c2c8cf;
+
+    --authkit-color-primary: #b9974c;
+    --authkit-color-primary-hover: #a2853f;
+    --authkit-color-primary-contrast: #ffffff;
+
+    --authkit-color-danger: #c94b4b;
+    --authkit-color-success: #2f8f6b;
+    --authkit-color-warning: #c9963c;
+
+    --authkit-color-focus-ring: rgba(185, 151, 76, 0.22);
+
+    --authkit-color-selection-bg: rgba(185, 151, 76, 0.18);
+    --authkit-color-selection-text: #1f2933;
+}
+
+[data-authkit-theme="slate-gold"][data-authkit-mode="dark"] {
+    --authkit-color-bg: #0f1216;
+    --authkit-color-surface: #161a20;
+    --authkit-color-surface-alt: #1e242c;
+
+    --authkit-color-text: #f3f4f6;
+    --authkit-color-text-muted: #a0a7b2;
+
+    --authkit-color-border: #2a313a;
+    --authkit-color-border-strong: #39414c;
+
+    --authkit-color-primary: #d7b56d;
+    --authkit-color-primary-hover: #e0c27f;
+    --authkit-color-primary-contrast: #0e0e0e;
+
+    --authkit-color-danger: #ff7a7a;
+    --authkit-color-success: #4fd2a0;
+    --authkit-color-warning: #e2b663;
+
+    --authkit-color-focus-ring: rgba(215, 181, 109, 0.28);
+
+    --authkit-color-selection-bg: rgba(215, 181, 109, 0.24);
+    --authkit-color-selection-text: #ffffff;
+}
+
+
+/* -------------------------------------------------------------
+ | Global themed surfaces
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="slate-gold"] .authkit-body {
+    background-color: var(--authkit-color-bg);
+    color: var(--authkit-color-text);
+}
+
+[data-authkit-theme="slate-gold"] ::selection {
+    background: var(--authkit-color-selection-bg);
+    color: var(--authkit-color-selection-text);
+}
+
+
+/* -------------------------------------------------------------
+ | Theme-specific polish
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="slate-gold"] .authkit-card {
+    background-image: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--authkit-color-surface) 92%, #ffffff 8%) 0%,
+            var(--authkit-color-surface) 100%
+    );
+}
+
+[data-authkit-theme="slate-gold"][data-authkit-mode="dark"] .authkit-card {
+    background-image:
+            radial-gradient(
+                    circle at top right,
+                    color-mix(in srgb, var(--authkit-color-primary) 12%, transparent) 0%,
+                    transparent 36%
+            ),
+            linear-gradient(
+                    180deg,
+                    color-mix(in srgb, var(--authkit-color-surface) 95%, #ffffff 5%) 0%,
+                    var(--authkit-color-surface) 100%
+            );
+}
+
+[data-authkit-theme="slate-gold"] .authkit-alert--success {
+    background-color: color-mix(in srgb, var(--authkit-color-success) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="slate-gold"] .authkit-alert--danger,
+[data-authkit-theme="slate-gold"] .authkit-alert--error {
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 9%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="slate-gold"] .authkit-alert--warning {
+    background-color: color-mix(in srgb, var(--authkit-color-warning) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="slate-gold"] .authkit-alert--info,
+[data-authkit-theme="slate-gold"] .authkit-alert--default {
+    background-color: color-mix(in srgb, var(--authkit-color-primary) 8%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="slate-gold"] .authkit-form-errors {
+    border-color: color-mix(in srgb, var(--authkit-color-danger) 28%, var(--authkit-color-border));
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 7%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="slate-gold"] .authkit-divider {
+    border-top-color: color-mix(in srgb, var(--authkit-color-border) 86%, transparent);
+}
+
+[data-authkit-theme="slate-gold"] .authkit-input,
+[data-authkit-theme="slate-gold"] .authkit-textarea,
+[data-authkit-theme="slate-gold"] .authkit-select,
+[data-authkit-theme="slate-gold"] .authkit-otp {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 96%, var(--authkit-color-primary) 4%);
+}
+
+[data-authkit-theme="slate-gold"][data-authkit-mode="dark"] .authkit-input,
+[data-authkit-theme="slate-gold"][data-authkit-mode="dark"] .authkit-textarea,
+[data-authkit-theme="slate-gold"][data-authkit-mode="dark"] .authkit-select,
+[data-authkit-theme="slate-gold"][data-authkit-mode="dark"] .authkit-otp {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 94%, #000000 6%);
+}
+
+[data-authkit-theme="slate-gold"] .authkit-theme-toggle__button,
+[data-authkit-theme="slate-gold"] .authkit-theme-toggle__icon-button,
+[data-authkit-theme="slate-gold"] .authkit-theme-toggle__select {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 92%, var(--authkit-color-primary) 8%);
+}

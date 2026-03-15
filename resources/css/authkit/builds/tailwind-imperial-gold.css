@@ -1,0 +1,10 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/builds/tailwind-imperial-gold.css
+ * Author: Michael Erastus
+ */
+
+@import "../authkit.css";
+@import "../engines/tailwind.css";
+@import "../themes/imperial-gold.css";

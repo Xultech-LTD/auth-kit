@@ -1,0 +1,101 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/themes/neutral.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Neutral theme for AuthKit.
+ *
+ * Purpose:
+ * - Provides a colorless theme layer.
+ * - Allows AuthKit components to inherit colors from the host application.
+ * - Enables seamless integration into dashboards, admin panels,
+ *   and existing design systems.
+ *
+ * Behavior:
+ * - No palette is defined.
+ * - No background colors are applied.
+ * - No gradients or visual styling are injected.
+ * - Components rely entirely on the host application's CSS.
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - Structural layout still comes from the base layer.
+ * - Engines (Tailwind / Bootstrap) may still adjust structure.
+ * - This theme intentionally avoids defining any color tokens.
+ */
+
+
+/* -------------------------------------------------------------
+ | Global surfaces
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="neutral"] .authkit-body {
+    background: inherit;
+    color: inherit;
+}
+
+
+/* -------------------------------------------------------------
+ | Selection
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="neutral"] ::selection {
+    background: inherit;
+    color: inherit;
+}
+
+
+/* -------------------------------------------------------------
+ | Card
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="neutral"] .authkit-card {
+    background: inherit;
+}
+
+
+/* -------------------------------------------------------------
+ | Inputs and controls
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="neutral"] .authkit-input,
+[data-authkit-theme="neutral"] .authkit-textarea,
+[data-authkit-theme="neutral"] .authkit-select,
+[data-authkit-theme="neutral"] .authkit-otp {
+    background: inherit;
+    color: inherit;
+}
+
+
+/* -------------------------------------------------------------
+ | Alerts
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="neutral"] .authkit-alert {
+    background: inherit;
+    color: inherit;
+}
+
+
+/* -------------------------------------------------------------
+ | Divider
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="neutral"] .authkit-divider {
+    border-color: inherit;
+}
+
+
+/* -------------------------------------------------------------
+ | Theme toggle
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="neutral"] .authkit-theme-toggle__button,
+[data-authkit-theme="neutral"] .authkit-theme-toggle__icon-button,
+[data-authkit-theme="neutral"] .authkit-theme-toggle__select {
+    background: inherit;
+    color: inherit;
+}

@@ -1,0 +1,143 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/themes/rose-ash.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Rose Ash theme tokens for AuthKit.
+ *
+ * Purpose:
+ * - Provides a refined warm-neutral palette with dusty rose accents.
+ * - Creates a calm, elegant aesthetic suitable for premium SaaS, creative
+ *   products, wellness platforms, and polished client portals.
+ * - Works across both packaged engines:
+ *   - tailwind
+ *   - bootstrap
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - This file defines theme colors and theme-specific polish only.
+ * - Structure and layout remain in the base layer.
+ * - Engine files continue to control component language and interaction feel.
+ */
+
+:root,
+[data-authkit-theme="rose-ash"] {
+    --authkit-color-bg: #f7f2f1;
+    --authkit-color-surface: #ffffff;
+    --authkit-color-surface-alt: #f3ecea;
+
+    --authkit-color-text: #332826;
+    --authkit-color-text-muted: #8a7370;
+
+    --authkit-color-border: #e6d7d4;
+    --authkit-color-border-strong: #d7c2be;
+
+    --authkit-color-primary: #b76e79;
+    --authkit-color-primary-hover: #9f5f68;
+    --authkit-color-primary-contrast: #ffffff;
+
+    --authkit-color-danger: #c45757;
+    --authkit-color-success: #3c8a70;
+    --authkit-color-warning: #c69242;
+
+    --authkit-color-focus-ring: rgba(183, 110, 121, 0.22);
+
+    --authkit-color-selection-bg: rgba(183, 110, 121, 0.16);
+    --authkit-color-selection-text: #332826;
+}
+
+[data-authkit-theme="rose-ash"][data-authkit-mode="dark"] {
+    --authkit-color-bg: #171213;
+    --authkit-color-surface: #21191b;
+    --authkit-color-surface-alt: #2a2023;
+
+    --authkit-color-text: #f6eceb;
+    --authkit-color-text-muted: #c8b0ad;
+
+    --authkit-color-border: #3a2c30;
+    --authkit-color-border-strong: #4a383d;
+
+    --authkit-color-primary: #d88d98;
+    --authkit-color-primary-hover: #e59ea8;
+    --authkit-color-primary-contrast: #1a1113;
+
+    --authkit-color-danger: #ef7d7d;
+    --authkit-color-success: #58b392;
+    --authkit-color-warning: #ddb064;
+
+    --authkit-color-focus-ring: rgba(216, 141, 152, 0.28);
+
+    --authkit-color-selection-bg: rgba(216, 141, 152, 0.22);
+    --authkit-color-selection-text: #fff7f6;
+}
+
+
+/* -------------------------------------------------------------
+ | Global themed surfaces
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="rose-ash"] .authkit-body {
+    background-color: var(--authkit-color-bg);
+    color: var(--authkit-color-text);
+}
+
+[data-authkit-theme="rose-ash"] ::selection {
+    background: var(--authkit-color-selection-bg);
+    color: var(--authkit-color-selection-text);
+}
+
+
+/* -------------------------------------------------------------
+ | Theme-specific polish
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="rose-ash"] .authkit-card {
+    background-image: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--authkit-color-surface) 91%, #ffffff 9%) 0%,
+            var(--authkit-color-surface) 100%
+    );
+}
+
+[data-authkit-theme="rose-ash"] .authkit-alert--success {
+    background-color: color-mix(in srgb, var(--authkit-color-success) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="rose-ash"] .authkit-alert--danger,
+[data-authkit-theme="rose-ash"] .authkit-alert--error {
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 9%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="rose-ash"] .authkit-alert--warning {
+    background-color: color-mix(in srgb, var(--authkit-color-warning) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="rose-ash"] .authkit-alert--info,
+[data-authkit-theme="rose-ash"] .authkit-alert--default {
+    background-color: color-mix(in srgb, var(--authkit-color-primary) 8%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="rose-ash"] .authkit-form-errors {
+    border-color: color-mix(in srgb, var(--authkit-color-danger) 28%, var(--authkit-color-border));
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 7%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="rose-ash"] .authkit-divider {
+    border-top-color: color-mix(in srgb, var(--authkit-color-border) 86%, transparent);
+}
+
+[data-authkit-theme="rose-ash"] .authkit-input,
+[data-authkit-theme="rose-ash"] .authkit-textarea,
+[data-authkit-theme="rose-ash"] .authkit-select,
+[data-authkit-theme="rose-ash"] .authkit-otp {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 96%, var(--authkit-color-primary) 4%);
+}
+
+[data-authkit-theme="rose-ash"] .authkit-theme-toggle__button,
+[data-authkit-theme="rose-ash"] .authkit-theme-toggle__icon-button,
+[data-authkit-theme="rose-ash"] .authkit-theme-toggle__select {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 93%, var(--authkit-color-primary) 7%);
+}

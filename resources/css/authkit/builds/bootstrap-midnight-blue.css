@@ -1,0 +1,14 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/builds/bootstrap-midnight-blue.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Bootstrap engine + Midnight Blue theme build for AuthKit.
+ */
+
+@import "../authkit.css";
+@import "../engines/bootstrap.css";
+@import "../themes/midnight-blue.css";

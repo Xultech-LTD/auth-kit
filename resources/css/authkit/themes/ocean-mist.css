@@ -1,0 +1,165 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/themes/ocean-mist.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Ocean Mist theme tokens for AuthKit.
+ *
+ * Purpose:
+ * - Provides a calm blue-gray palette inspired by ocean air and soft coastal
+ *   mist.
+ * - Creates a clean and trustworthy aesthetic suitable for SaaS dashboards,
+ *   developer tools, and modern web applications.
+ * - Works across both packaged engines:
+ *   - tailwind
+ *   - bootstrap
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - This file defines theme colors and theme-specific polish only.
+ * - Structure and layout remain in the base layer.
+ * - Engine files continue to control component language and interaction feel.
+ */
+
+:root,
+[data-authkit-theme="ocean-mist"] {
+    --authkit-color-bg: #f2f7fa;
+    --authkit-color-surface: #ffffff;
+    --authkit-color-surface-alt: #edf4f8;
+
+    --authkit-color-text: #1c2e3d;
+    --authkit-color-text-muted: #6c8191;
+
+    --authkit-color-border: #d6e4ed;
+    --authkit-color-border-strong: #c0d4df;
+
+    --authkit-color-primary: #2f7fb6;
+    --authkit-color-primary-hover: #276c9a;
+    --authkit-color-primary-contrast: #ffffff;
+
+    --authkit-color-danger: #d35c6c;
+    --authkit-color-success: #2f8f73;
+    --authkit-color-warning: #c9983e;
+
+    --authkit-color-focus-ring: rgba(47, 127, 182, 0.22);
+
+    --authkit-color-selection-bg: rgba(47, 127, 182, 0.16);
+    --authkit-color-selection-text: #12202b;
+}
+
+[data-authkit-theme="ocean-mist"][data-authkit-mode="dark"] {
+    --authkit-color-bg: #07131c;
+    --authkit-color-surface: #0d1c26;
+    --authkit-color-surface-alt: #122531;
+
+    --authkit-color-text: #e8f3f9;
+    --authkit-color-text-muted: #9bb5c5;
+
+    --authkit-color-border: #1f3543;
+    --authkit-color-border-strong: #2b4a5b;
+
+    --authkit-color-primary: #5db6e8;
+    --authkit-color-primary-hover: #7cc7f0;
+    --authkit-color-primary-contrast: #041018;
+
+    --authkit-color-danger: #ff7f8e;
+    --authkit-color-success: #59c6a4;
+    --authkit-color-warning: #e1b764;
+
+    --authkit-color-focus-ring: rgba(93, 182, 232, 0.28);
+
+    --authkit-color-selection-bg: rgba(93, 182, 232, 0.22);
+    --authkit-color-selection-text: #f5fbff;
+}
+
+
+/* -------------------------------------------------------------
+ | Global themed surfaces
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="ocean-mist"] .authkit-body {
+    background-color: var(--authkit-color-bg);
+    color: var(--authkit-color-text);
+}
+
+[data-authkit-theme="ocean-mist"] ::selection {
+    background: var(--authkit-color-selection-bg);
+    color: var(--authkit-color-selection-text);
+}
+
+
+/* -------------------------------------------------------------
+ | Theme-specific polish
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="ocean-mist"] .authkit-card {
+    background-image: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--authkit-color-surface) 90%, #ffffff 10%) 0%,
+            var(--authkit-color-surface) 100%
+    );
+}
+
+[data-authkit-theme="ocean-mist"][data-authkit-mode="dark"] .authkit-card {
+    background-image:
+            radial-gradient(
+                    circle at top right,
+                    color-mix(in srgb, var(--authkit-color-primary) 12%, transparent) 0%,
+                    transparent 40%
+            ),
+            linear-gradient(
+                    180deg,
+                    color-mix(in srgb, var(--authkit-color-surface) 94%, #ffffff 6%) 0%,
+                    var(--authkit-color-surface) 100%
+            );
+}
+
+[data-authkit-theme="ocean-mist"] .authkit-alert--success {
+    background-color: color-mix(in srgb, var(--authkit-color-success) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="ocean-mist"] .authkit-alert--danger,
+[data-authkit-theme="ocean-mist"] .authkit-alert--error {
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 9%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="ocean-mist"] .authkit-alert--warning {
+    background-color: color-mix(in srgb, var(--authkit-color-warning) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="ocean-mist"] .authkit-alert--info,
+[data-authkit-theme="ocean-mist"] .authkit-alert--default {
+    background-color: color-mix(in srgb, var(--authkit-color-primary) 8%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="ocean-mist"] .authkit-form-errors {
+    border-color: color-mix(in srgb, var(--authkit-color-danger) 28%, var(--authkit-color-border));
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 7%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="ocean-mist"] .authkit-divider {
+    border-top-color: color-mix(in srgb, var(--authkit-color-border) 86%, transparent);
+}
+
+[data-authkit-theme="ocean-mist"] .authkit-input,
+[data-authkit-theme="ocean-mist"] .authkit-textarea,
+[data-authkit-theme="ocean-mist"] .authkit-select,
+[data-authkit-theme="ocean-mist"] .authkit-otp {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 96%, var(--authkit-color-primary) 4%);
+}
+
+[data-authkit-theme="ocean-mist"][data-authkit-mode="dark"] .authkit-input,
+[data-authkit-theme="ocean-mist"][data-authkit-mode="dark"] .authkit-textarea,
+[data-authkit-theme="ocean-mist"][data-authkit-mode="dark"] .authkit-select,
+[data-authkit-theme="ocean-mist"][data-authkit-mode="dark"] .authkit-otp {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 94%, #000000 6%);
+}
+
+[data-authkit-theme="ocean-mist"] .authkit-theme-toggle__button,
+[data-authkit-theme="ocean-mist"] .authkit-theme-toggle__icon-button,
+[data-authkit-theme="ocean-mist"] .authkit-theme-toggle__select {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 93%, var(--authkit-color-primary) 7%);
+}

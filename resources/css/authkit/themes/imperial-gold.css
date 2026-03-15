@@ -1,0 +1,153 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/themes/imperial-gold.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Imperial Gold theme tokens for AuthKit.
+ *
+ * Purpose:
+ * - Provides a luxury graphite + metallic gold palette.
+ * - Designed for executive dashboards, fintech products, and premium systems.
+ * - Emphasizes contrast, depth, and elegance without being flashy.
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - This file defines theme colors and polish only.
+ * - Layout and structure remain in the base layer.
+ * - Engines control component behavior and feel.
+ */
+
+:root,
+[data-authkit-theme="imperial-gold"] {
+
+    --authkit-color-bg: #f6f4ef;
+    --authkit-color-surface: #ffffff;
+    --authkit-color-surface-alt: #f1efe9;
+
+    --authkit-color-text: #1f1d19;
+    --authkit-color-text-muted: #7b7468;
+
+    --authkit-color-border: #e5dfd4;
+    --authkit-color-border-strong: #d4cbb8;
+
+    --authkit-color-primary: #c8a24a;
+    --authkit-color-primary-hover: #b28d39;
+    --authkit-color-primary-contrast: #ffffff;
+
+    --authkit-color-danger: #c84b4b;
+    --authkit-color-success: #3a8c5c;
+    --authkit-color-warning: #c79b2c;
+
+    --authkit-color-focus-ring: rgba(200, 162, 74, 0.25);
+
+    --authkit-color-selection-bg: rgba(200, 162, 74, 0.18);
+    --authkit-color-selection-text: #1f1d19;
+}
+
+
+[data-authkit-theme="imperial-gold"][data-authkit-mode="dark"] {
+
+    --authkit-color-bg: #0e0d0b;
+    --authkit-color-surface: #171512;
+    --authkit-color-surface-alt: #1d1a15;
+
+    --authkit-color-text: #f3f1ec;
+    --authkit-color-text-muted: #b5ad9d;
+
+    --authkit-color-border: #2c2822;
+    --authkit-color-border-strong: #3c362e;
+
+    --authkit-color-primary: #e0c066;
+    --authkit-color-primary-hover: #ebcd7a;
+    --authkit-color-primary-contrast: #14120f;
+
+    --authkit-color-danger: #f07171;
+    --authkit-color-success: #58b384;
+    --authkit-color-warning: #e2bb55;
+
+    --authkit-color-focus-ring: rgba(224, 192, 102, 0.28);
+
+    --authkit-color-selection-bg: rgba(224, 192, 102, 0.22);
+    --authkit-color-selection-text: #ffffff;
+}
+
+
+/* -------------------------------------------------------------
+ | Global themed surfaces
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="imperial-gold"] .authkit-body {
+    background-color: var(--authkit-color-bg);
+    color: var(--authkit-color-text);
+}
+
+[data-authkit-theme="imperial-gold"] ::selection {
+    background: var(--authkit-color-selection-bg);
+    color: var(--authkit-color-selection-text);
+}
+
+
+/* -------------------------------------------------------------
+ | Imperial polish
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="imperial-gold"] .authkit-card {
+    background-image: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--authkit-color-surface) 92%, #ffffff 8%) 0%,
+            var(--authkit-color-surface) 100%
+    );
+}
+
+[data-authkit-theme="imperial-gold"][data-authkit-mode="dark"] .authkit-card {
+    background-image:
+            radial-gradient(
+                    circle at top right,
+                    color-mix(in srgb, var(--authkit-color-primary) 15%, transparent) 0%,
+                    transparent 40%
+            ),
+            linear-gradient(
+                    180deg,
+                    color-mix(in srgb, var(--authkit-color-surface) 94%, #ffffff 6%) 0%,
+                    var(--authkit-color-surface) 100%
+            );
+}
+
+
+/* Alerts */
+
+[data-authkit-theme="imperial-gold"] .authkit-alert--success {
+    background-color: color-mix(in srgb, var(--authkit-color-success) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="imperial-gold"] .authkit-alert--danger,
+[data-authkit-theme="imperial-gold"] .authkit-alert--error {
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 9%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="imperial-gold"] .authkit-alert--warning {
+    background-color: color-mix(in srgb, var(--authkit-color-warning) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="imperial-gold"] .authkit-alert--info,
+[data-authkit-theme="imperial-gold"] .authkit-alert--default {
+    background-color: color-mix(in srgb, var(--authkit-color-primary) 8%, var(--authkit-color-surface));
+}
+
+
+/* Form errors */
+
+[data-authkit-theme="imperial-gold"] .authkit-form-errors {
+    border-color: color-mix(in srgb, var(--authkit-color-danger) 28%, var(--authkit-color-border));
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 7%, var(--authkit-color-surface));
+}
+
+
+/* Divider */
+
+[data-authkit-theme="imperial-gold"] .authkit-divider {
+    border-top-color: color-mix(in srgb, var(--authkit-color-border) 86%, transparent);
+}

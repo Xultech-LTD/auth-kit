@@ -248,7 +248,6 @@
     <div class="authkit-layout-toggle" data-authkit-layout-toggle="1">
         <x-dynamic-component
                 :component="$themeToggleComponent"
-                variant="icon"
         />
     </div>
 @endif

@@ -53,7 +53,7 @@ export const FORM_ERRORS_LIST_CLASS = 'authkit-form-errors__list';
 export const FORM_ERRORS_ITEM_CLASS = 'authkit-form-errors__item';
 
 export const FORM_ERROR_CLASS = 'authkit-form-error';
-export const ALERT_CLASS = 'ak-alert';
+export const ALERT_CLASS = 'authkit-alert';
 
 
 /**

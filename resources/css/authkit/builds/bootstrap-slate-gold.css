@@ -1,0 +1,10 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/builds/bootstrap-slate-gold.css
+ * Author: Michael Erastus
+ */
+
+@import "../authkit.css";
+@import "../engines/bootstrap.css";
+@import "../themes/slate-gold.css";

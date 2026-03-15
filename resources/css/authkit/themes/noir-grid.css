@@ -1,0 +1,237 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/themes/noir-grid.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Noir Grid theme tokens for AuthKit.
+ *
+ * Purpose:
+ * - Provides a monochrome premium theme with a subtle grid identity.
+ * - Uses a near-white architectural light mode and a deep black dark mode.
+ * - Keeps the same visual identity across both modes so theme switching
+ *   remains obvious while the aesthetic stays consistent.
+ * - Works across both packaged engines:
+ *   - tailwind
+ *   - bootstrap
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - This file defines theme tokens and theme-specific polish only.
+ * - Structure and component contracts remain in the base layer.
+ * - Engine files continue to control component language and interaction feel.
+ * - The grid treatment is intentionally restrained so it feels elegant,
+ *   not noisy.
+ */
+
+
+/* -------------------------------------------------------------
+ | Light mode tokens
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="noir-grid"] {
+    --authkit-color-bg: #f6f6f4;
+    --authkit-color-surface: #ffffff;
+    --authkit-color-surface-alt: #f0f0ed;
+
+    --authkit-color-text: #111111;
+    --authkit-color-text-muted: #5f5f5a;
+
+    --authkit-color-border: #d9d9d3;
+    --authkit-color-border-strong: #bebeb6;
+
+    --authkit-color-primary: #111111;
+    --authkit-color-primary-hover: #000000;
+    --authkit-color-primary-contrast: #ffffff;
+
+    --authkit-color-danger: #c23a3a;
+    --authkit-color-success: #18794e;
+    --authkit-color-warning: #b7791f;
+
+    --authkit-color-focus-ring: rgba(17, 17, 17, 0.16);
+
+    --authkit-color-selection-bg: rgba(17, 17, 17, 0.12);
+    --authkit-color-selection-text: #111111;
+}
+
+
+/* -------------------------------------------------------------
+ | Dark mode tokens
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="noir-grid"][data-authkit-mode="dark"] {
+    --authkit-color-bg: #080808;
+    --authkit-color-surface: #111111;
+    --authkit-color-surface-alt: #161616;
+
+    --authkit-color-text: #f5f5f5;
+    --authkit-color-text-muted: #a3a3a3;
+
+    --authkit-color-border: #262626;
+    --authkit-color-border-strong: #3a3a3a;
+
+    --authkit-color-primary: #ffffff;
+    --authkit-color-primary-hover: #e7e7e7;
+    --authkit-color-primary-contrast: #0a0a0a;
+
+    --authkit-color-danger: #ff6b6b;
+    --authkit-color-success: #4ade80;
+    --authkit-color-warning: #fbbf24;
+
+    --authkit-color-focus-ring: rgba(255, 255, 255, 0.18);
+
+    --authkit-color-selection-bg: rgba(255, 255, 255, 0.18);
+    --authkit-color-selection-text: #ffffff;
+}
+
+
+/* -------------------------------------------------------------
+ | Global themed surfaces
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="noir-grid"] .authkit-body {
+    background-color: var(--authkit-color-bg);
+    color: var(--authkit-color-text);
+    position: relative;
+}
+
+[data-authkit-theme="noir-grid"] ::selection {
+    background: var(--authkit-color-selection-bg);
+    color: var(--authkit-color-selection-text);
+}
+
+
+/* -------------------------------------------------------------
+ | Theme-specific polish
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="noir-grid"] .authkit-card {
+    background-image: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--authkit-color-surface) 92%, #ffffff 8%) 0%,
+            var(--authkit-color-surface) 100%
+    );
+    border-color: color-mix(in srgb, var(--authkit-color-border) 86%, #111111 14%);
+    box-shadow:
+            0 16px 34px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+[data-authkit-theme="noir-grid"][data-authkit-mode="dark"] .authkit-card {
+    background-image: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--authkit-color-surface) 94%, #ffffff 6%) 0%,
+            var(--authkit-color-surface) 100%
+    );
+    border-color: color-mix(in srgb, var(--authkit-color-border) 82%, #ffffff 18%);
+    box-shadow:
+            0 20px 45px rgba(0, 0, 0, 0.42),
+            inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+
+/* -------------------------------------------------------------
+ | Alerts
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="noir-grid"] .authkit-alert--success {
+    background-color: color-mix(in srgb, var(--authkit-color-success) 9%, var(--authkit-color-surface));
+    border-color: color-mix(in srgb, var(--authkit-color-success) 24%, var(--authkit-color-border));
+}
+
+[data-authkit-theme="noir-grid"] .authkit-alert--danger,
+[data-authkit-theme="noir-grid"] .authkit-alert--error {
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 8%, var(--authkit-color-surface));
+    border-color: color-mix(in srgb, var(--authkit-color-danger) 24%, var(--authkit-color-border));
+}
+
+[data-authkit-theme="noir-grid"] .authkit-alert--warning {
+    background-color: color-mix(in srgb, var(--authkit-color-warning) 10%, var(--authkit-color-surface));
+    border-color: color-mix(in srgb, var(--authkit-color-warning) 24%, var(--authkit-color-border));
+}
+
+[data-authkit-theme="noir-grid"] .authkit-alert--info,
+[data-authkit-theme="noir-grid"] .authkit-alert--default {
+    background-color: color-mix(in srgb, var(--authkit-color-primary) 6%, var(--authkit-color-surface));
+    border-color: color-mix(in srgb, var(--authkit-color-primary) 14%, var(--authkit-color-border));
+}
+
+
+/* -------------------------------------------------------------
+ | Form feedback and separators
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="noir-grid"] .authkit-form-errors {
+    border-color: color-mix(in srgb, var(--authkit-color-danger) 22%, var(--authkit-color-border));
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 6%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="noir-grid"] .authkit-divider {
+    border-top-color: color-mix(in srgb, var(--authkit-color-border) 84%, transparent);
+}
+
+
+/* -------------------------------------------------------------
+ | Inputs and controls
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="noir-grid"] .authkit-input,
+[data-authkit-theme="noir-grid"] .authkit-textarea,
+[data-authkit-theme="noir-grid"] .authkit-select,
+[data-authkit-theme="noir-grid"] .authkit-otp {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 96%, #000000 4%);
+}
+
+[data-authkit-theme="noir-grid"] .authkit-input:hover,
+[data-authkit-theme="noir-grid"] .authkit-textarea:hover,
+[data-authkit-theme="noir-grid"] .authkit-select:hover,
+[data-authkit-theme="noir-grid"] .authkit-otp:hover {
+    border-color: var(--authkit-color-border-strong);
+}
+
+
+/* -------------------------------------------------------------
+ | Buttons and links
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="noir-grid"] .authkit-btn--default,
+[data-authkit-theme="noir-grid"] .authkit-btn--primary {
+    box-shadow:
+            0 10px 24px color-mix(in srgb, var(--authkit-color-primary) 12%, transparent);
+}
+
+[data-authkit-theme="noir-grid"][data-authkit-mode="dark"] .authkit-btn--default,
+[data-authkit-theme="noir-grid"][data-authkit-mode="dark"] .authkit-btn--primary {
+    box-shadow:
+            0 10px 26px rgba(255, 255, 255, 0.08);
+}
+
+[data-authkit-theme="noir-grid"] .authkit-link {
+    text-underline-offset: 0.16em;
+}
+
+
+/* -------------------------------------------------------------
+ | Theme toggle
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="noir-grid"] .authkit-theme-toggle__button,
+[data-authkit-theme="noir-grid"] .authkit-theme-toggle__icon-button,
+[data-authkit-theme="noir-grid"] .authkit-theme-toggle__select {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 94%, #000000 6%);
+    border-color: color-mix(in srgb, var(--authkit-color-border) 84%, #111111 16%);
+}
+
+[data-authkit-theme="noir-grid"] .authkit-theme-toggle__button:hover,
+[data-authkit-theme="noir-grid"] .authkit-theme-toggle__icon-button:hover,
+[data-authkit-theme="noir-grid"] .authkit-theme-toggle__select:hover {
+    background-color: color-mix(in srgb, var(--authkit-color-surface-alt) 94%, #000000 6%);
+}
+
+[data-authkit-theme="noir-grid"] .authkit-theme-toggle__button[data-authkit-theme-toggle-active="true"] {
+    background-color: var(--authkit-color-primary);
+    border-color: var(--authkit-color-primary);
+    color: var(--authkit-color-primary-contrast);
+}

@@ -24,22 +24,17 @@
 
 import { describe, expect, it } from 'vitest';
 
-import {
-    bootAuthKit,
-    getAuthKitState,
-    isAuthKitBooted,
-} from '../../resources/js/authkit/authkit.js';
-
+import '../../resources/js/authkit/authkit.js';
 
 describe('authkit', () => {
-    it('exports the expected public runtime helpers', () => {
-        expect(typeof bootAuthKit).toBe('function');
-        expect(typeof getAuthKitState).toBe('function');
-        expect(typeof isAuthKitBooted).toBe('function');
+    it('exposes the expected public runtime helpers', () => {
+        expect(typeof window.AuthKit.boot).toBe('function');
+        expect(typeof window.AuthKit.state).toBe('function');
+        expect(typeof window.AuthKit.isBooted).toBe('function');
     });
 
     it('boots the AuthKit runtime safely', () => {
-        const state = bootAuthKit();
+        const state = window.AuthKit.boot();
 
         expect(state).toBeDefined();
         expect(typeof state).toBe('object');
@@ -48,15 +43,15 @@ describe('authkit', () => {
     });
 
     it('marks the AuthKit runtime as booted after boot', () => {
-        bootAuthKit();
+        window.AuthKit.boot();
 
-        expect(isAuthKitBooted()).toBe(true);
+        expect(window.AuthKit.isBooted()).toBe(true);
     });
 
     it('returns a readable runtime state snapshot through the public helper', () => {
-        bootAuthKit();
+        window.AuthKit.boot();
 
-        const state = getAuthKitState();
+        const state = window.AuthKit.state();
 
         expect(state).toBeDefined();
         expect(typeof state).toBe('object');
@@ -67,8 +62,8 @@ describe('authkit', () => {
     });
 
     it('supports repeated boot calls safely and idempotently', () => {
-        const firstState = bootAuthKit();
-        const secondState = bootAuthKit();
+        const firstState = window.AuthKit.boot();
+        const secondState = window.AuthKit.boot();
 
         expect(firstState.booted).toBe(true);
         expect(secondState.booted).toBe(true);

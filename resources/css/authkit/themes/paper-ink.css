@@ -1,0 +1,168 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/themes/paper-ink.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Paper Ink theme tokens for AuthKit.
+ *
+ * Purpose:
+ * - Provides a refined editorial-style theme with soft paper surfaces and
+ *   rich ink-like typography.
+ * - Gives AuthKit a calm, premium, print-inspired aesthetic that feels human
+ *   and crafted rather than overly synthetic.
+ * - Works across both packaged engines:
+ *   - tailwind
+ *   - bootstrap
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - This file defines theme colors and theme-specific polish only.
+ * - Structure and layout remain in the base layer.
+ * - Engine files continue to control component language and visual feel.
+ */
+
+:root,
+[data-authkit-theme="paper-ink"] {
+    --authkit-color-bg: #f6f1e8;
+    --authkit-color-surface: #fffdf9;
+    --authkit-color-surface-alt: #f3ede3;
+
+    --authkit-color-text: #241b17;
+    --authkit-color-text-muted: #7b6a61;
+
+    --authkit-color-border: #e2d7ca;
+    --authkit-color-border-strong: #d1c2b2;
+
+    --authkit-color-primary: #2f4f6a;
+    --authkit-color-primary-hover: #243f56;
+    --authkit-color-primary-contrast: #ffffff;
+
+    --authkit-color-danger: #b44d43;
+    --authkit-color-success: #42785d;
+    --authkit-color-warning: #b58635;
+
+    --authkit-color-focus-ring: rgba(47, 79, 106, 0.22);
+
+    --authkit-color-selection-bg: rgba(47, 79, 106, 0.15);
+    --authkit-color-selection-text: #1f1916;
+}
+
+[data-authkit-theme="paper-ink"][data-authkit-mode="dark"] {
+    --authkit-color-bg: #14100d;
+    --authkit-color-surface: #1b1612;
+    --authkit-color-surface-alt: #241d18;
+
+    --authkit-color-text: #f4ede5;
+    --authkit-color-text-muted: #c0afa1;
+
+    --authkit-color-border: #372c25;
+    --authkit-color-border-strong: #493931;
+
+    --authkit-color-primary: #79a8d0;
+    --authkit-color-primary-hover: #90b8db;
+    --authkit-color-primary-contrast: #0f1418;
+
+    --authkit-color-danger: #dd7b70;
+    --authkit-color-success: #6fbc95;
+    --authkit-color-warning: #d7ac63;
+
+    --authkit-color-focus-ring: rgba(121, 168, 208, 0.26);
+
+    --authkit-color-selection-bg: rgba(121, 168, 208, 0.2);
+    --authkit-color-selection-text: #fff8f1;
+}
+
+
+/* -------------------------------------------------------------
+ | Global themed surfaces
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="paper-ink"] .authkit-body {
+    background-color: var(--authkit-color-bg);
+    color: var(--authkit-color-text);
+}
+
+[data-authkit-theme="paper-ink"] ::selection {
+    background: var(--authkit-color-selection-bg);
+    color: var(--authkit-color-selection-text);
+}
+
+
+/* -------------------------------------------------------------
+ | Theme-specific polish
+ |------------------------------------------------------------- */
+
+[data-authkit-theme="paper-ink"] .authkit-card {
+    background-image: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--authkit-color-surface) 94%, #ffffff 6%) 0%,
+            var(--authkit-color-surface) 100%
+    );
+}
+
+[data-authkit-theme="paper-ink"][data-authkit-mode="dark"] .authkit-card {
+    background-image: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--authkit-color-surface) 96%, #ffffff 4%) 0%,
+            var(--authkit-color-surface) 100%
+    );
+}
+
+[data-authkit-theme="paper-ink"] .authkit-auth-header__title {
+    letter-spacing: -0.015em;
+}
+
+[data-authkit-theme="paper-ink"] .authkit-auth-header__subtitle,
+[data-authkit-theme="paper-ink"] .authkit-auth-footer {
+    color: var(--authkit-color-text-muted);
+}
+
+[data-authkit-theme="paper-ink"] .authkit-alert--success {
+    background-color: color-mix(in srgb, var(--authkit-color-success) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="paper-ink"] .authkit-alert--danger,
+[data-authkit-theme="paper-ink"] .authkit-alert--error {
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 9%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="paper-ink"] .authkit-alert--warning {
+    background-color: color-mix(in srgb, var(--authkit-color-warning) 10%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="paper-ink"] .authkit-alert--info,
+[data-authkit-theme="paper-ink"] .authkit-alert--default {
+    background-color: color-mix(in srgb, var(--authkit-color-primary) 8%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="paper-ink"] .authkit-form-errors {
+    border-color: color-mix(in srgb, var(--authkit-color-danger) 28%, var(--authkit-color-border));
+    background-color: color-mix(in srgb, var(--authkit-color-danger) 7%, var(--authkit-color-surface));
+}
+
+[data-authkit-theme="paper-ink"] .authkit-divider {
+    border-top-color: color-mix(in srgb, var(--authkit-color-border) 86%, transparent);
+}
+
+[data-authkit-theme="paper-ink"] .authkit-input,
+[data-authkit-theme="paper-ink"] .authkit-textarea,
+[data-authkit-theme="paper-ink"] .authkit-select,
+[data-authkit-theme="paper-ink"] .authkit-otp {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 96%, var(--authkit-color-primary) 4%);
+}
+
+[data-authkit-theme="paper-ink"][data-authkit-mode="dark"] .authkit-input,
+[data-authkit-theme="paper-ink"][data-authkit-mode="dark"] .authkit-textarea,
+[data-authkit-theme="paper-ink"][data-authkit-mode="dark"] .authkit-select,
+[data-authkit-theme="paper-ink"][data-authkit-mode="dark"] .authkit-otp {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 94%, #000000 6%);
+}
+
+[data-authkit-theme="paper-ink"] .authkit-theme-toggle__button,
+[data-authkit-theme="paper-ink"] .authkit-theme-toggle__icon-button,
+[data-authkit-theme="paper-ink"] .authkit-theme-toggle__select {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 94%, var(--authkit-color-primary) 6%);
+}
