@@ -12,7 +12,7 @@ use Illuminate\Notifications\Messages\MailMessage;
  *
  * Sends a signed verification link for the link driver.
  */
-final class AuthKitVerifyEmailLinkNotification extends Notification implements ShouldQueue
+final class AuthKitVerifyEmailLinkNotification extends Notification
 {
     use Queueable;
 

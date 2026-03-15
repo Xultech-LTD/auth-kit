@@ -32,6 +32,9 @@
     $submit = is_array($schema['submit'] ?? null) ? $schema['submit'] : [];
     $submitLabel = (string) ($submit['label'] ?? 'Continue');
 
+    $status = (string) session('status', session('message', ''));
+    $error = (string) session('error', '');
+
     $pageComponent = (string) data_get($c, 'page', 'authkit::page');
     $fieldsComponent = (string) data_get($c, 'fields', 'authkit::form.fields');
     $pageKey = (string) data_get(config('authkit.javascript.pages', []), 'login.page_key', 'login');
@@ -46,6 +49,18 @@
                     title="Welcome back"
                     subtitle="Login to continue."
             />
+
+            @if ($status !== '')
+                <x-dynamic-component :component="data_get($c, 'alert')" variant="warning">
+                    {{ $status }}
+                </x-dynamic-component>
+            @endif
+
+            @if ($error !== '')
+                <x-dynamic-component :component="data_get($c, 'alert')" variant="error">
+                    {{ $error }}
+                </x-dynamic-component>
+            @endif
 
             <x-dynamic-component :component="data_get($c, 'errors')" />
 

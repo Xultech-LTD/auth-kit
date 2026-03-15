@@ -7,7 +7,7 @@
  *
  * Description:
  * -----------------------------------------------------------------------------
- * Public entry for the AuthKit AJAX forms runtime module.
+ * Public entry for the AuthKit forms runtime module.
  *
  * This file is responsible for exposing the forms module surface used by the
  * shared runtime registry while keeping the internal module files organized and
@@ -15,6 +15,7 @@
  *
  * Responsibilities:
  * - Export the forms module boot function used by the runtime registry.
+ * - Boot both AJAX submission handling and native HTTP loading enhancement.
  * - Re-export core forms helpers for internal extension and testing.
  * - Provide a stable public surface for page modules that want to compose or
  *   extend the AuthKit forms runtime behavior.
@@ -24,13 +25,73 @@
  *   function.
  * - This file should remain lightweight and declarative.
  * - Business logic should stay in the dedicated form module files.
+ * - AJAX form submission behavior remains owned by bind-forms.js.
+ * - Native HTTP submit loading enhancement remains owned by native-loading.js.
  *
  * @package   AuthKit
  * @author    Michael Erastus
  * @license   MIT
  */
 
-export { bootForms as boot } from './bind-forms.js';
+import { bootForms } from './bind-forms.js';
+import { bootNativeLoading } from './native-loading.js';
+
+
+/**
+ * Boot the full AuthKit forms runtime.
+ *
+ * Responsibilities:
+ * - Boot AJAX-managed forms.
+ * - Boot native HTTP loading enhancement for non-AJAX forms.
+ * - Return combined runtime metadata and a unified cleanup callback.
+ *
+ * Returned shape:
+ * - ajax: boot result from bootForms()
+ * - native: boot result from bootNativeLoading()
+ * - forms: combined unique forms array
+ * - count: total combined unique form count
+ * - cleanup: removes both AJAX and native-loading bindings
+ *
+ * Notes:
+ * - This function is exported as `boot` because the shared runtime registry
+ *   expects every module entry to expose a boot(context) function.
+ * - Keeping `boot` as the canonical export preserves compatibility with the
+ *   existing module registry and runtime boot pipeline.
+ *
+ * @param {Object|null} context
+ * @returns {{
+ *   ajax: {forms: HTMLFormElement[], count: number, cleanup: Function},
+ *   native: {forms: HTMLFormElement[], count: number, cleanup: Function},
+ *   forms: HTMLFormElement[],
+ *   count: number,
+ *   cleanup: Function
+ * }}
+ */
+export function boot(context) {
+    const ajax = bootForms(context);
+    const native = bootNativeLoading(context);
+
+    const forms = Array.from(new Set([
+        ...(Array.isArray(ajax?.forms) ? ajax.forms : []),
+        ...(Array.isArray(native?.forms) ? native.forms : []),
+    ]));
+
+    return {
+        ajax,
+        native,
+        forms,
+        count: forms.length,
+        cleanup() {
+            if (typeof ajax?.cleanup === 'function') {
+                ajax.cleanup();
+            }
+
+            if (typeof native?.cleanup === 'function') {
+                native.cleanup();
+            }
+        },
+    };
+}
 
 export {
     createFormState,
@@ -83,6 +144,20 @@ export {
 } from './handle-error.js';
 
 export {
+    getLoadingConfig,
+    getSubmitButtons,
+    getButtonLabelElement,
+    getButtonLoaderElement,
+    resolveButtonLoadingType,
+    resolveButtonLoadingText,
+    captureButtonState,
+    applyButtonLoadingState,
+    clearButtonLoadingState,
+    applyLoadingState,
+    clearLoadingState,
+} from './loading.js';
+
+export {
     shouldSubmitAsJson,
     getSubmitSerialization,
     resolveSubmitUrl,
@@ -94,12 +169,14 @@ export {
     createBeforeSubmitDetail,
     emitBeforeSubmit,
     beginSubmitState,
+    endSubmitState,
     createTransportErrorResult,
     submitForm,
 } from './submit.js';
 
 export {
     isFormElement,
+    shouldPreventDoubleSubmit,
     isFormBound,
     getFormBinding,
     unbindForm,
@@ -109,3 +186,19 @@ export {
     rebindForm,
     bootForms,
 } from './bind-forms.js';
+
+export {
+    getAjaxAttribute,
+    isAjaxManagedForm,
+    shouldPreventDoubleSubmit as shouldPreventNativeDoubleSubmit,
+    shouldBindNativeLoading,
+    isNativeLoadingBound,
+    getNativeLoadingBinding,
+    unbindNativeLoadingForm,
+    bindNativeLoadingForm,
+    bindNativeLoadingForms,
+    unbindNativeLoadingForms,
+    rebindNativeLoadingForm,
+    getNativeLoadingForms,
+    bootNativeLoading,
+} from './native-loading.js';

@@ -12,7 +12,7 @@ use Illuminate\Notifications\Messages\MailMessage;
  *
  * Sends a verification token/code for the token driver.
  */
-final class AuthKitVerifyEmailTokenNotification extends Notification implements ShouldQueue
+final class AuthKitVerifyEmailTokenNotification extends Notification
 {
     use Queueable;
 

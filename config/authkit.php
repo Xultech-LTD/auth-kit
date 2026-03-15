@@ -1277,20 +1277,20 @@ return [
              * Whether AuthKit should register its default delivery listener.
              *
              * When true:
-             * - The package listener will send the verification message
-             *   using the configured notifier.
+             * - The package listener will handle delivery using the configured
+             *   notifier and delivery execution mode.
              *
              * When false:
              * - The application must listen for the
-             *   AuthKitEmailVerificationRequired event and handle delivery.
+             *   AuthKitEmailVerificationRequired event and handle delivery itself.
              */
             'use_listener' => true,
 
             /**
              * Delivery listener class registered for AuthKitEmailVerificationRequired.
              *
-             * This listener is responsible for delegating verification delivery
-             * to the configured notifier.
+             * This listener is responsible for orchestrating delivery using the
+             * configured notifier and execution mode.
              *
              * The class must be a valid listener for:
              * Xul\AuthKit\Events\AuthKitEmailVerificationRequired
@@ -1303,10 +1303,58 @@ return [
              * The class must implement:
              * Xul\AuthKit\Contracts\EmailVerificationNotifierContract
              *
-             * Consumers may replace this with their own notifier
-             * (for example: queue-based delivery, SMS delivery, etc.).
+             * Consumers may replace this with their own notifier to support
+             * alternate delivery channels or custom notification logic.
              */
             'notifier' => \Xul\AuthKit\Support\Notifiers\EmailVerificationNotifier::class,
+
+            /**
+             * Delivery execution mode used by the default listener.
+             *
+             * Supported values:
+             * - sync           : send immediately during the current request
+             * - queue          : dispatch delivery to the queue
+             * - after_response : defer delivery until after the HTTP response is sent
+             *
+             * Notes:
+             * - This option affects only the package's default listener flow.
+             * - If use_listener=false, the application becomes fully responsible
+             *   for deciding how delivery is executed.
+             */
+            'mode' => 'sync',
+
+            /**
+             * Queue connection used when delivery mode is "queue".
+             *
+             * Examples:
+             * - null      : use the application's default queue connection
+             * - 'database'
+             * - 'redis'
+             * - 'sqs'
+             */
+            'queue_connection' => null,
+
+            /**
+             * Queue name used when delivery mode is "queue".
+             *
+             * Examples:
+             * - null
+             * - 'default'
+             * - 'mail'
+             * - 'notifications'
+             */
+            'queue' => null,
+
+            /**
+             * Optional delivery delay in seconds.
+             *
+             * When greater than zero and delivery mode is "queue", AuthKit will
+             * delay job execution by the configured number of seconds.
+             *
+             * This is ignored for "sync" mode and may be ignored for
+             * "after_response" mode depending on the implementation.
+             */
+            'delay' => 0,
         ],
 
         /**
@@ -1417,17 +1465,21 @@ return [
             /**
              * Whether AuthKit should register its default delivery listener.
              *
+             * When true:
+             * - The package listener will handle password reset delivery using the
+             *   configured notifier and execution mode.
+             *
              * When false:
              * - The application must listen for the password reset event
-             *   and handle delivery.
+             *   and handle delivery itself.
              */
             'use_listener' => true,
 
             /**
              * Delivery listener class registered for password reset events.
              *
-             * This listener is responsible for delegating delivery
-             * to the configured notifier.
+             * This listener is responsible for orchestrating delivery using the
+             * configured notifier and execution mode.
              */
             'listener' => \Xul\AuthKit\Listeners\SendPasswordResetNotification::class,
 
@@ -1437,10 +1489,58 @@ return [
              * The class must implement:
              * Xul\AuthKit\Contracts\PasswordReset\PasswordResetNotifierContract
              *
-             * Consumers may replace this with their own notifier
-             * (for example: queue-based delivery, SMS delivery, etc.).
+             * Consumers may replace this with their own notifier to support
+             * alternate delivery channels or custom notification logic.
              */
             'notifier' => \Xul\AuthKit\Support\Notifiers\PasswordResetNotifier::class,
+
+            /**
+             * Delivery execution mode used by the default listener.
+             *
+             * Supported values:
+             * - sync           : send immediately during the current request
+             * - queue          : dispatch delivery to the queue
+             * - after_response : defer delivery until after the HTTP response is sent
+             *
+             * Notes:
+             * - This option affects only the package's default listener flow.
+             * - If use_listener=false, the application becomes fully responsible
+             *   for deciding how delivery is executed.
+             */
+            'mode' => 'sync',
+
+            /**
+             * Queue connection used when delivery mode is "queue".
+             *
+             * Examples:
+             * - null      : use the application's default queue connection
+             * - 'database'
+             * - 'redis'
+             * - 'sqs'
+             */
+            'queue_connection' => null,
+
+            /**
+             * Queue name used when delivery mode is "queue".
+             *
+             * Examples:
+             * - null
+             * - 'default'
+             * - 'mail'
+             * - 'notifications'
+             */
+            'queue' => null,
+
+            /**
+             * Optional delivery delay in seconds.
+             *
+             * When greater than zero and delivery mode is "queue", AuthKit will
+             * delay job execution by the configured number of seconds.
+             *
+             * This is ignored for "sync" mode and may be ignored for
+             * "after_response" mode depending on the implementation.
+             */
+            'delay' => 0,
         ],
 
         /**

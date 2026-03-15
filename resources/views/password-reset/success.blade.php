@@ -34,8 +34,8 @@
                     subtitle="You can now sign in with your new password."
             />
 
-            {{-- Success Alert --}}
-            <x-dynamic-component :component="data_get($c, 'alert')">
+            {{-- Status Alert --}}
+            <x-dynamic-component :component="data_get($c, 'alert')" variant="warning">
                 {{ $status }}
             </x-dynamic-component>
 

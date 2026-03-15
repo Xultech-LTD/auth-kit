@@ -15,6 +15,7 @@
     $webNames = (array) config('authkit.route_names.web', []);
 
     $login = (string) ($webNames['login'] ?? 'authkit.web.login');
+    $status = (string) ($status ?? session('status', session('message', 'Email verified successfully.')));
     $pageComponent = (string) data_get($c, 'page', 'authkit::page');
     $pageKey = (string) data_get(config('authkit.javascript.pages', []), 'email_verification_success.page_key', 'email_verification_success');
 @endphp
@@ -35,8 +36,8 @@
                     subtitle="You can now continue."
             />
 
-            {{-- Success Alert --}}
-            <x-dynamic-component :component="data_get($c, 'alert')">
+            {{-- Status Alert --}}
+            <x-dynamic-component :component="data_get($c, 'alert')" variant="warning">
                 {{ $status }}
             </x-dynamic-component>
 

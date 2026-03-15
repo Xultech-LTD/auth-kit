@@ -38,6 +38,9 @@
     $submit = is_array($schema['submit'] ?? null) ? $schema['submit'] : [];
     $submitLabel = (string) ($submit['label'] ?? 'Continue');
 
+    $status = (string) session('status', session('message', ''));
+    $error = (string) session('error', '');
+
     $fieldsComponent = (string) data_get($c, 'fields', 'authkit::form.fields');
     $pageComponent = (string) data_get($c, 'page', 'authkit::page');
     $pageKey = (string) data_get(config('authkit.javascript.pages', []), 'two_factor_recovery.page_key', 'two_factor_recovery');
@@ -52,6 +55,18 @@
                     title="Use a recovery code"
                     subtitle="Enter one of your saved recovery codes to continue."
             />
+
+            @if ($status !== '')
+                <x-dynamic-component :component="data_get($c, 'alert')" variant="warning">
+                    {{ $status }}
+                </x-dynamic-component>
+            @endif
+
+            @if ($error !== '')
+                <x-dynamic-component :component="data_get($c, 'alert')" variant="error">
+                    {{ $error }}
+                </x-dynamic-component>
+            @endif
 
             <x-dynamic-component :component="data_get($c, 'errors')" />
 

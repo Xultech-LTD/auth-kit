@@ -58,16 +58,18 @@
             />
 
             @if ($status !== '')
-                <x-dynamic-component :component="data_get($c, 'alert')">
+                <x-dynamic-component :component="data_get($c, 'alert')" variant="warning">
                     {{ $status }}
                 </x-dynamic-component>
             @endif
 
             @if ($error !== '')
-                <x-dynamic-component :component="data_get($c, 'alert')">
+                <x-dynamic-component :component="data_get($c, 'alert')" variant="error">
                     {{ $error }}
                 </x-dynamic-component>
             @endif
+
+            <x-dynamic-component :component="data_get($c, 'errors')" />
 
             <form method="post" action="{{ route($resetPassword) }}" @if($isAjax) {{ $ajaxAttr }}="1" @endif>
             @csrf

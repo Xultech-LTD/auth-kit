@@ -2,20 +2,18 @@
 
 namespace Xul\AuthKit\Listeners;
 
+use Illuminate\Support\Facades\App;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetNotifierContract;
 use Xul\AuthKit\Events\AuthKitPasswordResetRequested;
+use Xul\AuthKit\Jobs\SendPasswordResetNotificationJob;
 
 /**
  * SendPasswordResetNotification
  *
- * Default listener that delivers password reset instructions using the configured notifier.
+ * Default listener responsible for delivering password reset instructions.
  *
- * Consumers can disable this listener via:
- * authkit.password_reset.delivery.use_listener = false
- *
- * Or swap:
- * - authkit.password_reset.delivery.listener
- * - authkit.password_reset.delivery.notifier
+ * Execution mode is controlled by:
+ * authkit.password_reset.delivery.mode
  */
 final class SendPasswordResetNotification
 {
@@ -25,11 +23,53 @@ final class SendPasswordResetNotification
 
     /**
      * Handle the event.
-     *
-     * @param AuthKitPasswordResetRequested $event
-     * @return void
      */
     public function handle(AuthKitPasswordResetRequested $event): void
+    {
+        $config = config('authkit.password_reset.delivery');
+
+        $mode = $config['mode'] ?? 'sync';
+
+        if ($mode === 'queue') {
+            $job = new SendPasswordResetNotificationJob(
+                $event->driver,
+                $event->email,
+                $event->token,
+                $event->url
+            );
+
+            if ($config['queue_connection']) {
+                $job->onConnection($config['queue_connection']);
+            }
+
+            if ($config['queue']) {
+                $job->onQueue($config['queue']);
+            }
+
+            if (($config['delay'] ?? 0) > 0) {
+                $job->delay(now()->addSeconds($config['delay']));
+            }
+
+            dispatch($job);
+
+            return;
+        }
+
+        if ($mode === 'after_response') {
+            App::terminating(function () use ($event) {
+                $this->deliver($event);
+            });
+
+            return;
+        }
+
+        $this->deliver($event);
+    }
+
+    /**
+     * Execute notifier delivery.
+     */
+    protected function deliver(AuthKitPasswordResetRequested $event): void
     {
         $this->notifier->send(
             driver: $event->driver,
