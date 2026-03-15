@@ -8,7 +8,11 @@
  * -----------------------------------------------------------------------------
  * Button component styles for AuthKit.
  *
- * Buttons are used for primary and secondary form actions throughout AuthKit.
+ * This file defines the shared visual structure for AuthKit buttons, including:
+ * - base button layout
+ * - button content wrappers
+ * - loading-state hooks
+ * - built-in visual variants
  *
  * Supported variants:
  * - .authkit-btn--default
@@ -17,11 +21,29 @@
  * - .authkit-btn--danger
  * - .authkit-btn--ghost
  *
+ * Internal structure:
+ * - .authkit-btn
+ *   └── .authkit-btn__content
+ *       ├── .authkit-btn__loader
+ *       └── .authkit-btn__label
+ *
+ * Loading hooks:
+ * - .authkit-btn--loading
+ *
  * Notes:
  * -----------------------------------------------------------------------------
  * - The default button currently behaves as the primary button.
  * - Engine styles may refine sizing, shadows, and border treatment.
+ * - The loader wrapper is hidden by default and becomes visible when the button
+ *   enters the loading state.
+ * - The loading state hooks are intentionally present even before JavaScript
+ *   loading orchestration is fully wired.
  */
+
+
+/* -------------------------------------------------------------
+ | Base button
+ |------------------------------------------------------------- */
 
 .authkit-btn {
     display: inline-flex;
@@ -48,7 +70,8 @@
             border-color var(--authkit-transition-fast),
             color var(--authkit-transition-fast),
             box-shadow var(--authkit-transition-fast),
-            transform var(--authkit-transition-fast);
+            transform var(--authkit-transition-fast),
+            opacity var(--authkit-transition-fast);
 }
 
 .authkit-btn:focus-visible {
@@ -67,6 +90,62 @@
     pointer-events: none;
     opacity: 0.65;
 }
+
+
+/* -------------------------------------------------------------
+ | Internal button structure
+ |------------------------------------------------------------- */
+
+.authkit-btn__content {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--authkit-space-2);
+
+    width: 100%;
+    min-width: 0;
+}
+
+.authkit-btn__loader {
+    display: none;
+    flex: 0 0 auto;
+
+    width: 1em;
+    height: 1em;
+
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 9999px;
+
+    animation: authkit-btn-spin 0.7s linear infinite;
+}
+
+.authkit-btn__label {
+    display: inline-block;
+    min-width: 0;
+}
+
+
+/* -------------------------------------------------------------
+ | Loading state
+ |------------------------------------------------------------- */
+
+.authkit-btn--loading {
+    cursor: progress;
+}
+
+.authkit-btn--loading .authkit-btn__loader {
+    display: inline-block;
+}
+
+.authkit-btn--loading .authkit-btn__content {
+    white-space: nowrap;
+}
+
+
+/* -------------------------------------------------------------
+ | Variants
+ |------------------------------------------------------------- */
 
 .authkit-btn--default,
 .authkit-btn--primary {
@@ -106,4 +185,15 @@
 
 .authkit-btn--ghost:hover {
     background-color: var(--authkit-color-surface-alt);
+}
+
+
+/* -------------------------------------------------------------
+ | Animation
+ |------------------------------------------------------------- */
+
+@keyframes authkit-btn-spin {
+    to {
+        transform: rotate(360deg);
+    }
 }

@@ -10,19 +10,21 @@
  * Form submission orchestration utilities for the AuthKit AJAX forms module.
  *
  * This file is responsible for executing a normalized AuthKit form submission
- * lifecycle using the shared state, serializer, HTTP layer, and result
- * handlers.
+ * lifecycle using the shared state, serializer, HTTP layer, loading-state
+ * helpers, and result handlers.
  *
  * Responsibilities:
  * - Resolve the submission target URL and HTTP method.
  * - Serialize the form payload according to the active submission mode.
  * - Dispatch the pre-submit AuthKit browser event.
  * - Mark the form state as actively submitting.
+ * - Apply submit-button loading UI during the active request window.
  * - Execute the HTTP request through the shared core HTTP utility.
  * - Route the normalized HTTP result into success or error handlers.
  * - Convert thrown transport failures into normalized error results.
  * - Apply configured redirect behavior after successful submissions.
  * - Render normalized success and error feedback into the DOM.
+ * - Clear temporary loading UI after the request completes.
  *
  * Design notes:
  * - This file does not bind DOM event listeners directly.
@@ -30,6 +32,7 @@
  * - This file is intentionally orchestration-focused and delegates:
  *   - payload creation to serialize.js
  *   - state mutation to state.js
+ *   - loading-state DOM management to loading.js
  *   - result normalization to handle-success.js and handle-error.js
  *   - redirect handling to redirect.js
  *   - DOM feedback rendering to render-feedback.js
@@ -58,6 +61,7 @@ import { handleSuccess } from './handle-success.js';
 import { handleError } from './handle-error.js';
 import { handleRedirect } from './redirect.js';
 import { clearRenderedFeedback, renderFormFeedback } from './render-feedback.js';
+import { applyLoadingState, clearLoadingState } from './loading.js';
 import { getConfigValue } from '../../core/config.js';
 
 
@@ -85,7 +89,6 @@ export function shouldSubmitAsJson(options = {}) {
 
     return getConfigValue('forms.ajax.submitJson', false) === true;
 }
-
 
 
 /**
@@ -325,6 +328,7 @@ export function beginSubmitState(formState, submitRequest) {
         requestMethod: submitRequest.method,
         asJson: submitRequest.asJson === true,
         outcome: null,
+        loading: true,
     });
 
     setSubmitting(formState, true);
@@ -332,6 +336,20 @@ export function beginSubmitState(formState, submitRequest) {
     return formState;
 }
 
+
+/**
+ * Clear loading-state metadata after request completion.
+ *
+ * @param {Object} formState
+ * @returns {Object|null}
+ */
+export function endSubmitState(formState) {
+    setMeta(formState, {
+        loading: false,
+    });
+
+    return formState;
+}
 
 
 /**
@@ -359,6 +377,7 @@ export function createTransportErrorResult(error) {
     };
 }
 
+
 /**
  * Submit an AuthKit form through the shared runtime HTTP flow.
  *
@@ -366,8 +385,10 @@ export function createTransportErrorResult(error) {
  * - resolve request details
  * - emit the before-submit event
  * - prepare state for submission
+ * - apply loading state
  * - execute the HTTP request
  * - route the result into success or error handling
+ * - clear loading state
  *
  * Optional hooks:
  * - options.beforeSubmit(form, submitRequest, formState, context)
@@ -409,6 +430,7 @@ export async function submitForm(context, form, formState, options = {}) {
 
     emitBeforeSubmit(context, form, submitRequest);
     beginSubmitState(formState, submitRequest);
+    applyLoadingState(form, context, options);
 
     const requestOptions = {
         method: submitRequest.method,
@@ -443,6 +465,9 @@ export async function submitForm(context, form, formState, options = {}) {
             normalizedResult?.ok === true ? 'success' : 'error'
         );
 
+        endSubmitState(formState);
+        clearLoadingState(form, context, options);
+
         if (normalizedResult?.ok === true) {
             handleRedirect(context, normalizedResult);
         }
@@ -452,7 +477,6 @@ export async function submitForm(context, form, formState, options = {}) {
         }
 
         return normalizedResult;
-
     } catch (error) {
         const normalizedResult = handleError(
             context,
@@ -463,11 +487,13 @@ export async function submitForm(context, form, formState, options = {}) {
 
         renderFormFeedback(form, formState, 'error');
 
+        endSubmitState(formState);
+        clearLoadingState(form, context, options);
+
         if (isFunction(options.afterSubmit)) {
             await options.afterSubmit(normalizedResult, form, formState, context);
         }
 
         return normalizedResult;
-
     }
 }

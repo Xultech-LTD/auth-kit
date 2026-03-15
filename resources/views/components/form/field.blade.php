@@ -124,6 +124,7 @@
     $labelComponent = (string) ($components['label'] ?? 'authkit::form.label');
     $helpComponent = (string) ($components['help'] ?? 'authkit::form.help');
     $errorComponent = (string) ($components['error'] ?? 'authkit::form.error');
+    $optionItemsComponent = (string) ($components['option_items'] ?? 'authkit::form.option-items');
 
     /**
      * Field-type helpers.
@@ -138,16 +139,17 @@
      * Selection resolution for select/multiselect controls.
      */
     $selectedValues = $multiple
-        ? (array) old($name, is_array($value) ? $value : [])
-        : [old($name, $value)];
+        ? array_map(
+            static fn ($item) => (string) $item,
+            (array) old($name, is_array($value) ? $value : [])
+        )
+        : [(string) old($name, $value)];
 @endphp
 
-{{-- Do not render anything when the field has no usable name. --}}
 @if ($name === '')
     @php return; @endphp
 @endif
 
-{{-- Hidden fields are rendered without wrapper, label, help, or error UI. --}}
 @if ($isHidden)
     <x-dynamic-component
             :component="$component"
@@ -160,13 +162,11 @@
     @php return; @endphp
 @endif
 
-{{-- Respect explicit render=false for non-hidden fields. --}}
 @if (! $render)
     @php return; @endphp
 @endif
 
 <div {{ (new \Illuminate\View\ComponentAttributeBag($wrapperAttributes)) }}>
-    {{-- Checkbox fields render through their own path because label text is slot-based. --}}
     @if ($isCheckbox)
         <x-dynamic-component
                 :component="$component"
@@ -183,9 +183,7 @@
                 :name="$name"
                 :unstyled="$unstyled"
         />
-
     @else
-        {{-- Render label only when present. --}}
         @if ($label !== '')
             <x-dynamic-component
                     :component="$labelComponent"
@@ -196,7 +194,6 @@
             </x-dynamic-component>
         @endif
 
-        {{-- Render the appropriate control primitive by normalized field type. --}}
         @if ($isTextarea)
             <x-dynamic-component
                     :component="$component"
@@ -209,7 +206,6 @@
                     :required="$required"
                     :unstyled="$unstyled"
             />
-
         @elseif ($isSelectLike)
             <x-dynamic-component
                     :component="$component"
@@ -220,51 +216,16 @@
                     :required="$required"
                     :unstyled="$unstyled"
             >
-                @foreach ($options as $option)
-                    @if (isset($option['label'], $option['options']) && is_array($option['options']))
-                        <optgroup label="{{ (string) $option['label'] }}">
-                            @foreach ($option['options'] as $grouped)
-                                @php
-                                    $optionValue = $grouped['value'] ?? null;
-                                    $optionLabel = (string) ($grouped['label'] ?? '');
-                                    $optionDisabled = (bool) ($grouped['disabled'] ?? false);
-                                    $optionAttributes = new \Illuminate\View\ComponentAttributeBag(
-                                        is_array($grouped['attributes'] ?? null) ? $grouped['attributes'] : []
-                                    );
-                                @endphp
+                @if (! $multiple && is_string($placeholder) && trim($placeholder) !== '')
+                    <option value="">{{ $placeholder }}</option>
+                @endif
 
-                                <option
-                                        value="{{ $optionValue }}"
-                                        @selected(in_array($optionValue, $selectedValues, true))
-                                        @disabled($optionDisabled)
-                                        {{ $optionAttributes }}
-                                >
-                                    {{ $optionLabel }}
-                                </option>
-                            @endforeach
-                        </optgroup>
-                    @else
-                        @php
-                            $optionValue = $option['value'] ?? null;
-                            $optionLabel = (string) ($option['label'] ?? '');
-                            $optionDisabled = (bool) ($option['disabled'] ?? false);
-                            $optionAttributes = new \Illuminate\View\ComponentAttributeBag(
-                                is_array($option['attributes'] ?? null) ? $option['attributes'] : []
-                            );
-                        @endphp
-
-                        <option
-                                value="{{ $optionValue }}"
-                                @selected(in_array($optionValue, $selectedValues, true))
-                                @disabled($optionDisabled)
-                                {{ $optionAttributes }}
-                        >
-                            {{ $optionLabel }}
-                        </option>
-                    @endif
-                @endforeach
+                <x-dynamic-component
+                        :component="$optionItemsComponent"
+                        :options="$options"
+                        :selected-values="$selectedValues"
+                />
             </x-dynamic-component>
-
         @elseif ($isOtp)
             <x-dynamic-component
                     :component="$component"
@@ -277,7 +238,6 @@
                     :required="$required"
                     :unstyled="$unstyled"
             />
-
         @else
             <x-dynamic-component
                     :component="$component"
@@ -294,7 +254,6 @@
             />
         @endif
 
-        {{-- Optional help text rendered beneath the control. --}}
         @if (is_string($help) && $help !== '')
             <x-dynamic-component
                     :component="$helpComponent"
@@ -304,7 +263,6 @@
             </x-dynamic-component>
         @endif
 
-        {{-- Inline validation feedback for visible non-checkbox controls. --}}
         <x-dynamic-component
                 :component="$errorComponent"
                 :name="$name"

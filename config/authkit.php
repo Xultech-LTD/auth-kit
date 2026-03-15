@@ -986,66 +986,232 @@ return [
         ],
     ],
 
-    /**
-     * Form submission configuration.
-     *
-     * AuthKit supports two UX modes for submitting forms:
-     * - 'http': Standard form POST with full page navigation (SSR).
-     * - 'ajax': Submit via JavaScript (fetch/XHR) and handle responses client-side.
-     *
-     * This is a package-wide default. Pages may later override this per-form if needed.
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Form Submission UI
+    |--------------------------------------------------------------------------
+    |
+    | These options control the client-side loading/busy state applied when an
+    | AuthKit-managed form is submitted.
+    |
+    | The loading system is intended to work for both:
+    | - normal HTTP submissions
+    | - AJAX submissions handled by the AuthKit browser runtime
+    |
+    | Design goals:
+    | - prevent duplicate submissions
+    | - provide visible feedback while a request is in progress
+    | - remain configurable without hard-coding one loading style
+    | - allow future extension for custom HTML, components, or external libraries
+    |
+    */
     'forms' => [
 
-        /**
-         * Global submission mode.
-         *
-         * Allowed: 'http', 'ajax'
-         */
+        /*
+        |--------------------------------------------------------------------------
+        | Submission Mode
+        |--------------------------------------------------------------------------
+        |
+        | Controls the default form transport mode used by AuthKit pages.
+        |
+        | Supported values:
+        | - http : regular browser form submission
+        | - ajax : JavaScript-driven submission through the AuthKit runtime
+        |
+        */
         'mode' => 'http',
 
-        /**
-         * AJAX defaults (used when mode='ajax').
-         *
-         * These values are intentionally generic so consumers can plug any JS driver:
-         * Alpine, htmx, Livewire, custom fetch, etc.
-         */
+        /*
+        |--------------------------------------------------------------------------
+        | AJAX Form Settings
+        |--------------------------------------------------------------------------
+        |
+        | These options are used when forms are submitted through the AuthKit
+        | JavaScript runtime.
+        |
+        */
         'ajax' => [
 
-            /**
-             * HTML attribute used to mark forms as AuthKit-AJAX enabled.
-             * Your JS can query this attribute and attach submit handlers.
-             *
-             * Example:
-             * <form data-authkit-ajax="1">...</form>
-             */
+            /*
+            |--------------------------------------------------------------------------
+            | AJAX Marker Attribute
+            |--------------------------------------------------------------------------
+            |
+            | Forms containing this attribute are treated as AuthKit AJAX forms by
+            | the browser runtime.
+            |
+            */
             'attribute' => 'data-authkit-ajax',
 
-            /**
-             * Whether AuthKit should attempt to submit as JSON by default.
-             * If true, JS should send:
-             * - Accept: application/json
-             * - Content-Type: application/json (or formdata if you prefer)
-             *
-             * If false, JS can submit as FormData and still set Accept: application/json.
-             */
+            /*
+            |--------------------------------------------------------------------------
+            | JSON Submission
+            |--------------------------------------------------------------------------
+            |
+            | When true, AJAX submissions are sent as JSON payloads by default.
+            | When false, FormData is used.
+            |
+            */
             'submit_json' => true,
 
-            /**
-             * Default behavior after a successful AJAX submission.
-             *
-             * - 'redirect': Redirect to a URL returned by server, or to fallback_redirect.
-             * - 'none': Do nothing automatically; consumer JS handles it.
-             */
+            /*
+            |--------------------------------------------------------------------------
+            | Success Behavior
+            |--------------------------------------------------------------------------
+            |
+            | Controls what the runtime should do after a successful AJAX form
+            | submission.
+            |
+            | Supported values:
+            | - redirect : follow redirect intent from the response when available
+            | - none     : do not redirect automatically
+            |
+            */
             'success_behavior' => 'redirect',
 
-            /**
-             * Fallback redirect used when success_behavior='redirect'
-             * and the server does not provide a redirect URL.
-             *
-             * If null, JS decides.
-             */
+            /*
+            |--------------------------------------------------------------------------
+            | Fallback Redirect
+            |--------------------------------------------------------------------------
+            |
+            | Optional URL used when success behavior is "redirect" but the server
+            | response does not provide its own redirect target.
+            |
+            */
             'fallback_redirect' => null,
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | Loading State
+        |--------------------------------------------------------------------------
+        |
+        | Controls the client-side busy/loading state applied to submit actions
+        | while a form request is being processed.
+        |
+        | This system is configuration-driven so consumers may later customize:
+        | - loading text
+        | - spinner-only behavior
+        | - spinner + text behavior
+        | - custom HTML loaders
+        |
+        | Future versions may also support custom Blade components or external
+        | library integrations without changing the overall config shape.
+        |
+        */
+        'loading' => [
+
+            /*
+            |--------------------------------------------------------------------------
+            | Enable Loading State
+            |--------------------------------------------------------------------------
+            |
+            | When true, AuthKit applies a temporary busy state to the submit
+            | button while a submission is in progress.
+            |
+            */
+            'enabled' => true,
+
+            /*
+            |--------------------------------------------------------------------------
+            | Prevent Double Submission
+            |--------------------------------------------------------------------------
+            |
+            | When true, AuthKit ignores repeated submit attempts while the current
+            | form is already submitting.
+            |
+            */
+            'prevent_double_submit' => true,
+
+            /*
+            |--------------------------------------------------------------------------
+            | Disable Submit Control
+            |--------------------------------------------------------------------------
+            |
+            | When true, submit buttons are disabled during the active submission
+            | window.
+            |
+            */
+            'disable_submit' => true,
+
+            /*
+            |--------------------------------------------------------------------------
+            | Set ARIA Busy
+            |--------------------------------------------------------------------------
+            |
+            | When true, AuthKit adds aria-busy="true" to the form during
+            | submission to improve accessibility and machine-readable state.
+            |
+            */
+            'set_aria_busy' => true,
+
+            /*
+            |--------------------------------------------------------------------------
+            | Loading Presentation Type
+            |--------------------------------------------------------------------------
+            |
+            | Controls the built-in visual style applied to the submit button while
+            | submitting.
+            |
+            | Supported values:
+            | - text         : replace the label with loading text only
+            | - spinner      : show spinner only
+            | - spinner_text : show spinner and loading text
+            | - custom_html  : render configured HTML markup
+            |
+            */
+            'type' => 'spinner_text',
+
+            /*
+            |--------------------------------------------------------------------------
+            | Loading Text
+            |--------------------------------------------------------------------------
+            |
+            | Default text displayed while a form submission is in progress.
+            |
+            | This may later be overridden per form from resolved schema submit
+            | configuration.
+            |
+            */
+            'text' => 'Processing...',
+
+            /*
+            |--------------------------------------------------------------------------
+            | Show Text
+            |--------------------------------------------------------------------------
+            |
+            | When false, AuthKit may hide loading text even for loading types that
+            | normally support text output.
+            |
+            */
+            'show_text' => true,
+
+            /*
+            |--------------------------------------------------------------------------
+            | Custom Loading HTML
+            |--------------------------------------------------------------------------
+            |
+            | Optional HTML markup used when the loading type is set to
+            | "custom_html".
+            |
+            | This should be a small inline-safe snippet such as:
+            | - <span class="my-loader" aria-hidden="true"></span>
+            | - <svg ...></svg>
+            |
+            | Leave null to use only built-in loading behavior.
+            |
+            */
+            'html' => null,
+
+            /*
+            |--------------------------------------------------------------------------
+            | Loading State Class
+            |--------------------------------------------------------------------------
+            |
+            | CSS class applied to the submit control while loading is active.
+            |
+            */
+            'class' => 'authkit-btn--loading',
         ],
     ],
 
@@ -2007,6 +2173,7 @@ return [
          */
         'field' => 'authkit::form.field',
         'fields' => 'authkit::form.fields',
+        'option_items' => 'authkit::form.option-items',
     ],
 
     /**

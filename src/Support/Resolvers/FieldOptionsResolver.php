@@ -198,6 +198,27 @@ final class FieldOptionsResolver implements FieldOptionsResolverContract
     /**
      * Normalize option items into a standard shape.
      *
+     * Supported normalized shapes:
+     *
+     * Flat option:
+     * [
+     *     'value' => 'ng',
+     *     'label' => 'Nigeria',
+     *     'disabled' => false,
+     *     'attributes' => [],
+     * ]
+     *
+     * Grouped option:
+     * [
+     *     'label' => 'Africa',
+     *     'options' => [
+     *         ['value' => 'ng', 'label' => 'Nigeria'],
+     *         ['value' => 'gh', 'label' => 'Ghana'],
+     *     ],
+     *     'disabled' => false,
+     *     'attributes' => [],
+     * ]
+     *
      * @param  array<int, mixed>  $items
      * @return array<int, array<string, mixed>>
      */
@@ -210,11 +231,14 @@ final class FieldOptionsResolver implements FieldOptionsResolverContract
                 continue;
             }
 
-            // Grouped options
-            if (isset($item['label'], $item['options']) && is_array($item['options'])) {
+            $isGrouped = isset($item['label'], $item['options']) && is_array($item['options']);
+
+            if ($isGrouped) {
                 $normalized[] = [
                     'label' => (string) $item['label'],
                     'options' => $this->normalizeOptionItems($item['options']),
+                    'disabled' => $this->bool($item['disabled'] ?? false),
+                    'attributes' => is_array($item['attributes'] ?? null) ? $item['attributes'] : [],
                 ];
 
                 continue;

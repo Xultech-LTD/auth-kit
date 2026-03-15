@@ -167,6 +167,17 @@
                 'successBehavior' => (string) data_get($forms, 'ajax.success_behavior', 'redirect'),
                 'fallbackRedirect' => data_get($forms, 'ajax.fallback_redirect'),
             ],
+            'loading' => [
+                'enabled' => (bool) data_get($forms, 'loading.enabled', true),
+                'preventDoubleSubmit' => (bool) data_get($forms, 'loading.prevent_double_submit', true),
+                'disableSubmit' => (bool) data_get($forms, 'loading.disable_submit', true),
+                'setAriaBusy' => (bool) data_get($forms, 'loading.set_aria_busy', true),
+                'type' => (string) data_get($forms, 'loading.type', 'spinner_text'),
+                'text' => (string) data_get($forms, 'loading.text', 'Processing...'),
+                'showText' => (bool) data_get($forms, 'loading.show_text', true),
+                'html' => data_get($forms, 'loading.html'),
+                'className' => (string) data_get($forms, 'loading.class', 'authkit-btn--loading'),
+            ],
         ],
     ];
 @endphp

@@ -10,11 +10,13 @@
  * Form binding utilities for the AuthKit AJAX forms module.
  *
  * This file is responsible for attaching submit behavior to AuthKit-managed
- * forms while keeping listener registration and cleanup predictable.
+ * forms while keeping listener registration, duplicate-submission prevention,
+ * and cleanup predictable.
  *
  * Responsibilities:
  * - Bind a submit handler to a single form.
  * - Prevent duplicate binding of the same form.
+ * - Prevent duplicate submissions while a form is already submitting.
  * - Expose cleanup callbacks for unbinding.
  * - Track per-form binding state safely.
  * - Provide bulk binding helpers for multiple forms.
@@ -29,6 +31,8 @@
  * - A bound form receives exactly one active submit listener per binder instance.
  * - Rebinding an already bound form returns the existing cleanup callback.
  * - Cleanup removes the listener and clears internal binding state.
+ * - Repeated submit attempts are ignored when the form state is already marked
+ *   as submitting.
  *
  * @package   AuthKit
  * @author    Michael Erastus
@@ -36,8 +40,8 @@
  */
 
 import { getAjaxForms } from '../../core/dom.js';
-import { isFunction } from '../../core/helpers.js';
-import { createFormState } from './state.js';
+import { dataGet, isFunction } from '../../core/helpers.js';
+import { createFormState, isSubmitting } from './state.js';
 import { submitForm } from './submit.js';
 
 
@@ -66,6 +70,23 @@ const formBindings = new WeakMap();
  */
 export function isFormElement(value) {
     return value instanceof HTMLFormElement;
+}
+
+
+/**
+ * Resolve whether duplicate submits should be prevented.
+ *
+ * Resolution order:
+ * - context.config.forms.loading.preventDoubleSubmit
+ * - true fallback
+ *
+ * @param {Object|null} context
+ * @returns {boolean}
+ */
+export function shouldPreventDoubleSubmit(context = null) {
+    return Boolean(
+        dataGet(context, 'config.forms.loading.preventDoubleSubmit', true)
+    );
 }
 
 
@@ -134,9 +155,10 @@ export function unbindForm(form) {
  *
  * @param {HTMLFormElement|null} form
  * @param {(event: SubmitEvent, form: HTMLFormElement, formState: Object) => void} submitHandler
+ * @param {Object} [options={}]
  * @returns {Function}
  */
-export function bindForm(form, submitHandler) {
+export function bindForm(form, submitHandler, options = {}) {
     if (!isFormElement(form) || !isFunction(submitHandler)) {
         return () => {};
     }
@@ -148,9 +170,14 @@ export function bindForm(form, submitHandler) {
     }
 
     const formState = createFormState(form);
+    const preventDoubleSubmit = options.preventDoubleSubmit !== false;
 
     const handler = (event) => {
         event.preventDefault();
+
+        if (preventDoubleSubmit && isSubmitting(formState)) {
+            return;
+        }
 
         submitHandler(event, form, formState);
     };
@@ -179,16 +206,17 @@ export function bindForm(form, submitHandler) {
  *
  * @param {Array<*>} forms
  * @param {(event: SubmitEvent, form: HTMLFormElement, formState: Object) => void} submitHandler
+ * @param {Object} [options={}]
  * @returns {Function}
  */
-export function bindForms(forms, submitHandler) {
+export function bindForms(forms, submitHandler, options = {}) {
     if (!Array.isArray(forms) || !isFunction(submitHandler)) {
         return () => {};
     }
 
     const cleanups = forms
         .filter((form) => isFormElement(form))
-        .map((form) => bindForm(form, submitHandler));
+        .map((form) => bindForm(form, submitHandler, options));
 
     return () => {
         cleanups.forEach((cleanup) => {
@@ -224,16 +252,17 @@ export function unbindForms(forms) {
  *
  * @param {HTMLFormElement|null} form
  * @param {(event: SubmitEvent, form: HTMLFormElement, formState: Object) => void} submitHandler
+ * @param {Object} [options={}]
  * @returns {Function}
  */
-export function rebindForm(form, submitHandler) {
+export function rebindForm(form, submitHandler, options = {}) {
     if (!isFormElement(form) || !isFunction(submitHandler)) {
         return () => {};
     }
 
     unbindForm(form);
 
-    return bindForm(form, submitHandler);
+    return bindForm(form, submitHandler, options);
 }
 
 
@@ -260,12 +289,19 @@ export function bootForms(context) {
     );
 
     const forms = getAjaxForms(ajaxAttribute);
+    const preventDoubleSubmit = shouldPreventDoubleSubmit(context);
 
-    const cleanup = bindForms(forms, (event, form, formState) => {
-        void submitForm(context, form, formState, {
-            event,
-        });
-    });
+    const cleanup = bindForms(
+        forms,
+        (event, form, formState) => {
+            void submitForm(context, form, formState, {
+                event,
+            });
+        },
+        {
+            preventDoubleSubmit,
+        }
+    );
 
     return {
         forms,

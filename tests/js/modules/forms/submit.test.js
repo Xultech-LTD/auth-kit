@@ -16,7 +16,7 @@
  * - Verify submit state preparation.
  * - Verify transport error normalization.
  * - Verify successful, failed, and thrown submission flows.
- * - Verify redirect and DOM feedback rendering integration.
+ * - Verify redirect, loading-state, and DOM feedback rendering integration.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -57,6 +57,11 @@ vi.mock('../../../../resources/js/authkit/modules/forms/render-feedback.js', () 
     renderFormFeedback: vi.fn(),
 }));
 
+vi.mock('../../../../resources/js/authkit/modules/forms/loading.js', () => ({
+    applyLoadingState: vi.fn(),
+    clearLoadingState: vi.fn(),
+}));
+
 import {
     clearConfigCache,
     setConfig,
@@ -70,6 +75,10 @@ import {
     clearRenderedFeedback,
     renderFormFeedback,
 } from '../../../../resources/js/authkit/modules/forms/render-feedback.js';
+import {
+    applyLoadingState,
+    clearLoadingState,
+} from '../../../../resources/js/authkit/modules/forms/loading.js';
 
 import {
     beginSubmitState,
@@ -180,7 +189,6 @@ describe('modules/forms/submit', () => {
             expect(shouldSubmitAsJson(null)).toBe(false);
         });
     });
-
 
     describe('getSubmitSerialization', () => {
         it('returns normalized serialization settings from explicit options', () => {
@@ -511,6 +519,7 @@ describe('modules/forms/submit', () => {
                 requestMethod: 'POST',
                 asJson: true,
                 outcome: null,
+                loading: true,
             });
             expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
             expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
@@ -596,6 +605,8 @@ describe('modules/forms/submit', () => {
             expect(handleRedirect).not.toHaveBeenCalled();
             expect(renderFormFeedback).not.toHaveBeenCalled();
             expect(clearRenderedFeedback).not.toHaveBeenCalled();
+            expect(applyLoadingState).not.toHaveBeenCalled();
+            expect(clearLoadingState).not.toHaveBeenCalled();
         });
 
         it('submits successfully and routes through handleSuccess', async () => {
@@ -629,6 +640,16 @@ describe('modules/forms/submit', () => {
 
             expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
             expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+
+            expect(applyLoadingState).toHaveBeenCalledTimes(1);
+            expect(applyLoadingState).toHaveBeenCalledWith(form, context, {
+                afterSubmit,
+            });
+
+            expect(clearLoadingState).toHaveBeenCalledTimes(1);
+            expect(clearLoadingState).toHaveBeenCalledWith(form, context, {
+                afterSubmit,
+            });
 
             expect(renderFormFeedback).toHaveBeenCalledTimes(1);
             expect(renderFormFeedback).toHaveBeenCalledWith(
@@ -712,6 +733,9 @@ describe('modules/forms/submit', () => {
             expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
             expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
 
+            expect(applyLoadingState).toHaveBeenCalledTimes(1);
+            expect(clearLoadingState).toHaveBeenCalledTimes(1);
+
             expect(renderFormFeedback).toHaveBeenCalledTimes(1);
             expect(renderFormFeedback).toHaveBeenCalledWith(
                 form,
@@ -766,6 +790,9 @@ describe('modules/forms/submit', () => {
 
             expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
             expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+
+            expect(applyLoadingState).toHaveBeenCalledTimes(1);
+            expect(clearLoadingState).toHaveBeenCalledTimes(1);
 
             expect(renderFormFeedback).toHaveBeenCalledTimes(1);
             expect(renderFormFeedback).toHaveBeenCalledWith(
@@ -829,6 +856,9 @@ describe('modules/forms/submit', () => {
             expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
             expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
 
+            expect(applyLoadingState).toHaveBeenCalledTimes(1);
+            expect(clearLoadingState).toHaveBeenCalledTimes(1);
+
             expect(renderFormFeedback).toHaveBeenCalledTimes(1);
             expect(renderFormFeedback).toHaveBeenCalledWith(
                 form,
@@ -887,6 +917,8 @@ describe('modules/forms/submit', () => {
             expect(beforeSubmit).toHaveBeenCalledTimes(1);
             expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
             expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+            expect(applyLoadingState).toHaveBeenCalledTimes(1);
+            expect(clearLoadingState).toHaveBeenCalledTimes(1);
 
             expect(renderFormFeedback).toHaveBeenCalledTimes(1);
             expect(renderFormFeedback).toHaveBeenCalledWith(
@@ -932,6 +964,8 @@ describe('modules/forms/submit', () => {
 
             expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
             expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+            expect(applyLoadingState).toHaveBeenCalledTimes(1);
+            expect(clearLoadingState).toHaveBeenCalledTimes(1);
 
             expect(renderFormFeedback).toHaveBeenCalledTimes(1);
             expect(renderFormFeedback).toHaveBeenCalledWith(
@@ -972,6 +1006,8 @@ describe('modules/forms/submit', () => {
 
             expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
             expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+            expect(applyLoadingState).toHaveBeenCalledTimes(1);
+            expect(clearLoadingState).toHaveBeenCalledTimes(1);
 
             expect(renderFormFeedback).toHaveBeenCalledTimes(1);
             expect(renderFormFeedback).toHaveBeenCalledWith(
@@ -1010,6 +1046,8 @@ describe('modules/forms/submit', () => {
 
             expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
             expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+            expect(applyLoadingState).toHaveBeenCalledTimes(1);
+            expect(clearLoadingState).toHaveBeenCalledTimes(1);
 
             expect(renderFormFeedback).toHaveBeenCalledTimes(1);
             expect(renderFormFeedback).toHaveBeenCalledWith(
@@ -1058,6 +1096,8 @@ describe('modules/forms/submit', () => {
 
             expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
             expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+            expect(applyLoadingState).toHaveBeenCalledTimes(1);
+            expect(clearLoadingState).toHaveBeenCalledTimes(1);
 
             expect(renderFormFeedback).toHaveBeenCalledTimes(1);
             expect(renderFormFeedback).toHaveBeenCalledWith(
@@ -1093,6 +1133,8 @@ describe('modules/forms/submit', () => {
 
             expect(clearRenderedFeedback).toHaveBeenCalledTimes(1);
             expect(clearRenderedFeedback).toHaveBeenCalledWith(form);
+            expect(applyLoadingState).toHaveBeenCalledTimes(1);
+            expect(clearLoadingState).toHaveBeenCalledTimes(1);
 
             expect(renderFormFeedback).toHaveBeenCalledTimes(1);
             expect(renderFormFeedback).toHaveBeenCalledWith(
@@ -1102,14 +1144,18 @@ describe('modules/forms/submit', () => {
             );
 
             expect(formState.submitting).toBe(true);
+            expect(formState.submitted).toBe(false);
             expect(formState.fieldErrors).toEqual({});
             expect(formState.message).toBeNull();
-            expect(formState.meta).toEqual({
-                requestUrl: 'https://example.com/login',
-                requestMethod: 'POST',
-                asJson: true,
-                outcome: null,
-            });
+            expect(formState.meta).toEqual(
+                expect.objectContaining({
+                    requestUrl: 'https://example.com/login',
+                    requestMethod: 'POST',
+                    asJson: true,
+                    outcome: null,
+                    loading: false,
+                })
+            );
         });
     });
 });

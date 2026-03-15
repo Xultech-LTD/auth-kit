@@ -14,6 +14,7 @@
  * - Verify duplicate-binding protection.
  * - Verify cleanup and unbinding behavior.
  * - Verify bulk binding helpers.
+ * - Verify duplicate-submit prevention behavior.
  * - Verify runtime boot wiring into submitForm.
  */
 
@@ -43,6 +44,7 @@ import {
     isFormBound,
     isFormElement,
     rebindForm,
+    shouldPreventDoubleSubmit,
     unbindForm,
     unbindForms,
 } from '../../../../resources/js/authkit/modules/forms/bind-forms.js';
@@ -62,6 +64,35 @@ describe('modules/forms/bind-forms', () => {
         expect(isFormElement(div)).toBe(false);
         expect(isFormElement(null)).toBe(false);
         expect(isFormElement(undefined)).toBe(false);
+    });
+
+    it('resolves duplicate-submit prevention from context config', () => {
+        expect(shouldPreventDoubleSubmit()).toBe(true);
+        expect(shouldPreventDoubleSubmit(null)).toBe(true);
+
+        expect(
+            shouldPreventDoubleSubmit({
+                config: {
+                    forms: {
+                        loading: {
+                            preventDoubleSubmit: false,
+                        },
+                    },
+                },
+            })
+        ).toBe(false);
+
+        expect(
+            shouldPreventDoubleSubmit({
+                config: {
+                    forms: {
+                        loading: {
+                            preventDoubleSubmit: true,
+                        },
+                    },
+                },
+            })
+        ).toBe(true);
     });
 
     it('returns false for unbound or invalid forms', () => {
@@ -144,6 +175,38 @@ describe('modules/forms/bind-forms', () => {
 
         expect(handlerA).toHaveBeenCalledTimes(1);
         expect(handlerB).not.toHaveBeenCalled();
+    });
+
+    it('prevents duplicate submit attempts while form state is submitting', () => {
+        const form = document.createElement('form');
+        const handler = vi.fn((event, boundForm, formState) => {
+            formState.submitting = true;
+        });
+
+        bindForm(form, handler, {
+            preventDoubleSubmit: true,
+        });
+
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    it('allows repeated submit attempts when duplicate-submit prevention is disabled', () => {
+        const form = document.createElement('form');
+        const handler = vi.fn((event, boundForm, formState) => {
+            formState.submitting = true;
+        });
+
+        bindForm(form, handler, {
+            preventDoubleSubmit: false,
+        });
+
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+
+        expect(handler).toHaveBeenCalledTimes(2);
     });
 
     it('stores and resolves the binding entry for a form', () => {
@@ -335,6 +398,9 @@ describe('modules/forms/bind-forms', () => {
             config: {
                 forms: {
                     ajaxAttribute: 'data-authkit-ajax',
+                    loading: {
+                        preventDoubleSubmit: true,
+                    },
                 },
             },
         };
