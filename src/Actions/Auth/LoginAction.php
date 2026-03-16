@@ -143,6 +143,8 @@ final class LoginAction
             remember: $remember
         ));
 
+        session()->regenerate();
+
         $redirect = $this->resolveLoginSuccessRedirect();
 
         return AuthKitActionResult::success(

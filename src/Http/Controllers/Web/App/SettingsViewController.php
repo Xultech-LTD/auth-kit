@@ -2,10 +2,19 @@
 
 namespace Xul\AuthKit\Http\Controllers\Web\App;
 
-class SettingsViewController
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
+
+final class SettingsViewController
 {
-    public function __invoke()
+    /**
+     * Handle the incoming request.
+     *
+     * @param Request $request
+     * @return View
+     */
+    public function __invoke(Request $request)
     {
-        // TODO: Implement __invoke() method.
+
     }
 }

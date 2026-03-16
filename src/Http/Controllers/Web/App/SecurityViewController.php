@@ -2,10 +2,23 @@
 
 namespace Xul\AuthKit\Http\Controllers\Web\App;
 
-class SecurityViewController
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
+
+/**
+ * SecurityViewController
+ *
+ * Renders the configured AuthKit security page.
+ */
+final class SecurityViewController
 {
-    public function __invoke()
+    /**
+     * Handle the incoming request.
+     *
+     * @param Request $request
+     */
+    public function __invoke(Request $request)
     {
-        // TODO: Implement __invoke() method.
+
     }
 }

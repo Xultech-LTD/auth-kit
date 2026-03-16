@@ -2,10 +2,23 @@
 
 namespace Xul\AuthKit\Http\Controllers\Web\App;
 
-class TwoFactorSettingsViewController
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
+
+/**
+ * TwoFactorSettingsViewController
+ *
+ * Renders the authenticated two-factor settings page.
+ */
+final class TwoFactorSettingsViewController
 {
-    public function __invoke()
+    /**
+     * Handle the incoming request.
+     *
+     * @param Request $request
+     */
+    public function __invoke(Request $request)
     {
-        // TODO: Implement __invoke() method.
+
     }
 }

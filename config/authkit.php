@@ -1287,6 +1287,50 @@ return [
                 ],
             ],
         ],
+        /**
+         * Two-factor setup confirmation form schema.
+         *
+         * This schema is used when a user has started enabling two-factor
+         * authentication but must confirm the setup by submitting a valid
+         * verification code from their authenticator application.
+         *
+         * Responsibilities:
+         * - Render the confirmation form fields used during the setup flow.
+         * - Allow the consumer to customize labels, input types, and attributes.
+         * - Provide a schema-driven structure that integrates with the
+         *   AuthKit form rendering system.
+         *
+         * Typical flow:
+         * 1. User enables two-factor authentication.
+         * 2. A secret and QR code are generated.
+         * 3. The user enters the verification code from their authenticator.
+         * 4. This schema handles the confirmation form used in that step.
+         *
+         * Notes:
+         * - The `otp` input type is recommended for one-time passcodes.
+         * - Consumers may replace this schema entirely to support
+         *   different UX patterns or additional verification inputs.
+         */
+        'two_factor_confirm' => [
+            'submit' => [
+                'label' => 'Confirm setup',
+            ],
+            'fields' => [
+                'code' => [
+                    'label' => 'Authentication code',
+                    'type' => 'otp',
+                    'required' => true,
+                    'placeholder' => 'Enter your authentication code',
+                    'autocomplete' => 'one-time-code',
+                    'inputmode' => 'numeric',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'class' => 'authkit-field',
+                    ],
+                ],
+
+            ],
+        ],
     ],
 
     /**
@@ -2974,12 +3018,12 @@ return [
              * Example customization:
              *
              * [
-             *     \Illuminate\Auth\Middleware\Authenticate::class,
+             *     \Xul\AuthKit\Http\Middleware\Authenticate::class,
              *     \App\Http\Middleware\EnsureTenantIsResolved::class,
              * ]
              */
             'base' => [
-                \Illuminate\Auth\Middleware\Authenticate::class,
+                \Xul\AuthKit\Http\Middleware\Authenticate::class,
             ],
 
             /**
@@ -3005,23 +3049,23 @@ return [
             'pages' => [
 
                 'dashboard_web' => [
-                    \Illuminate\Auth\Middleware\Authenticate::class,
+                    \Xul\AuthKit\Http\Middleware\Authenticate::class,
                 ],
 
                 'settings' => [
-                    \Illuminate\Auth\Middleware\Authenticate::class,
+                    \Xul\AuthKit\Http\Middleware\Authenticate::class,
                 ],
 
                 'security' => [
-                    \Illuminate\Auth\Middleware\Authenticate::class,
+                    \Xul\AuthKit\Http\Middleware\Authenticate::class,
                 ],
 
                 'sessions' => [
-                    \Illuminate\Auth\Middleware\Authenticate::class,
+                    \Xul\AuthKit\Http\Middleware\Authenticate::class,
                 ],
 
                 'two_factor_settings' => [
-                    \Illuminate\Auth\Middleware\Authenticate::class,
+                    \Xul\AuthKit\Http\Middleware\Authenticate::class,
                 ],
 
                 /**
@@ -3032,7 +3076,7 @@ return [
                  * otherwise the page would redirect to itself.
                  */
                 'confirm_password' => [
-                    \Illuminate\Auth\Middleware\Authenticate::class,
+                    \Xul\AuthKit\Http\Middleware\Authenticate::class,
                 ],
 
                 /**
@@ -3043,7 +3087,7 @@ return [
                  * that enforces the confirmation itself.
                  */
                 'confirm_two_factor' => [
-                    \Illuminate\Auth\Middleware\Authenticate::class,
+                    \Xul\AuthKit\Http\Middleware\Authenticate::class,
                 ],
             ],
         ],
@@ -3282,8 +3326,8 @@ return [
          * These components are intended for reusable page sections rendered within
          * dashboard/settings/security/session pages.
          */
-        'settings_section' => 'authkit::settings.section',
-        'session_list' => 'authkit::sessions.list',
+        'settings_section' => 'authkit::app.settings.section',
+        'session_list' => 'authkit::app.sessions.list',
     ],
 
     /**

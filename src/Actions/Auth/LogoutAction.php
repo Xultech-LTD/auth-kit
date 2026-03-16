@@ -73,6 +73,9 @@ final class LogoutAction
 
         $guard->logout();
 
+        session()->invalidate();
+        session()->regenerateToken();
+
         event(new AuthKitLoggedOut(
             user: $user,
             guard: $guardName
