@@ -179,6 +179,75 @@ return [
             'web',
             \Xul\AuthKit\Http\Middleware\EnsurePendingPasswordResetMiddleware::class,
         ],
+
+        /**
+         * Middleware applied to authenticated "app" pages rendered by AuthKit.
+         *
+         * Intended for:
+         * - dashboard
+         * - settings
+         * - security
+         * - sessions
+         * - two-factor settings/setup
+         * - confirmation pages for sensitive actions
+         *
+         * Notes:
+         * - This is the baseline stack for authenticated AuthKit pages.
+         * - Consumers may replace or extend this stack to add project-specific middleware
+         *   such as tenant resolution, verified-email enforcement, role checks, or locale handling.
+         */
+        'authenticated_app' => ['web', 'auth'],
+
+        /**
+         * Middleware applied to pages or routes that require a recent password confirmation.
+         *
+         * Intended for:
+         * - sensitive settings pages
+         * - dangerous account actions
+         * - password-protected management areas
+         *
+         * Behavior:
+         * - The middleware should check whether a fresh password confirmation marker
+         *   exists in session.
+         * - If confirmation is missing or expired, the user should be redirected to the
+         *   configured password confirmation page.
+         *
+         * Notes:
+         * - This is separate from password reset flows.
+         * - This is also separate from the "update password" settings action.
+         */
+        'password_confirmation_required' => [
+            'web',
+            'auth',
+            \Xul\AuthKit\Http\Middleware\RequirePasswordConfirmationMiddleware::class,
+        ],
+
+        /**
+         * Middleware applied to pages or routes that require a recent two-factor confirmation.
+         *
+         * Intended for:
+         * - highly sensitive settings pages
+         * - recovery code viewing/regeneration
+         * - two-factor management actions
+         * - other step-up security checkpoints
+         *
+         * Behavior:
+         * - The middleware should check whether a fresh two-factor confirmation marker
+         *   exists in session.
+         * - If confirmation is missing or expired, the user should be redirected to the
+         *   configured two-factor confirmation page.
+         *
+         * Notes:
+         * - This is separate from the login-time two-factor challenge flow.
+         * - Login-time two-factor verifies a pending login.
+         * - This middleware protects already-authenticated users who are trying to access
+         *   a sensitive page or perform a sensitive action.
+         */
+        'two_factor_confirmation_required' => [
+            'web',
+            'auth',
+            \Xul\AuthKit\Http\Middleware\RequireTwoFactorConfirmationMiddleware::class,
+        ],
     ],
 
     /**
@@ -224,7 +293,38 @@ return [
             'password_reset_token_page' => 'authkit.web.password.reset.token',
             'password_reset_success' => 'authkit.web.password.reset.success',
 
+            /**
+             * Authenticated app/account pages.
+             *
+             * These routes render the logged-in AuthKit application shell and its
+             * account/security management pages.
+             *
+             * Notes:
+             * - These are distinct from guest authentication pages such as login/register.
+             * - These are also distinct from one-off success pages in reset/verification flows.
+             * - Consumers may disable individual pages through the app configuration section
+             *   while still overriding route names here if needed.
+             */
             'dashboard_web' => 'authkit.web.dashboard',
+            'settings' => 'authkit.web.settings',
+            'security' => 'authkit.web.settings.security',
+            'sessions' => 'authkit.web.settings.sessions',
+            'two_factor_settings' => 'authkit.web.settings.two_factor',
+
+            /**
+             * Authenticated confirmation pages.
+             *
+             * These pages are used when an already-authenticated user attempts to access
+             * a page or action that requires step-up confirmation.
+             *
+             * Important distinction:
+             * - confirm_password / confirm_two_factor:
+             *   Used for confirming access to a sensitive page/action.
+             * - two_factor_challenge / two_factor_recovery:
+             *   Used during the login flow before the user becomes fully authenticated.
+             */
+            'confirm_password' => 'authkit.web.confirm.password',
+            'confirm_two_factor' => 'authkit.web.confirm.two_factor',
         ],
 
         /**
@@ -258,6 +358,49 @@ return [
             'two_factor_challenge' => 'authkit.api.twofactor.challenge',
             'two_factor_resend' => 'authkit.api.twofactor.resend',
             'two_factor_recovery' => 'authkit.api.twofactor.recovery',
+
+            /**
+             * Authenticated settings/account management actions.
+             *
+             * These routes handle state-changing actions initiated from authenticated
+             * account/security pages rendered inside the AuthKit app shell.
+             *
+             * Examples:
+             * - updating the current password
+             * - enabling or disabling two-factor authentication
+             * - confirming two-factor setup
+             * - regenerating recovery codes
+             * - revoking/logging out other sessions
+             *
+             * Important distinction:
+             * - two_factor_confirm:
+             *   Confirms/setup-enables two-factor from settings.
+             * - confirm_two_factor:
+             *   Confirms access to a sensitive page/action for an already-authenticated user.
+             */
+            'password_update' => 'authkit.api.settings.password.update',
+
+            'two_factor_enable' => 'authkit.api.settings.two_factor.enable',
+            'two_factor_confirm' => 'authkit.api.settings.two_factor.confirm',
+            'two_factor_disable' => 'authkit.api.settings.two_factor.disable',
+            'two_factor_recovery_regenerate' => 'authkit.api.settings.two_factor.recovery.regenerate',
+
+            'sessions_logout_other' => 'authkit.api.settings.sessions.logout_other',
+
+            /**
+             * Authenticated confirmation actions.
+             *
+             * These endpoints are used by step-up confirmation pages when a user must
+             * re-confirm their password or two-factor code before proceeding to a
+             * sensitive page or action.
+             *
+             * Notes:
+             * - These routes should typically write a fresh confirmation timestamp to session.
+             * - After success, they should redirect back to the stored intended URL or to a
+             *   configured fallback route.
+             */
+            'confirm_password' => 'authkit.api.confirm.password',
+            'confirm_two_factor' => 'authkit.api.confirm.two_factor',
         ],
     ],
 
@@ -300,7 +443,32 @@ return [
             'password_reset' => \Xul\AuthKit\Http\Controllers\Web\PasswordReset\ResetPasswordViewController::class,
             'password_reset_success' => \Xul\AuthKit\Http\Controllers\Web\PasswordReset\ResetPasswordSuccessViewController::class,
 
-            'dashboard_web' => \Xul\AuthKit\Http\Controllers\Web\Auth\DashboardController::class,
+            /**
+             * Authenticated app/account page controllers.
+             *
+             * These controllers render pages inside AuthKit's authenticated application shell.
+             * They are responsible for resolving page-level data, navigation context, and
+             * any view-specific information required by dashboard/settings/security pages.
+             */
+            'dashboard_web' => \Xul\AuthKit\Http\Controllers\Web\App\DashboardViewController::class,
+            'settings' => \Xul\AuthKit\Http\Controllers\Web\App\SettingsViewController::class,
+            'security' => \Xul\AuthKit\Http\Controllers\Web\App\SecurityViewController::class,
+            'sessions' => \Xul\AuthKit\Http\Controllers\Web\App\SessionsViewController::class,
+            'two_factor_settings' => \Xul\AuthKit\Http\Controllers\Web\App\TwoFactorSettingsViewController::class,
+
+            /**
+             * Authenticated confirmation page controllers.
+             *
+             * These controllers render step-up confirmation pages for users who are already
+             * signed in but must confirm their identity again before proceeding.
+             *
+             * Important distinction:
+             * - These are not login pages.
+             * - These are not password reset pages.
+             * - These are not two-factor setup pages.
+             */
+            'confirm_password' => \Xul\AuthKit\Http\Controllers\Web\App\Confirmations\ConfirmPasswordViewController::class,
+            'confirm_two_factor' => \Xul\AuthKit\Http\Controllers\Web\App\Confirmations\ConfirmTwoFactorViewController::class,
         ],
 
         /**
@@ -321,6 +489,35 @@ return [
             'two_factor_challenge' => \Xul\AuthKit\Http\Controllers\Api\Auth\TwoFactorChallengeController::class,
             'two_factor_resend' => \Xul\AuthKit\Http\Controllers\Api\Auth\TwoFactorResendController::class,
             'two_factor_recovery' => \Xul\AuthKit\Http\Controllers\Api\Auth\TwoFactorRecoveryController::class,
+
+            /**
+             * Authenticated settings/account action controllers.
+             *
+             * These controllers handle state-changing actions initiated from logged-in
+             * AuthKit pages such as security settings, two-factor setup, and session management.
+             */
+            'password_update' => \Xul\AuthKit\Http\Controllers\Api\App\Settings\UpdatePasswordController::class,
+
+            'two_factor_enable' => \Xul\AuthKit\Http\Controllers\Api\App\Settings\EnableTwoFactorController::class,
+            'two_factor_confirm' => \Xul\AuthKit\Http\Controllers\Api\App\Settings\ConfirmTwoFactorSetupController::class,
+            'two_factor_disable' => \Xul\AuthKit\Http\Controllers\Api\App\Settings\DisableTwoFactorController::class,
+            'two_factor_recovery_regenerate' => \Xul\AuthKit\Http\Controllers\Api\App\Settings\RegenerateTwoFactorRecoveryCodesController::class,
+
+            'sessions_logout_other' => \Xul\AuthKit\Http\Controllers\Api\App\Settings\LogoutOtherSessionsController::class,
+
+            /**
+             * Authenticated confirmation action controllers.
+             *
+             * These controllers handle form submissions from confirmation pages that
+             * protect sensitive pages or actions.
+             *
+             * Expected responsibilities:
+             * - validate the submitted password or two-factor code
+             * - write a fresh confirmation marker into session
+             * - redirect back to the intended destination or configured fallback route
+             */
+            'confirm_password' => \Xul\AuthKit\Http\Controllers\Api\App\Confirmations\ConfirmPasswordController::class,
+            'confirm_two_factor' => \Xul\AuthKit\Http\Controllers\Api\App\Confirmations\ConfirmTwoFactorController::class,
         ],
     ],
 
@@ -369,6 +566,32 @@ return [
             'password_forgot' => null,
             'password_reset' => null,
             'password_reset_token' => null,
+
+            /**
+             * Authenticated confirmation form contexts.
+             *
+             * These contexts support step-up confirmation flows for sensitive pages/actions.
+             */
+            'confirm_password' => null,
+            'confirm_two_factor' => null,
+
+            /**
+             * Authenticated settings/action form contexts.
+             *
+             * These contexts are used by forms rendered inside the authenticated AuthKit
+             * application area such as password update, two-factor setup, and session actions.
+             *
+             * Notes:
+             * - Some actions may remain controller-driven and may not require a visible schema.
+             * - These provider slots exist so consumers can fully customize validation behavior
+             *   without editing package code when forms are introduced or expanded.
+             */
+            'password_update' => null,
+            'two_factor_enable' => null,
+            'two_factor_confirm' => null,
+            'two_factor_disable' => null,
+            'two_factor_recovery_regenerate' => null,
+            'sessions_logout_other' => null,
         ],
     ],
 
@@ -922,6 +1145,138 @@ return [
                 ],
                 'password_confirmation' => [
                     'label' => 'Confirm password',
+                    'type' => 'password',
+                    'required' => true,
+                    'autocomplete' => 'new-password',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'class' => 'authkit-field',
+                    ],
+                ],
+            ],
+        ],
+
+        /**
+         * Password confirmation form schema.
+         *
+         * Purpose:
+         * - Used when an already-authenticated user must re-enter their current password
+         *   before accessing a sensitive page or performing a sensitive action.
+         *
+         * Important distinction:
+         * - This is not the forgot-password flow.
+         * - This is not the password reset flow.
+         * - This is not the password update form in security settings.
+         *
+         * Typical usage:
+         * - middleware detects that no fresh password confirmation exists in session
+         * - user is redirected to the confirm-password page
+         * - successful submission stores a fresh confirmation timestamp in session
+         * - user is redirected back to the intended page/action
+         */
+        'confirm_password' => [
+            'submit' => [
+                'label' => 'Confirm password',
+            ],
+            'fields' => [
+                'password' => [
+                    'label' => 'Current password',
+                    'type' => 'password',
+                    'required' => true,
+                    'autocomplete' => 'current-password',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'class' => 'authkit-field',
+                    ],
+                ],
+            ],
+        ],
+
+        /**
+         * Two-factor confirmation form schema.
+         *
+         * Purpose:
+         * - Used when an already-authenticated user must re-confirm two-factor authentication
+         *   before accessing a sensitive page or performing a sensitive action.
+         *
+         * Important distinction:
+         * - This is not the login-time two-factor challenge.
+         * - This is not the two-factor settings/setup page.
+         *
+         * Typical usage:
+         * - middleware detects that no fresh two-factor confirmation exists in session
+         * - user is redirected to the confirm-two-factor page
+         * - successful submission stores a fresh confirmation timestamp in session
+         * - user is redirected back to the intended page/action
+         *
+         * Notes:
+         * - Consumers may later provide a recovery-code alternative using a separate page,
+         *   a secondary form, or custom page logic.
+         */
+        'confirm_two_factor' => [
+            'submit' => [
+                'label' => 'Confirm',
+            ],
+            'fields' => [
+                'code' => [
+                    'label' => 'Authentication code',
+                    'type' => 'otp',
+                    'required' => true,
+                    'placeholder' => 'Enter your authentication code',
+                    'autocomplete' => 'one-time-code',
+                    'inputmode' => 'numeric',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'class' => 'authkit-field',
+                    ],
+                ],
+            ],
+        ],
+
+        /**
+         * Password update form schema.
+         *
+         * Purpose:
+         * - Used from the authenticated security/settings area when a signed-in user
+         *   wants to change their current password.
+         *
+         * Important distinction:
+         * - This is not the forgot-password flow.
+         * - This is not the reset-password flow initiated from email/token.
+         * - This is not the password confirmation form used for step-up access.
+         *
+         * Default flow:
+         * - current_password
+         * - password
+         * - password_confirmation
+         */
+        'password_update' => [
+            'submit' => [
+                'label' => 'Update password',
+            ],
+            'fields' => [
+                'current_password' => [
+                    'label' => 'Current password',
+                    'type' => 'password',
+                    'required' => true,
+                    'autocomplete' => 'current-password',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'class' => 'authkit-field',
+                    ],
+                ],
+                'password' => [
+                    'label' => 'New password',
+                    'type' => 'password',
+                    'required' => true,
+                    'autocomplete' => 'new-password',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'class' => 'authkit-field',
+                    ],
+                ],
+                'password_confirmation' => [
+                    'label' => 'Confirm new password',
                     'type' => 'password',
                     'required' => true,
                     'autocomplete' => 'new-password',
@@ -1973,6 +2328,29 @@ return [
 
             'email_send_verification' => 'authkit.email.send_verification',
             'email_verify_token' => 'authkit.email.verify_token',
+
+            /**
+             * Authenticated confirmation actions.
+             *
+             * These limiters protect step-up confirmation endpoints used when an
+             * already-authenticated user must re-confirm their identity before
+             * accessing a sensitive page or action.
+             */
+            'confirm_password' => 'authkit.confirm.password',
+            'confirm_two_factor' => 'authkit.confirm.two_factor',
+
+            /**
+             * Authenticated settings/account actions.
+             *
+             * These limiters protect sensitive account-management endpoints rendered
+             * from AuthKit's authenticated application area.
+             */
+            'password_update' => 'authkit.settings.password.update',
+            'two_factor_enable' => 'authkit.settings.two_factor.enable',
+            'two_factor_confirm' => 'authkit.settings.two_factor.confirm',
+            'two_factor_disable' => 'authkit.settings.two_factor.disable',
+            'two_factor_recovery_regenerate' => 'authkit.settings.two_factor.recovery.regenerate',
+            'sessions_logout_other' => 'authkit.settings.sessions.logout_other',
         ],
 
         /**
@@ -2003,6 +2381,28 @@ return [
 
             'email_send_verification' => 'dual',
             'email_verify_token' => 'dual',
+
+            /**
+             * Authenticated confirmation actions.
+             *
+             * These endpoints should be protected because they validate sensitive
+             * secrets for already-authenticated users.
+             */
+            'confirm_password' => 'dual',
+            'confirm_two_factor' => 'dual',
+
+            /**
+             * Authenticated settings/account actions.
+             *
+             * These endpoints are state-changing and security-sensitive, so the
+             * default dual-bucket strategy remains appropriate.
+             */
+            'password_update' => 'dual',
+            'two_factor_enable' => 'dual',
+            'two_factor_confirm' => 'dual',
+            'two_factor_disable' => 'dual',
+            'two_factor_recovery_regenerate' => 'dual',
+            'sessions_logout_other' => 'dual',
         ],
 
         /**
@@ -2133,6 +2533,122 @@ return [
                 'per_ip' => ['attempts' => 10, 'decay_minutes' => 1],
                 'per_identity' => ['attempts' => 5, 'decay_minutes' => 1],
             ],
+
+            /**
+             * Password confirmation attempts.
+             *
+             * Threat model:
+             * - repeated guessing of the current password for step-up confirmation
+             *
+             * Notes:
+             * - This protects the confirmation endpoint used before allowing
+             *   access to a sensitive page or action.
+             * - Defaults mirror other sensitive credential checks.
+             */
+            'confirm_password' => [
+                'per_ip' => ['attempts' => 10, 'decay_minutes' => 1],
+                'per_identity' => ['attempts' => 5, 'decay_minutes' => 1],
+            ],
+
+            /**
+             * Two-factor confirmation attempts.
+             *
+             * Threat model:
+             * - brute forcing TOTP codes during step-up confirmation
+             *
+             * Notes:
+             * - This is distinct from the login-time two-factor challenge flow.
+             * - It protects already-authenticated users performing sensitive actions.
+             */
+            'confirm_two_factor' => [
+                'per_ip' => ['attempts' => 10, 'decay_minutes' => 1],
+                'per_identity' => ['attempts' => 5, 'decay_minutes' => 1],
+            ],
+
+            /**
+             * Password update attempts.
+             *
+             * Threat model:
+             * - repeated abuse of the password change endpoint
+             * - brute forcing current-password confirmation as part of password change
+             */
+            'password_update' => [
+                'per_ip' => ['attempts' => 6, 'decay_minutes' => 1],
+                'per_identity' => ['attempts' => 5, 'decay_minutes' => 1],
+            ],
+
+            /**
+             * Two-factor enable attempts.
+             *
+             * Threat model:
+             * - repeated setup abuse
+             * - resource abuse against setup endpoints
+             *
+             * Notes:
+             * - This endpoint is usually lower risk than code verification,
+             *   but should still be throttled.
+             */
+            'two_factor_enable' => [
+                'per_ip' => ['attempts' => 6, 'decay_minutes' => 1],
+                'per_identity' => ['attempts' => 3, 'decay_minutes' => 1],
+            ],
+
+            /**
+             * Two-factor setup confirmation attempts.
+             *
+             * Threat model:
+             * - brute forcing setup-confirmation codes
+             *
+             * Notes:
+             * - This applies when a user is confirming/enabling two-factor
+             *   from the authenticated settings area.
+             */
+            'two_factor_confirm' => [
+                'per_ip' => ['attempts' => 10, 'decay_minutes' => 1],
+                'per_identity' => ['attempts' => 5, 'decay_minutes' => 1],
+            ],
+
+            /**
+             * Two-factor disable attempts.
+             *
+             * Threat model:
+             * - repeated abuse of the disable endpoint
+             * - attempts to weaken account security through repeated requests
+             */
+            'two_factor_disable' => [
+                'per_ip' => ['attempts' => 6, 'decay_minutes' => 1],
+                'per_identity' => ['attempts' => 3, 'decay_minutes' => 1],
+            ],
+
+            /**
+             * Recovery code regeneration attempts.
+             *
+             * Threat model:
+             * - repeated regeneration abuse
+             * - unnecessary secret rotation or spam-like usage
+             *
+             * Defaults are intentionally stricter because regeneration is a
+             * high-sensitivity action and should not be called repeatedly.
+             */
+            'two_factor_recovery_regenerate' => [
+                'per_ip' => ['attempts' => 4, 'decay_minutes' => 1],
+                'per_identity' => ['attempts' => 2, 'decay_minutes' => 1],
+            ],
+
+            /**
+             * Logout-other-sessions attempts.
+             *
+             * Threat model:
+             * - repeated state-changing abuse against session management
+             *
+             * Notes:
+             * - This endpoint is not usually brute-force sensitive, but throttling
+             *   still helps reduce unnecessary abuse and repeated session churn.
+             */
+            'sessions_logout_other' => [
+                'per_ip' => ['attempts' => 6, 'decay_minutes' => 1],
+                'per_identity' => ['attempts' => 3, 'decay_minutes' => 1],
+            ],
         ],
 
         /**
@@ -2184,6 +2700,471 @@ return [
              * one or more limiter keys (e.g. use a different bucket model).
              */
             'limiter' => null,
+        ],
+    ],
+
+    /**
+     * Authenticated application area configuration.
+     *
+     * This section controls AuthKit's logged-in "app" experience, including:
+     * - dashboard and account/settings pages
+     * - authenticated layout/shell selection
+     * - sidebar navigation structure
+     * - page enablement and view mapping
+     * - per-page middleware stacks
+     *
+     * Design goals:
+     * - Keep authenticated account/security pages configurable in the same spirit
+     *   as the rest of AuthKit.
+     * - Allow consumers to enable only the pages they want.
+     * - Allow consumers to rename, reorder, or hide navigation items.
+     * - Keep actual page markup in Blade/views while leaving page structure,
+     *   routing, and navigation metadata configurable.
+     *
+     * Important notes:
+     * - This section does not replace the existing UI/theme system.
+     * - AuthKit's authenticated area should continue using the same ui/theme/mode
+     *   configuration already defined elsewhere in this file.
+     * - These pages are distinct from guest auth pages such as login/register/reset.
+     */
+    'app' => [
+
+        /**
+         * Whether AuthKit's authenticated application pages are enabled.
+         *
+         * When false:
+         * - AuthKit may still provide guest auth flows (login/register/reset/etc.)
+         * - Consumers become responsible for their own post-login dashboard/settings area.
+         */
+        'enabled' => true,
+
+        /**
+         * Available authenticated layout variants.
+         *
+         * Values are Blade view/component references used by authenticated pages.
+         * Per-page layout selection may reference one of these keys.
+         *
+         * Notes:
+         * - "default" should usually be the main authenticated shell.
+         * - Additional variants may be added later for compact/minimal page presentations.
+         */
+        'layouts' => [
+            'default' => 'authkit::app.layout',
+        ],
+
+        /**
+         * Authenticated page definitions.
+         *
+         * This section describes the built-in pages that make up AuthKit's
+         * logged-in application area.
+         *
+         * Each page entry allows consumers to control things such as:
+         * - whether the page is available
+         * - the browser/page title and visible heading
+         * - the named route used to reach the page
+         * - the layout variant used to render it
+         * - the Blade view responsible for the page body
+         * - whether the page should appear in sidebar navigation
+         *
+         * In practice, this gives consumers a simple way to keep only the
+         * pages they need, rename them to fit their product language, or
+         * point AuthKit to published/customized views without editing the
+         * package internals.
+         *
+         * Notes:
+         * - Destination pages such as dashboard, settings, security, and sessions
+         *   will usually appear in navigation.
+         * - Utility pages such as password/two-factor confirmation pages usually
+         *   should not appear in sidebar navigation.
+         */
+        'pages' => [
+
+            'dashboard_web' => [
+                'enabled' => true,
+                'title' => 'Dashboard',
+                'heading' => 'Account overview',
+                'route' => 'authkit.web.dashboard',
+                'layout' => 'default',
+                'view' => 'authkit::pages.app.dashboard',
+                'nav_label' => 'Dashboard',
+                'show_in_sidebar' => true,
+            ],
+
+            'settings' => [
+                'enabled' => true,
+                'title' => 'Settings',
+                'heading' => 'Account settings',
+                'route' => 'authkit.web.settings',
+                'layout' => 'default',
+                'view' => 'authkit::pages.app.settings',
+                'nav_label' => 'Settings',
+                'show_in_sidebar' => true,
+            ],
+
+            'security' => [
+                'enabled' => true,
+                'title' => 'Security',
+                'heading' => 'Security settings',
+                'route' => 'authkit.web.settings.security',
+                'layout' => 'default',
+                'view' => 'authkit::pages.app.security',
+                'nav_label' => 'Security',
+                'show_in_sidebar' => true,
+
+                /**
+                 * Built-in section visibility for the security page.
+                 *
+                 * These toggles allow consumers to keep the security page enabled
+                 * while hiding individual packaged sections they do not want to
+                 * expose in their application.
+                 *
+                 * Example uses:
+                 * - hide password change while keeping two-factor management
+                 * - hide recovery-code tools in a custom implementation
+                 * - keep the page shell but replace some sections with custom content
+                 */
+                'sections' => [
+                    'password_update' => true,
+                    'two_factor' => true,
+                    'recovery_codes' => true,
+                ],
+            ],
+
+            'sessions' => [
+                'enabled' => true,
+                'title' => 'Sessions',
+                'heading' => 'Active sessions',
+                'route' => 'authkit.web.settings.sessions',
+                'layout' => 'default',
+                'view' => 'authkit::pages.app.sessions',
+                'nav_label' => 'Sessions',
+                'show_in_sidebar' => true,
+            ],
+
+            'two_factor_settings' => [
+                'enabled' => true,
+                'title' => 'Two-factor authentication',
+                'heading' => 'Manage two-factor authentication',
+                'route' => 'authkit.web.settings.two_factor',
+                'layout' => 'default',
+                'view' => 'authkit::pages.app.two-factor',
+                'nav_label' => 'Two-factor',
+                'show_in_sidebar' => false,
+            ],
+
+            /**
+             * Sensitive-action confirmation pages.
+             *
+             * These pages are shown when a signed-in user tries to open a page or
+             * perform an action that requires fresh confirmation.
+             *
+             * Typical examples:
+             * - confirming the current password before a protected change
+             * - confirming a fresh two-factor code before viewing or regenerating
+             *   recovery codes
+             *
+             * Notes:
+             * - These pages are part of the authenticated AuthKit experience,
+             *   but they are utility pages rather than main navigation destinations.
+             * - For that reason, they are hidden from the sidebar by default.
+             */
+            'confirm_password' => [
+                'enabled' => true,
+                'title' => 'Confirm password',
+                'heading' => 'Confirm your password',
+                'route' => 'authkit.web.confirm.password',
+                'layout' => 'default',
+                'view' => 'authkit::pages.app.confirm-password',
+                'nav_label' => 'Confirm password',
+                'show_in_sidebar' => false,
+            ],
+
+            'confirm_two_factor' => [
+                'enabled' => true,
+                'title' => 'Confirm two-factor authentication',
+                'heading' => 'Confirm two-factor authentication',
+                'route' => 'authkit.web.confirm.two_factor',
+                'layout' => 'default',
+                'view' => 'authkit::pages.app.confirm-two-factor',
+                'nav_label' => 'Confirm two-factor',
+                'show_in_sidebar' => false,
+            ],
+        ],
+
+        /**
+         * Authenticated navigation configuration.
+         *
+         * This section defines the default sidebar navigation rendered by
+         * AuthKit's authenticated shell.
+         *
+         * Each item points to a page key from app.pages, which means consumers
+         * can keep navigation and page configuration aligned in one place.
+         *
+         * Consumers may:
+         * - reorder items
+         * - remove items they do not need
+         * - add their own items later if their resolver supports it
+         *
+         * Utility pages such as confirmation screens are intentionally left out
+         * of the sidebar by default because users are usually redirected to them
+         * only when needed.
+         */
+        'navigation' => [
+            'sidebar' => [
+                [
+                    'page' => 'dashboard_web',
+                    'icon' => 'home',
+                ],
+                [
+                    'page' => 'settings',
+                    'icon' => 'settings',
+                ],
+                [
+                    'page' => 'security',
+                    'icon' => 'shield',
+                ],
+                [
+                    'page' => 'sessions',
+                    'icon' => 'devices',
+                ],
+            ],
+        ],
+
+        /**
+         * Authenticated middleware configuration.
+         *
+         * This section controls which middleware should protect AuthKit's
+         * built-in authenticated pages.
+         *
+         * The base middleware is used as the default protection for the logged-in
+         * application area, while the per-page map allows consumers to make some
+         * pages stricter when needed.
+         *
+         * Why class names are used here:
+         * - it keeps the configuration explicit
+         * - it avoids relying on middleware aliases being registered elsewhere
+         * - it makes package behavior easier to understand by simply reading config
+         *
+         * Notes:
+         * - The default uses Laravel's built-in Authenticate middleware.
+         * - Consumers may replace any entry with their own middleware class if
+         *   they need tenant-aware auth, role-aware access checks, or project-
+         *   specific security rules.
+         */
+        'middleware' => [
+
+            /**
+             * Baseline middleware applied to AuthKit's authenticated application pages.
+             *
+             * This stack represents the default protection layer for all pages rendered
+             * inside AuthKit's logged-in application shell.
+             *
+             * By default this includes Laravel's standard authentication middleware,
+             * which ensures that only authenticated users can access the application
+             * dashboard and account management pages.
+             *
+             * Consumers may replace or extend this stack if their application requires
+             * additional checks such as:
+             * - tenant resolution
+             * - verified email enforcement
+             * - role/permission guards
+             * - locale middleware
+             * - application-specific access policies
+             *
+             * Example customization:
+             *
+             * [
+             *     \Illuminate\Auth\Middleware\Authenticate::class,
+             *     \App\Http\Middleware\EnsureTenantIsResolved::class,
+             * ]
+             */
+            'base' => [
+                \Illuminate\Auth\Middleware\Authenticate::class,
+            ],
+
+            /**
+             * Per-page middleware overrides.
+             *
+             * Each key corresponds to a page defined in `app.pages`. The middleware
+             * defined here will be applied when registering the route for that page.
+             *
+             * If a page is not listed here, the resolver may fall back to the `base`
+             * middleware stack.
+             *
+             * This structure allows consumers to apply stricter protection to specific
+             * pages without affecting the rest of the authenticated application area.
+             *
+             * Typical examples:
+             * - requiring password confirmation before accessing security settings
+             * - requiring two-factor confirmation before viewing recovery codes
+             * - applying custom permission middleware to administrative pages
+             *
+             * Since middleware is defined as an array, consumers can easily extend
+             * these stacks with additional middleware as needed.
+             */
+            'pages' => [
+
+                'dashboard_web' => [
+                    \Illuminate\Auth\Middleware\Authenticate::class,
+                ],
+
+                'settings' => [
+                    \Illuminate\Auth\Middleware\Authenticate::class,
+                ],
+
+                'security' => [
+                    \Illuminate\Auth\Middleware\Authenticate::class,
+                ],
+
+                'sessions' => [
+                    \Illuminate\Auth\Middleware\Authenticate::class,
+                ],
+
+                'two_factor_settings' => [
+                    \Illuminate\Auth\Middleware\Authenticate::class,
+                ],
+
+                /**
+                 * Password confirmation page.
+                 *
+                 * This page itself only requires the user to be authenticated.
+                 * The confirmation middleware should NOT be applied here,
+                 * otherwise the page would redirect to itself.
+                 */
+                'confirm_password' => [
+                    \Illuminate\Auth\Middleware\Authenticate::class,
+                ],
+
+                /**
+                 * Two-factor confirmation page.
+                 *
+                 * Similar to the password confirmation page, this screen only
+                 * requires authentication and should not include the middleware
+                 * that enforces the confirmation itself.
+                 */
+                'confirm_two_factor' => [
+                    \Illuminate\Auth\Middleware\Authenticate::class,
+                ],
+            ],
+        ],
+    ],
+
+    /**
+     * Sensitive action confirmation configuration.
+     *
+     * This section controls "step-up" confirmation flows used when an already-authenticated
+     * user attempts to access a sensitive page or perform a sensitive action.
+     *
+     * Supported confirmation types (current):
+     * - password
+     * - two_factor
+     *
+     * Examples:
+     * - viewing or regenerating recovery codes
+     * - accessing a highly sensitive settings page
+     * - performing account-destructive operations
+     * - confirming identity again before a protected action
+     *
+     * Design goals:
+     * - keep confirmation freshness session-based and configurable
+     * - separate confirmation flows from login-time authentication flows
+     * - allow different confirmation types to have different lifetimes
+     * - allow middleware to redirect users to configurable routes
+     *
+     * Important distinction:
+     * - These confirmations do not replace login or two-factor login challenge flows.
+     * - They are used after the user is already authenticated.
+     */
+    'confirmations' => [
+
+        /**
+         * Whether step-up confirmation features are enabled.
+         *
+         * When false:
+         * - confirmation middleware should ideally behave as pass-through
+         *   or remain unused by the consuming application.
+         */
+        'enabled' => true,
+
+        /**
+         * Session key configuration.
+         *
+         * These keys are used to store confirmation freshness timestamps and
+         * redirect metadata for confirmation flows.
+         *
+         * Recommended behavior:
+         * - password_key: store the time at which password confirmation succeeded
+         * - two_factor_key: store the time at which two-factor confirmation succeeded
+         * - intended_key: store the intended destination URL before redirecting
+         * - type_key: optionally store the confirmation type being requested
+         */
+        'session' => [
+            'password_key' => 'authkit.confirmed.password_at',
+            'two_factor_key' => 'authkit.confirmed.two_factor_at',
+            'intended_key' => 'authkit.confirmation.intended',
+            'type_key' => 'authkit.confirmation.type',
+        ],
+
+        /**
+         * Confirmation freshness lifetime in minutes.
+         *
+         * These values determine how long a successful confirmation remains valid
+         * before the user must confirm again.
+         *
+         * Notes:
+         * - Shorter lifetimes provide stronger security.
+         * - Longer lifetimes reduce friction for users navigating settings pages.
+         */
+        'ttl_minutes' => [
+            'password' => 15,
+            'two_factor' => 10,
+        ],
+
+        /**
+         * Route configuration for confirmation redirects.
+         *
+         * These routes are used by confirmation middleware when a required confirmation
+         * is missing or stale.
+         *
+         * Notes:
+         * - password: route name for the password confirmation page
+         * - two_factor: route name for the two-factor confirmation page
+         * - fallback: route name used when no intended URL is available after success
+         */
+        'routes' => [
+            'password' => 'authkit.web.confirm.password',
+            'two_factor' => 'authkit.web.confirm.two_factor',
+            'fallback' => 'authkit.web.dashboard',
+        ],
+
+        /**
+         * Password confirmation settings.
+         */
+        'password' => [
+
+            /**
+             * Whether password confirmations are enabled.
+             */
+            'enabled' => true,
+        ],
+
+        /**
+         * Two-factor confirmation settings.
+         */
+        'two_factor' => [
+
+            /**
+             * Whether two-factor confirmations are enabled.
+             */
+            'enabled' => true,
+
+            /**
+             * Whether the confirmation UI may expose a recovery-code fallback.
+             *
+             * This controls product behavior only; the actual page/controller implementation
+             * may still decide how recovery fallback is rendered.
+             */
+            'allow_recovery' => true,
         ],
     ],
 
@@ -2274,6 +3255,35 @@ return [
         'field' => 'authkit::form.field',
         'fields' => 'authkit::form.fields',
         'option_items' => 'authkit::form.option-items',
+
+        /**
+         * Authenticated application shell components.
+         *
+         * These components render the logged-in AuthKit "app" experience, including
+         * sidebar navigation, topbar actions, page headers, and shared account layouts.
+         *
+         * Notes:
+         * - These are distinct from guest auth page components such as auth_header/auth_footer.
+         * - Consumers may override these components to fully customize the authenticated shell
+         *   without changing package route/controller structure.
+         */
+        'app_layout' => 'authkit::app.layout',
+        'app_shell' => 'authkit::app.shell',
+        'app_sidebar' => 'authkit::app.sidebar',
+        'app_topbar' => 'authkit::app.topbar',
+        'app_nav' => 'authkit::app.nav',
+        'app_nav_item' => 'authkit::app.nav-item',
+        'app_page_header' => 'authkit::app.page-header',
+        'app_user_menu' => 'authkit::app.user-menu',
+
+        /**
+         * Account/settings page support components.
+         *
+         * These components are intended for reusable page sections rendered within
+         * dashboard/settings/security/session pages.
+         */
+        'settings_section' => 'authkit::settings.section',
+        'session_list' => 'authkit::sessions.list',
     ],
 
     /**
@@ -2883,6 +3893,53 @@ return [
             'email_verification_success' => [
                 'enabled' => true,
                 'page_key' => 'email_verification_success',
+            ],
+
+            /**
+             * Authenticated app/account pages.
+             *
+             * These page modules support the logged-in AuthKit shell and its
+             * account/security management screens.
+             */
+            'dashboard_web' => [
+                'enabled' => true,
+                'page_key' => 'dashboard_web',
+            ],
+
+            'settings' => [
+                'enabled' => true,
+                'page_key' => 'settings',
+            ],
+
+            'security' => [
+                'enabled' => true,
+                'page_key' => 'security',
+            ],
+
+            'sessions' => [
+                'enabled' => true,
+                'page_key' => 'sessions',
+            ],
+
+            'two_factor_settings' => [
+                'enabled' => true,
+                'page_key' => 'two_factor_settings',
+            ],
+
+            /**
+             * Authenticated confirmation pages.
+             *
+             * These page modules support step-up confirmation screens that are shown
+             * when a sensitive page or action requires fresh verification.
+             */
+            'confirm_password' => [
+                'enabled' => true,
+                'page_key' => 'confirm_password',
+            ],
+
+            'confirm_two_factor' => [
+                'enabled' => true,
+                'page_key' => 'confirm_two_factor',
             ],
         ],
 

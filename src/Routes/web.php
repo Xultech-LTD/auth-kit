@@ -2,7 +2,7 @@
 // file: src/Routes/web.php
 
 use Illuminate\Support\Facades\Route;
-use Xul\AuthKit\Http\Controllers\Web\Auth\DashboardController;
+use Xul\AuthKit\Http\Controllers\Web\App\DashboardViewController;
 use Xul\AuthKit\Http\Controllers\Web\Auth\LoginViewController;
 use Xul\AuthKit\Http\Controllers\Web\Auth\RegisterViewController;
 use Xul\AuthKit\Http\Controllers\Web\Auth\TwoFactorChallengeViewController;
@@ -175,8 +175,4 @@ Route::middleware(array_values(array_filter(array_merge(
                 )->name((string) ($webNames['verify_token_page'] ?? 'authkit.web.email.verify.token'));
             });
 
-        Route::get(
-            'dashboard',
-            ControllerResolver::resolve('web', 'dashboard_web', DashboardController::class)
-        )->name((string) ($webNames['dashboard_web'] ?? 'authkit.web.dashboard'));
     });

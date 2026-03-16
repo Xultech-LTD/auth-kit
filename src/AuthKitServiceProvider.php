@@ -262,6 +262,12 @@ final class AuthKitServiceProvider extends ServiceProvider
 
         $this->loadRoutesFrom(__DIR__ . '/Routes/web.php');
         $this->loadRoutesFrom(__DIR__ . '/Routes/api.php');
+
+        if ((bool) config('authkit.app.enabled', true)) {
+            $this->loadRoutesFrom(__DIR__ . '/Routes/app-web.php');
+            $this->loadRoutesFrom(__DIR__ . '/Routes/app-api.php');
+        }
+
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'authkit');
 
         Blade::anonymousComponentNamespace('authkit::components', 'authkit');
@@ -366,6 +372,8 @@ final class AuthKitServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/Routes/web.php' => base_path('routes/authkit-web.php'),
             __DIR__ . '/Routes/api.php' => base_path('routes/authkit-api.php'),
+            __DIR__ . '/Routes/app-web.php' => base_path('routes/authkit-app-web.php'),
+            __DIR__ . '/Routes/app-api.php' => base_path('routes/authkit-app-api.php'),
         ], 'authkit-routes');
     }
 }

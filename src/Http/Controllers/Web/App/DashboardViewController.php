@@ -1,8 +1,8 @@
 <?php
 
-namespace Xul\AuthKit\Http\Controllers\Web\Auth;
+namespace Xul\AuthKit\Http\Controllers\Web\App;
 
-class DashboardController
+class DashboardViewController
 {
     public function __invoke()
     {
