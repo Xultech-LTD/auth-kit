@@ -1,0 +1,141 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/app-settings-page.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Shared authenticated settings-page support styles.
+ *
+ * Responsibilities:
+ * - Provide reusable stacked spacing for authenticated settings pages.
+ * - Render polished empty-state blocks.
+ * - Render linked settings/action cards with consistent spacing and hierarchy.
+ */
+
+.authkit-dashboard__stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--authkit-space-5);
+    min-width: 0;
+}
+
+.authkit-empty-state {
+    display: flex;
+    flex-direction: column;
+    gap: var(--authkit-space-2);
+
+    min-width: 0;
+    padding: var(--authkit-space-4);
+
+    border: var(--authkit-border-width) dashed color-mix(in srgb, var(--authkit-color-border) 88%, transparent);
+    border-radius: calc(var(--authkit-radius-lg) + 0.125rem);
+
+    background:
+            linear-gradient(
+                    180deg,
+                    color-mix(in srgb, var(--authkit-color-surface-alt) 78%, transparent) 0%,
+                    color-mix(in srgb, var(--authkit-color-surface) 94%, transparent) 100%
+            );
+}
+
+.authkit-empty-state__title {
+    margin: 0;
+    color: var(--authkit-color-text);
+    font-size: var(--authkit-font-size-md);
+    font-weight: var(--authkit-font-weight-semibold);
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+}
+
+.authkit-empty-state__text {
+    margin: 0;
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-sm);
+    line-height: 1.65;
+}
+
+.authkit-settings-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--authkit-space-3);
+    min-width: 0;
+}
+
+.authkit-settings-links__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--authkit-space-2);
+
+    min-width: 0;
+    min-height: 100%;
+    padding: var(--authkit-space-4);
+
+    border: var(--authkit-border-width) solid color-mix(in srgb, var(--authkit-color-border) 88%, transparent);
+    border-radius: calc(var(--authkit-radius-lg) + 0.0625rem);
+
+    background:
+            linear-gradient(
+                    180deg,
+                    color-mix(in srgb, var(--authkit-color-surface) 98%, transparent) 0%,
+                    var(--authkit-color-surface) 100%
+            );
+
+    color: inherit;
+    text-decoration: none;
+    box-shadow: var(--authkit-shadow-xs, 0 1px 2px rgba(0, 0, 0, 0.04));
+
+    transition:
+            border-color var(--authkit-transition-fast),
+            background-color var(--authkit-transition-fast),
+            color var(--authkit-transition-fast),
+            transform var(--authkit-transition-fast),
+            box-shadow var(--authkit-transition-fast);
+}
+
+.authkit-settings-links__item:hover {
+    background:
+            linear-gradient(
+                    180deg,
+                    color-mix(in srgb, var(--authkit-color-surface-alt) 82%, transparent) 0%,
+                    color-mix(in srgb, var(--authkit-color-surface) 100%, transparent) 100%
+            );
+    border-color: color-mix(in srgb, var(--authkit-color-primary) 22%, var(--authkit-color-border));
+    transform: translateY(-1px);
+    box-shadow: var(--authkit-shadow-sm);
+}
+
+.authkit-settings-links__item:focus-visible {
+    outline: none;
+    border-color: var(--authkit-color-primary);
+    box-shadow:
+            0 0 0 var(--authkit-focus-ring-offset) var(--authkit-color-surface),
+            0 0 0 calc(var(--authkit-focus-ring-offset) + var(--authkit-focus-ring-width))
+            var(--authkit-color-focus-ring);
+}
+
+.authkit-settings-links__title {
+    margin: 0;
+    color: var(--authkit-color-text);
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-semibold);
+    line-height: 1.3;
+}
+
+.authkit-settings-links__text {
+    margin: 0;
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-sm);
+    line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+    .authkit-dashboard__stack {
+        gap: var(--authkit-space-4);
+    }
+
+    .authkit-settings-links {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

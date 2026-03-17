@@ -19,6 +19,12 @@
  */
 --}}
 
+@php
+    $components = (array) config('authkit.components', []);
+    $settingsSectionComponent = (string) ($components['settings_section'] ?? 'authkit::app.settings.section');
+    $sessionListComponent = (string) ($components['session_list'] ?? 'authkit::app.sessions.list');
+@endphp
+
 <x-authkit::app.layout
         :title="$title ?? 'Sessions'"
         :page-key="$pageKey ?? 'sessions'"
@@ -53,23 +59,18 @@
             </div>
         </section>
 
-        <section class="authkit-dashboard__grid">
-            <article class="authkit-dashboard-card authkit-dashboard-card--wide">
-                <div class="authkit-dashboard-card__header">
-                    <div>
-                        <h3 class="authkit-dashboard-card__title">Session activity</h3>
-                        <p class="authkit-dashboard-card__text">
-                            These are the currently stored authenticated sessions associated
-                            with your account.
-                        </p>
-                    </div>
-                </div>
-
-                <x-authkit::app.sessions.list
+        <div class="authkit-dashboard__stack">
+            <x-dynamic-component
+                    :component="$settingsSectionComponent"
+                    title="Session activity"
+                    description="These are the currently stored authenticated sessions associated with your account."
+            >
+                <x-dynamic-component
+                        :component="$sessionListComponent"
                         :sessions="$sessions ?? collect()"
                         :supports-session-tracking="$supportsSessionTracking ?? true"
                 />
-            </article>
-        </section>
+            </x-dynamic-component>
+        </div>
     </div>
 </x-authkit::app.layout>

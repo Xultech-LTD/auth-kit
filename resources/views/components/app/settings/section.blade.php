@@ -4,89 +4,69 @@
  *
  * Reusable section wrapper for authenticated AuthKit settings pages.
  *
- * Responsibilities:
- * - Provides a consistent section shell for settings/security content.
- * - Renders optional heading, description, and action areas.
- * - Exposes stable structural hooks for forms, summaries, and controls.
+ * Purpose:
+ * - Provide a consistent section shell for settings/security/session pages.
+ * - Render an optional eyebrow, title, description, and actions area.
+ * - Keep page templates thin and compositional.
  *
  * Props:
- * - title: Section title text.
- * - description: Optional supporting description.
- * - as: Root element tag name.
+ * - title: Primary section title.
+ * - description: Optional supporting copy.
+ * - eyebrow: Optional small section label shown above the title.
+ * - actions: Optional actions slot rendered in the header.
  *
  * Slots:
- * - $slot: Main section body/content.
- * - actions: Optional right-aligned header actions.
- * - footer: Optional footer content rendered below the body.
- *
- * Notes:
- * - This component is intended for settings/security/session-related pages.
- * - Consumers may override this component to add richer UI treatments,
- *   badges, tabs, inline status chips, or custom layouts.
+ * - default: Main section body content.
+ * - actions: Optional header action controls.
  */
 --}}
 
 @props([
-    'title' => null,
+    'title' => '',
     'description' => null,
-    'as' => 'section',
+    'eyebrow' => null,
 ])
 
 @php
-    $tag = is_string($as) && trim($as) !== '' ? trim($as) : 'section';
+    $resolvedTitle = is_string($title) ? trim($title) : '';
+    $resolvedDescription = is_string($description) ? trim($description) : '';
+    $resolvedEyebrow = is_string($eyebrow) ? trim($eyebrow) : '';
 
-    $resolvedTitle = is_string($title) && trim($title) !== ''
-        ? trim($title)
-        : null;
-
-    $resolvedDescription = is_string($description) && trim($description) !== ''
-        ? trim($description)
-        : null;
-
-    $actions = $actions ?? null;
-    $footer = $footer ?? null;
-
-    $hasHeader = $resolvedTitle !== null || $resolvedDescription !== null || ($actions !== null && trim((string) $actions) !== '');
-    $hasFooter = $footer !== null && trim((string) $footer) !== '';
+    $hasActions = isset($actions) && trim((string) $actions) !== '';
 @endphp
 
-<{{ $tag }}
-{{ $attributes->merge([
-    'class' => 'authkit-settings-section',
-    'data-authkit-settings-section' => '1',
-]) }}
->
-@if ($hasHeader)
-    <div class="authkit-settings-section__header">
-        <div class="authkit-settings-section__heading">
-            @if ($resolvedTitle !== null)
-                <h2 class="authkit-settings-section__title">
-                    {{ $resolvedTitle }}
-                </h2>
-            @endif
+<section {{ $attributes->merge(['class' => 'authkit-settings-section']) }}>
+    @if ($resolvedEyebrow !== '' || $resolvedTitle !== '' || $resolvedDescription !== '' || $hasActions)
+        <header class="authkit-settings-section__header">
+            <div class="authkit-settings-section__header-main">
+                @if ($resolvedEyebrow !== '')
+                    <div class="authkit-settings-section__eyebrow">
+                        {{ $resolvedEyebrow }}
+                    </div>
+                @endif
 
-            @if ($resolvedDescription !== null)
-                <p class="authkit-settings-section__description">
-                    {{ $resolvedDescription }}
-                </p>
-            @endif
-        </div>
+                @if ($resolvedTitle !== '')
+                    <h2 class="authkit-settings-section__title">
+                        {{ $resolvedTitle }}
+                    </h2>
+                @endif
 
-        @if ($actions !== null && trim((string) $actions) !== '')
-            <div class="authkit-settings-section__actions">
-                {{ $actions }}
+                @if ($resolvedDescription !== '')
+                    <p class="authkit-settings-section__description">
+                        {{ $resolvedDescription }}
+                    </p>
+                @endif
             </div>
-        @endif
-    </div>
-@endif
 
-<div class="authkit-settings-section__body">
-    {{ $slot }}
-</div>
+            @if ($hasActions)
+                <div class="authkit-settings-section__actions">
+                    {{ $actions }}
+                </div>
+            @endif
+        </header>
+    @endif
 
-@if ($hasFooter)
-    <div class="authkit-settings-section__footer">
-        {{ $footer }}
+    <div class="authkit-settings-section__body">
+        {{ $slot }}
     </div>
-@endif
-</{{ $tag }}>
+</section>

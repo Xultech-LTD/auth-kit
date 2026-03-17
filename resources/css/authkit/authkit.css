@@ -73,3 +73,5 @@
 @import "./base/components/app-layout.css";
 @import "./base/components/app-dashboard.css";
 @import "./base/components/app-sessions.css";
+@import "./base/components/settings-section.css";
+@import "./base/components/app-settings-page.css";

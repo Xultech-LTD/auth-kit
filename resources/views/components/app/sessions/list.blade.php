@@ -1,100 +1,123 @@
 {{--
 /**
- * Component: App Sessions List
+ * Component: Sessions List
  *
- * Authenticated session list for AuthKit.
+ * Reusable authenticated sessions list for AuthKit.
  *
  * Purpose:
- * - Render normalized authenticated session entries.
- * - Highlight the current session.
- * - Present device, browser, platform, IP, and activity metadata.
+ * - Render normalized authenticated session data in a clean card list.
+ * - Display an empty state when database-backed session tracking is unavailable
+ *   or when no sessions are present.
+ *
+ * Expected session item shape:
+ * [
+ *   'id' => '...',
+ *   'ip_address' => '127.0.0.1',
+ *   'user_agent' => 'Mozilla/5.0 ...',
+ *   'device' => 'Desktop device',
+ *   'browser' => 'Chrome',
+ *   'platform' => 'Windows',
+ *   'is_current' => true,
+ *   'last_activity_at' => Carbon|null,
+ *   'last_activity_human' => '2 minutes ago',
+ * ]
  *
  * Props:
- * - sessions: Collection|array of normalized session items.
- * - supportsSessionTracking: Whether database-backed session tracking is available.
+ * - sessions: Iterable normalized sessions list.
+ * - supportsSessionTracking: Whether the application supports database session tracking.
  */
 --}}
 
 @props([
-    'sessions' => [],
+    'sessions' => collect(),
     'supportsSessionTracking' => true,
 ])
 
 @php
     $resolvedSessions = collect($sessions ?? [])->values();
+    $trackingEnabled = (bool) $supportsSessionTracking;
 @endphp
 
-<div class="authkit-app-sessions">
-    @if (! $supportsSessionTracking)
+<div {{ $attributes->merge(['class' => 'authkit-app-sessions']) }}>
+    @if (! $trackingEnabled)
         <div class="authkit-app-sessions__empty">
-            <div class="authkit-app-sessions__empty-title">
+            <h3 class="authkit-app-sessions__empty-title">
                 Session tracking is unavailable
-            </div>
+            </h3>
 
             <p class="authkit-app-sessions__empty-text">
-                This application is not currently using the database session driver,
-                so active authenticated sessions cannot be listed here yet.
+                AuthKit can only display active sessions when your application is using
+                the database session driver and the sessions table is available.
             </p>
         </div>
     @elseif ($resolvedSessions->isEmpty())
         <div class="authkit-app-sessions__empty">
-            <div class="authkit-app-sessions__empty-title">
+            <h3 class="authkit-app-sessions__empty-title">
                 No active sessions found
-            </div>
+            </h3>
 
             <p class="authkit-app-sessions__empty-text">
-                We could not find any database-backed authenticated sessions for this account.
+                There are no additional tracked authenticated sessions available for
+                this account right now.
             </p>
         </div>
     @else
         <div class="authkit-app-sessions__list">
             @foreach ($resolvedSessions as $session)
                 @php
+                    $device = (string) ($session['device'] ?? 'Unknown device');
+                    $browser = (string) ($session['browser'] ?? 'Unknown browser');
+                    $platform = (string) ($session['platform'] ?? 'Unknown platform');
+                    $ipAddress = (string) ($session['ip_address'] ?? 'Unknown');
+                    $userAgent = (string) ($session['user_agent'] ?? 'Unknown user agent');
                     $isCurrent = (bool) ($session['is_current'] ?? false);
+                    $lastActivityHuman = (string) ($session['last_activity_human'] ?? 'Unknown');
                 @endphp
 
                 <article class="authkit-app-session-card{{ $isCurrent ? ' authkit-app-session-card--current' : '' }}">
                     <div class="authkit-app-session-card__header">
                         <div class="authkit-app-session-card__identity">
-                            <div class="authkit-app-session-card__device">
-                                {{ $session['device'] ?? 'Device' }}
-                            </div>
+                            <h3 class="authkit-app-session-card__device">
+                                {{ $device }}
+                            </h3>
 
-                            <div class="authkit-app-session-card__meta">
-                                {{ $session['browser'] ?? 'Unknown browser' }}
-                                ·
-                                {{ $session['platform'] ?? 'Unknown platform' }}
-                            </div>
+                            <p class="authkit-app-session-card__meta">
+                                {{ $browser }} · {{ $platform }}
+                            </p>
                         </div>
 
                         @if ($isCurrent)
-                            <span class="authkit-app-session-card__badge">
+                            <div class="authkit-app-session-card__badge">
                                 Current session
-                            </span>
+                            </div>
                         @endif
                     </div>
 
                     <div class="authkit-app-session-card__details">
                         <div class="authkit-app-session-card__detail">
-                            <span class="authkit-app-session-card__detail-label">IP address</span>
-                            <span class="authkit-app-session-card__detail-value">
-                                {{ $session['ip_address'] ?? 'Unknown' }}
-                            </span>
+                            <div class="authkit-app-session-card__detail-label">
+                                IP address
+                            </div>
+
+                            <div class="authkit-app-session-card__detail-value">
+                                {{ $ipAddress }}
+                            </div>
                         </div>
 
                         <div class="authkit-app-session-card__detail">
-                            <span class="authkit-app-session-card__detail-label">Last activity</span>
-                            <span class="authkit-app-session-card__detail-value">
-                                {{ $session['last_activity_human'] ?? 'Unknown' }}
-                            </span>
+                            <div class="authkit-app-session-card__detail-label">
+                                Last activity
+                            </div>
+
+                            <div class="authkit-app-session-card__detail-value">
+                                {{ $lastActivityHuman }}
+                            </div>
                         </div>
                     </div>
 
-                    @if (!empty($session['user_agent']))
-                        <div class="authkit-app-session-card__agent">
-                            {{ $session['user_agent'] }}
-                        </div>
-                    @endif
+                    <div class="authkit-app-session-card__agent">
+                        {{ $userAgent }}
+                    </div>
                 </article>
             @endforeach
         </div>

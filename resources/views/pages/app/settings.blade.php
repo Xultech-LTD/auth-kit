@@ -1,159 +1,175 @@
 {{--
 /**
- * Page: Settings
+ * Page: App Settings
  *
- * Authenticated AuthKit settings page.
+ * Authenticated AuthKit settings overview page.
  *
  * Responsibilities:
- * - Resolves the configured AuthKit app page metadata for the settings page.
- * - Renders inside the configured authenticated app layout.
- * - Displays packaged account settings entry points using shared components.
+ * - Render the authenticated app layout.
+ * - Present a settings overview for common account-management areas.
+ * - Reuse the packaged settings section component.
+ * - Link users to available account/security/session destinations.
  *
- * Notes:
- * - This is the packaged default settings page.
- * - Consumers may replace this page entirely by changing authkit.app.pages.settings.view.
+ * Expected data:
+ * - $title
+ * - $heading
+ * - $pageKey
+ * - $currentPage
+ * - $pages
  */
 --}}
 
 @php
-    $c = (array) config('authkit.components', []);
-    $appPages = (array) config('authkit.app.pages', []);
-    $appLayouts = (array) config('authkit.app.layouts', []);
-    $webNames = (array) config('authkit.route_names.web', []);
+    $pages = is_array($pages ?? null) ? $pages : [];
 
-    $page = is_array($pageConfig ?? null)
-        ? $pageConfig
-        : (array) ($appPages['settings'] ?? []);
+    $securityPage = (array) ($pages['security'] ?? []);
+    $sessionsPage = (array) ($pages['sessions'] ?? []);
+    $twoFactorPage = (array) ($pages['two_factor_settings'] ?? []);
 
-    $pageKey = is_string($pageKey ?? null) && $pageKey !== ''
-        ? $pageKey
-        : 'settings';
+    $securityEnabled = (bool) ($securityPage['enabled'] ?? false);
+    $sessionsEnabled = (bool) ($sessionsPage['enabled'] ?? false);
+    $twoFactorEnabled = (bool) ($twoFactorPage['enabled'] ?? false);
 
-    $layoutKey = (string) data_get($page, 'layout', 'default');
-    $layoutComponent = (string) data_get($appLayouts, $layoutKey, 'authkit::app.layout');
+    $securityRoute = (string) ($securityPage['route'] ?? '');
+    $sessionsRoute = (string) ($sessionsPage['route'] ?? '');
+    $twoFactorRoute = (string) ($twoFactorPage['route'] ?? '');
 
-    $containerComponent = (string) data_get($c, 'container', 'authkit::container');
-    $cardComponent = (string) data_get($c, 'card', 'authkit::card');
-    $linkComponent = (string) data_get($c, 'link', 'authkit::link');
-    $alertComponent = (string) data_get($c, 'alert', 'authkit::alert');
-    $settingsSectionComponent = (string) data_get($c, 'settings_section', 'authkit::app.settings.section');
-    $dividerComponent = (string) data_get($c, 'divider', 'authkit::divider');
+    $securityHref = ($securityRoute !== '' && \Illuminate\Support\Facades\Route::has($securityRoute))
+        ? route($securityRoute)
+        : '#';
 
-    $title = (string) data_get($page, 'title', 'Settings');
-    $heading = (string) data_get($page, 'heading', 'Account settings');
+    $sessionsHref = ($sessionsRoute !== '' && \Illuminate\Support\Facades\Route::has($sessionsRoute))
+        ? route($sessionsRoute)
+        : '#';
 
-    $securityRouteName = (string) ($webNames['security'] ?? 'authkit.web.settings.security');
-    $sessionsRouteName = (string) ($webNames['sessions'] ?? 'authkit.web.settings.sessions');
-    $twoFactorRouteName = (string) ($webNames['two_factor_settings'] ?? 'authkit.web.settings.two_factor');
-
-    $securityUrl = \Illuminate\Support\Facades\Route::has($securityRouteName) ? route($securityRouteName) : '#';
-    $sessionsUrl = \Illuminate\Support\Facades\Route::has($sessionsRouteName) ? route($sessionsRouteName) : '#';
-    $twoFactorUrl = \Illuminate\Support\Facades\Route::has($twoFactorRouteName) ? route($twoFactorRouteName) : '#';
-
-    $guard = (string) config('authkit.auth.guard', 'web');
-    $user = auth($guard)->user();
-
-    $userName = is_object($user)
-        ? (string) (data_get($user, 'name') ?: data_get($user, 'email', 'there'))
-        : 'there';
-
-    $userEmail = is_object($user)
-        ? (string) data_get($user, 'email', '')
-        : '';
+    $twoFactorHref = ($twoFactorRoute !== '' && \Illuminate\Support\Facades\Route::has($twoFactorRoute))
+        ? route($twoFactorRoute)
+        : '#';
 @endphp
 
-<x-dynamic-component
-        :component="$layoutComponent"
-        :page-key="$pageKey"
-        :page-config="$page"
-        :page-title="$title"
-        :heading="$heading"
+<x-authkit::app.layout
+        :title="$title ?? 'Settings'"
+        :page-key="$pageKey ?? 'settings'"
+        :current-page="$currentPage ?? 'settings'"
+        :page-title="$title ?? 'Settings'"
+        :page-heading="$heading ?? 'Account settings'"
 >
-    <x-dynamic-component :component="$containerComponent" size="lg">
-        <div class="authkit-page-stack">
+    <div class="authkit-dashboard">
+        <section class="authkit-dashboard__hero">
+            <div class="authkit-dashboard__hero-copy">
+                <div class="authkit-dashboard__eyebrow">
+                    Account center
+                </div>
 
-            <x-dynamic-component :component="$alertComponent" variant="info">
-                Manage your account preferences and review the available account areas.
-            </x-dynamic-component>
+                <h2 class="authkit-dashboard__hero-title">
+                    Settings overview
+                </h2>
 
-            <x-dynamic-component
-                    :component="$settingsSectionComponent"
-                    title="Profile"
-                    description="Basic account identity and general account information."
+                <p class="authkit-dashboard__hero-text">
+                    Manage your account preferences, security tools, and active session controls
+                    from one place.
+                </p>
+            </div>
+
+            <div class="authkit-dashboard__hero-meta">
+                <div class="authkit-dashboard__hero-chip">
+                    <span class="authkit-dashboard__hero-chip-label">Available areas</span>
+                    <span class="authkit-dashboard__hero-chip-value">
+                        {{ collect([
+                            $securityEnabled,
+                            $sessionsEnabled,
+                            $twoFactorEnabled,
+                        ])->filter()->count() }}
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <div class="authkit-dashboard__stack">
+            <x-authkit::app.settings.section
+                    title="Account management"
+                    description="Choose a settings area to manage your account, review sign-in activity, and strengthen account protection."
+                    eyebrow="Overview"
             >
-                <x-dynamic-component :component="$cardComponent" class="authkit-settings-card">
-                    <div class="authkit-settings-card__content">
-                        <div class="authkit-settings-card__copy">
-                            <h3 class="authkit-settings-card__title">Account profile</h3>
-                            <p class="authkit-settings-card__text">
-                                Signed in as <strong>{{ $userName }}</strong>@if($userEmail !== '') ({{ $userEmail }})@endif.
-                            </p>
+                @if ($securityEnabled || $sessionsEnabled || $twoFactorEnabled)
+                    <div class="authkit-settings-links">
+                        @if ($securityEnabled)
+                            <a href="{{ $securityHref }}" class="authkit-settings-links__item">
+                                <div class="authkit-settings-links__title">
+                                    {{ (string) ($securityPage['title'] ?? 'Security') }}
+                                </div>
+
+                                <div class="authkit-settings-links__text">
+                                    Update your password, review protection settings, and manage security-related actions.
+                                </div>
+                            </a>
+                        @endif
+
+                        @if ($sessionsEnabled)
+                            <a href="{{ $sessionsHref }}" class="authkit-settings-links__item">
+                                <div class="authkit-settings-links__title">
+                                    {{ (string) ($sessionsPage['title'] ?? 'Sessions') }}
+                                </div>
+
+                                <div class="authkit-settings-links__text">
+                                    Review active sessions across browsers and devices connected to your account.
+                                </div>
+                            </a>
+                        @endif
+
+                        @if ($twoFactorEnabled)
+                            <a href="{{ $twoFactorHref }}" class="authkit-settings-links__item">
+                                <div class="authkit-settings-links__title">
+                                    {{ (string) ($twoFactorPage['title'] ?? 'Two-factor authentication') }}
+                                </div>
+
+                                <div class="authkit-settings-links__text">
+                                    Enable, confirm, or manage your two-factor authentication experience.
+                                </div>
+                            </a>
+                        @endif
+                    </div>
+                @else
+                    <div class="authkit-empty-state">
+                        <div class="authkit-empty-state__title">
+                            No settings areas are currently enabled
+                        </div>
+
+                        <p class="authkit-empty-state__text">
+                            Enable one or more authenticated app pages in your AuthKit configuration
+                            to display settings destinations here.
+                        </p>
+                    </div>
+                @endif
+            </x-authkit::app.settings.section>
+
+            <x-authkit::app.settings.section
+                    title="What you can manage here"
+                    description="AuthKit keeps authenticated account-management pages organized into focused destinations."
+                    eyebrow="Guide"
+            >
+                <div class="authkit-settings-links">
+                    <div class="authkit-settings-links__item">
+                        <div class="authkit-settings-links__title">
+                            Security controls
+                        </div>
+
+                        <div class="authkit-settings-links__text">
+                            Password management, two-factor authentication, and other protection-related account tools.
                         </div>
                     </div>
-                </x-dynamic-component>
-            </x-dynamic-component>
 
-            <x-dynamic-component :component="$dividerComponent" />
-
-            <x-dynamic-component
-                    :component="$settingsSectionComponent"
-                    title="Manage account"
-                    description="Open the main areas related to your account."
-            >
-                <div class="authkit-dashboard-grid">
-                    <x-dynamic-component :component="$cardComponent" class="authkit-dashboard-action-card">
-                        <h3 class="authkit-dashboard-action-card__title">Security</h3>
-                        <p class="authkit-dashboard-action-card__text">
-                            Review password protection and security-related account settings.
-                        </p>
-
-                        <div class="authkit-dashboard-action-card__actions">
-                            <x-dynamic-component
-                                    :component="$linkComponent"
-                                    :href="$securityUrl"
-                                    variant="primary"
-                            >
-                                Open security
-                            </x-dynamic-component>
+                    <div class="authkit-settings-links__item">
+                        <div class="authkit-settings-links__title">
+                            Session visibility
                         </div>
-                    </x-dynamic-component>
 
-                    <x-dynamic-component :component="$cardComponent" class="authkit-dashboard-action-card">
-                        <h3 class="authkit-dashboard-action-card__title">Two-factor authentication</h3>
-                        <p class="authkit-dashboard-action-card__text">
-                            Manage your two-factor authentication setup and related access controls.
-                        </p>
-
-                        <div class="authkit-dashboard-action-card__actions">
-                            <x-dynamic-component
-                                    :component="$linkComponent"
-                                    :href="$twoFactorUrl"
-                                    variant="primary"
-                            >
-                                Manage two-factor
-                            </x-dynamic-component>
+                        <div class="authkit-settings-links__text">
+                            Inspect where your account is signed in and review tracked device activity.
                         </div>
-                    </x-dynamic-component>
-
-                    <x-dynamic-component :component="$cardComponent" class="authkit-dashboard-action-card">
-                        <h3 class="authkit-dashboard-action-card__title">Sessions</h3>
-                        <p class="authkit-dashboard-action-card__text">
-                            Review active devices and session activity for your account.
-                        </p>
-
-                        <div class="authkit-dashboard-action-card__actions">
-                            <x-dynamic-component
-                                    :component="$linkComponent"
-                                    :href="$sessionsUrl"
-                                    variant="primary"
-                            >
-                                Review sessions
-                            </x-dynamic-component>
-                        </div>
-                    </x-dynamic-component>
+                    </div>
                 </div>
-            </x-dynamic-component>
-
+            </x-authkit::app.settings.section>
         </div>
-    </x-dynamic-component>
-</x-dynamic-component>
+    </div>
+</x-authkit::app.layout>
