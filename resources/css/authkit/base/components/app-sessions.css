@@ -1,0 +1,146 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/app-sessions.css
+ * Author: Michael Erastus
+ */
+
+.authkit-app-sessions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--authkit-space-4);
+    min-width: 0;
+}
+
+.authkit-app-sessions__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--authkit-space-4);
+}
+
+.authkit-app-sessions__empty {
+    padding: var(--authkit-space-5);
+    border: var(--authkit-border-width) solid color-mix(in srgb, var(--authkit-color-border) 88%, transparent);
+    border-radius: var(--authkit-radius-xl);
+    background-color: color-mix(in srgb, var(--authkit-color-surface-alt) 70%, transparent);
+}
+
+.authkit-app-sessions__empty-title {
+    color: var(--authkit-color-text);
+    font-size: var(--authkit-font-size-md);
+    font-weight: var(--authkit-font-weight-bold);
+    line-height: 1.3;
+}
+
+.authkit-app-sessions__empty-text {
+    margin: var(--authkit-space-2) 0 0;
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-sm);
+    line-height: 1.6;
+}
+
+.authkit-app-session-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--authkit-space-4);
+    padding: var(--authkit-space-4);
+    border: var(--authkit-border-width) solid color-mix(in srgb, var(--authkit-color-border) 88%, transparent);
+    border-radius: var(--authkit-radius-xl);
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 96%, transparent);
+}
+
+.authkit-app-session-card--current {
+    border-color: color-mix(in srgb, var(--authkit-color-primary) 22%, var(--authkit-color-border));
+    background:
+            linear-gradient(
+                    180deg,
+                    color-mix(in srgb, var(--authkit-color-primary) 6%, var(--authkit-color-surface)) 0%,
+                    var(--authkit-color-surface) 100%
+            );
+}
+
+.authkit-app-session-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--authkit-space-3);
+}
+
+.authkit-app-session-card__identity {
+    min-width: 0;
+}
+
+.authkit-app-session-card__device {
+    color: var(--authkit-color-text);
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-semibold);
+    line-height: 1.3;
+}
+
+.authkit-app-session-card__meta {
+    margin-top: var(--authkit-space-1);
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-sm);
+    line-height: 1.5;
+}
+
+.authkit-app-session-card__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem 0.7rem;
+    border-radius: var(--authkit-radius-pill);
+    background-color: color-mix(in srgb, var(--authkit-color-primary) 12%, var(--authkit-color-surface));
+    color: var(--authkit-color-primary);
+    font-size: var(--authkit-font-size-xs);
+    font-weight: var(--authkit-font-weight-semibold);
+    white-space: nowrap;
+}
+
+.authkit-app-session-card__details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--authkit-space-4);
+}
+
+.authkit-app-session-card__detail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--authkit-space-1);
+}
+
+.authkit-app-session-card__detail-label {
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-xs);
+    font-weight: var(--authkit-font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.authkit-app-session-card__detail-value {
+    color: var(--authkit-color-text);
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-medium);
+    line-height: 1.5;
+}
+
+.authkit-app-session-card__agent {
+    padding: var(--authkit-space-3);
+    border-radius: var(--authkit-radius-lg);
+    background-color: color-mix(in srgb, var(--authkit-color-surface-alt) 82%, transparent);
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-xs);
+    line-height: 1.7;
+    word-break: break-word;
+}
+
+@media (max-width: 640px) {
+    .authkit-app-session-card__details {
+        grid-template-columns: 1fr;
+    }
+
+    .authkit-app-session-card__header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

@@ -28,6 +28,7 @@ final class DashboardViewController
     {
         $page = (array) data_get(config('authkit.app', []), 'pages.dashboard_web', []);
 
+        $pageKey = 'dashboard_web';
         $title = (string) ($page['title'] ?? 'Dashboard');
         $heading = (string) ($page['heading'] ?? 'Account overview');
         $view = (string) ($page['view'] ?? 'authkit::pages.app.dashboard');
@@ -35,8 +36,9 @@ final class DashboardViewController
         return view($view, [
             'title' => $title,
             'heading' => $heading,
-            'pageKey' => 'dashboard_web',
-            'currentPage' => 'dashboard_web',
+            'pageKey' => $pageKey,
+            'currentPage' => $pageKey,
+            'page' => $page,
         ]);
     }
 }

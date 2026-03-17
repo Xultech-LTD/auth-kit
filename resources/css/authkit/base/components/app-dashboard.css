@@ -1,0 +1,258 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/app-dashboard.css
+ * Author: Michael Erastus
+ */
+
+.authkit-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--authkit-space-6);
+    min-width: 0;
+}
+
+.authkit-dashboard__hero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--authkit-space-5);
+    padding: var(--authkit-space-6);
+    border: var(--authkit-border-width) solid color-mix(in srgb, var(--authkit-color-border) 88%, transparent);
+    border-radius: calc(var(--authkit-radius-xl) + 0.125rem);
+    background:
+            linear-gradient(
+                    180deg,
+                    color-mix(in srgb, var(--authkit-color-surface) 94%, #ffffff 6%) 0%,
+                    var(--authkit-color-surface) 100%
+            );
+    box-shadow: var(--authkit-shadow-sm);
+}
+
+.authkit-dashboard__hero-copy {
+    min-width: 0;
+    max-width: 46rem;
+}
+
+.authkit-dashboard__eyebrow {
+    margin-bottom: var(--authkit-space-2);
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-xs);
+    font-weight: var(--authkit-font-weight-semibold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.authkit-dashboard__hero-title {
+    margin: 0;
+    color: var(--authkit-color-text);
+    font-size: clamp(1.6rem, 1.25rem + 1vw, 2.35rem);
+    font-weight: var(--authkit-font-weight-bold);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+}
+
+.authkit-dashboard__hero-text {
+    margin-top: var(--authkit-space-3);
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-md);
+    line-height: 1.7;
+    max-width: 40rem;
+}
+
+.authkit-dashboard__hero-meta {
+    flex: 0 0 auto;
+    min-width: 16rem;
+    max-width: 22rem;
+}
+
+.authkit-dashboard__hero-chip {
+    display: flex;
+    flex-direction: column;
+    gap: var(--authkit-space-2);
+    padding: var(--authkit-space-4);
+    border: var(--authkit-border-width) solid color-mix(in srgb, var(--authkit-color-border) 88%, transparent);
+    border-radius: var(--authkit-radius-xl);
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 96%, transparent);
+}
+
+.authkit-dashboard__hero-chip-label {
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-xs);
+    font-weight: var(--authkit-font-weight-semibold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.authkit-dashboard__hero-chip-value {
+    color: var(--authkit-color-text);
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-semibold);
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.authkit-dashboard__grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--authkit-space-5);
+}
+
+.authkit-dashboard-card {
+    grid-column: span 6;
+    display: flex;
+    flex-direction: column;
+    gap: var(--authkit-space-5);
+    min-width: 0;
+    padding: var(--authkit-space-5);
+    border: var(--authkit-border-width) solid color-mix(in srgb, var(--authkit-color-border) 88%, transparent);
+    border-radius: var(--authkit-radius-xl);
+    background-color: var(--authkit-color-surface);
+    box-shadow: var(--authkit-shadow-sm);
+}
+
+.authkit-dashboard-card--wide {
+    grid-column: span 12;
+}
+
+.authkit-dashboard-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--authkit-space-4);
+}
+
+.authkit-dashboard-card__title {
+    margin: 0;
+    color: var(--authkit-color-text);
+    font-size: 1.05rem;
+    font-weight: var(--authkit-font-weight-bold);
+    line-height: 1.3;
+}
+
+.authkit-dashboard-card__text {
+    margin: var(--authkit-space-2) 0 0;
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-sm);
+    line-height: 1.6;
+}
+
+.authkit-dashboard-card__stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--authkit-space-4);
+}
+
+.authkit-dashboard-stat,
+.authkit-dashboard-feature {
+    display: flex;
+    flex-direction: column;
+    gap: var(--authkit-space-1);
+    padding: var(--authkit-space-4);
+    border-radius: var(--authkit-radius-lg);
+    background-color: color-mix(in srgb, var(--authkit-color-surface-alt) 82%, transparent);
+}
+
+.authkit-dashboard-stat__label,
+.authkit-dashboard-feature__title {
+    color: var(--authkit-color-text);
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-semibold);
+    line-height: 1.4;
+}
+
+.authkit-dashboard-stat__value,
+.authkit-dashboard-feature__text {
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-sm);
+    line-height: 1.6;
+}
+
+.authkit-dashboard-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--authkit-space-4);
+}
+
+.authkit-dashboard-action {
+    display: flex;
+    flex-direction: column;
+    gap: var(--authkit-space-2);
+    min-width: 0;
+    padding: var(--authkit-space-4);
+    border: var(--authkit-border-width) solid color-mix(in srgb, var(--authkit-color-border) 88%, transparent);
+    border-radius: var(--authkit-radius-xl);
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 96%, transparent);
+    color: var(--authkit-color-text);
+    text-decoration: none;
+    transition:
+            transform var(--authkit-transition-fast),
+            border-color var(--authkit-transition-fast),
+            background-color var(--authkit-transition-fast),
+            box-shadow var(--authkit-transition-fast);
+}
+
+.authkit-dashboard-action:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--authkit-color-primary) 18%, var(--authkit-color-border));
+    background-color: color-mix(in srgb, var(--authkit-color-primary) 4%, var(--authkit-color-surface));
+    box-shadow: var(--authkit-shadow-sm);
+}
+
+.authkit-dashboard-action:focus-visible {
+    outline: none;
+    box-shadow:
+            0 0 0 var(--authkit-focus-ring-offset) var(--authkit-color-surface),
+            0 0 0 calc(var(--authkit-focus-ring-offset) + var(--authkit-focus-ring-width))
+            var(--authkit-color-focus-ring);
+}
+
+.authkit-dashboard-action__title {
+    color: var(--authkit-color-text);
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-semibold);
+    line-height: 1.4;
+}
+
+.authkit-dashboard-action__text {
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-sm);
+    line-height: 1.6;
+}
+
+.authkit-dashboard__logout-form {
+    display: inline-flex;
+    align-items: center;
+}
+
+.authkit-dashboard__logout-form .authkit-btn {
+    width: auto;
+    min-width: 10rem;
+}
+
+@media (max-width: 1023.98px) {
+    .authkit-dashboard-card {
+        grid-column: span 12;
+    }
+
+    .authkit-dashboard-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .authkit-dashboard__hero {
+        flex-direction: column;
+    }
+
+    .authkit-dashboard__hero-meta {
+        min-width: 0;
+        width: 100%;
+        max-width: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .authkit-dashboard__hero,
+    .authkit-dashboard-card {
+        padding: var(--authkit-space-4);
+    }
+}

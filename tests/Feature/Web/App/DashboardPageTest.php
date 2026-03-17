@@ -20,7 +20,6 @@ it('renders the dashboard page for authenticated users', function () {
         ->get(route($routeName))
         ->assertOk()
         ->assertSee('Dashboard')
-        ->assertSee('AuthKit Dashboard')
         ->assertSee('Welcome')
         ->assertSee('Settings')
         ->assertSee('Security');

@@ -71,3 +71,5 @@
 @import "./base/components/app-user-menu.css";
 @import "./base/components/app-page-header.css";
 @import "./base/components/app-layout.css";
+@import "./base/components/app-dashboard.css";
+@import "./base/components/app-sessions.css";
