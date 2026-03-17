@@ -230,3 +230,28 @@
 .authkit[data-authkit-engine="bootstrap"] .authkit-auth-footer {
     gap: var(--authkit-space-2);
 }
+
+/* -------------------------------------------------------------
+ | Authenticated app shell
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="bootstrap"] .authkit-app-shell__sidebar,
+.authkit[data-authkit-engine="bootstrap"] .authkit-app-shell__sidebar {
+    background-color: var(--authkit-color-surface);
+}
+
+[data-authkit-engine="bootstrap"] .authkit-app-topbar,
+.authkit[data-authkit-engine="bootstrap"] .authkit-app-topbar {
+    background-color: var(--authkit-color-surface);
+    backdrop-filter: none;
+}
+
+[data-authkit-engine="bootstrap"] .authkit-app-nav-item,
+.authkit[data-authkit-engine="bootstrap"] .authkit-app-nav-item {
+    border-radius: var(--authkit-radius-md);
+}
+
+[data-authkit-engine="bootstrap"] .authkit-app-user-menu__trigger,
+.authkit[data-authkit-engine="bootstrap"] .authkit-app-user-menu__trigger {
+    border-radius: var(--authkit-radius-md);
+}

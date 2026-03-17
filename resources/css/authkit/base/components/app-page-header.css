@@ -1,0 +1,30 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/app-page-header.css
+ * Author: Michael Erastus
+ */
+
+.authkit-app-page-header {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+}
+
+.authkit-app-page-header__title {
+    margin: 0;
+    color: var(--authkit-color-text);
+    font-size: clamp(1.15rem, 1rem + 0.7vw, 1.9rem);
+    font-weight: var(--authkit-font-weight-bold);
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+}
+
+.authkit-app-page-header__subtitle {
+    margin: 0;
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-sm);
+    line-height: 1.35;
+}

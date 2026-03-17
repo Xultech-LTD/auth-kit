@@ -2,73 +2,47 @@
 /**
  * Component: App Page Header
  *
- * Standard page header for AuthKit authenticated application pages.
+ * Standard page-header block for authenticated AuthKit pages.
+ *
+ * Purpose:
+ * - Renders the primary visible title for the current authenticated page.
+ * - Optionally renders a supporting subtitle/description.
  *
  * Responsibilities:
- * - Renders the page heading and optional supporting copy.
- * - Exposes stable structural hooks for title, description, and actions.
- * - Provides a reusable page-header surface across dashboard, settings,
- *   security, sessions, and confirmation pages.
+ * - Render a stable heading structure for app pages.
+ * - Keep page-title typography and supporting text centralized.
  *
  * Props:
- * - title: Primary page heading text.
- * - description: Optional supporting description text.
- * - pageKey: Optional current authenticated page key.
- * - pageConfig: Optional resolved page configuration.
- *
- * Slots:
- * - $slot: Optional actions/content rendered on the right side of the header.
+ * - title: Primary page title.
+ * - subtitle: Optional supporting copy.
  *
  * Notes:
- * - This component is presentation-only and does not resolve page metadata.
- * - Controllers/pages should pass already-resolved title/description values.
- * - Consumers may override this component to support breadcrumbs, badges,
- *   tabs, or richer page-level controls.
+ * - This component is intentionally simple and reusable.
+ * - It is used by the app topbar, but may also be reused directly inside
+ *   pages or sections if needed.
  */
 --}}
 
 @props([
-    'title' => null,
-    'description' => null,
-    'pageKey' => null,
-    'pageConfig' => [],
+    'title' => '',
+    'subtitle' => null,
 ])
 
 @php
-    $resolvedTitle = is_string($title) && trim($title) !== ''
-        ? trim($title)
-        : (string) data_get($pageConfig, 'heading', data_get($pageConfig, 'title', 'Page'));
-
-    $resolvedDescription = is_string($description) && trim($description) !== ''
-        ? trim($description)
-        : null;
-
-    $hasActions = trim((string) $slot) !== '';
+    $resolvedTitle = is_string($title) ? trim($title) : '';
+    $resolvedSubtitle = is_string($subtitle) ? trim($subtitle) : '';
 @endphp
 
-<header
-        {{ $attributes->merge([
-            'class' => 'authkit-app-page-header',
-            'data-authkit-app-page-header' => is_string($pageKey) && $pageKey !== '' ? $pageKey : 'page',
-        ]) }}
->
-    <div class="authkit-app-page-header__content">
-        <div class="authkit-app-page-header__copy">
-            <h1 class="authkit-app-page-header__title">
-                {{ $resolvedTitle }}
-            </h1>
+<div class="authkit-app-page-header">
+    @if ($resolvedTitle !== '')
+        <h1 class="authkit-app-page-header__title">
+            {{ $resolvedTitle }}
+        </h1>
+    @endif
 
-            @if ($resolvedDescription !== null)
-                <p class="authkit-app-page-header__description">
-                    {{ $resolvedDescription }}
-                </p>
-            @endif
-        </div>
-
-        @if ($hasActions)
-            <div class="authkit-app-page-header__actions">
-                {{ $slot }}
-            </div>
-        @endif
-    </div>
-</header>
+    @if ($resolvedSubtitle !== '')
+        <p class="authkit-app-page-header__subtitle">
+            {{ $resolvedSubtitle }}
+        </p>
+    @endif
+</div>

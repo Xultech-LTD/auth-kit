@@ -2,101 +2,119 @@
 /**
  * Component: App Sidebar
  *
- * Authenticated application sidebar for AuthKit pages.
+ * Authenticated application sidebar for AuthKit.
  *
- * Responsibilities:
- * - Renders the authenticated navigation area.
- * - Displays a configurable product/application brand area.
- * - Delegates navigation item rendering to the configured nav item component.
- * - Highlights the active page based on the resolved current page key.
- * - Provides stable structural hooks for authenticated shell styling.
+ * Purpose:
+ * - Renders the primary authenticated navigation region.
+ * - Displays product branding for the authenticated area.
+ * - Resolves and renders configured sidebar navigation items.
+ * - Renders a contextual footer card pinned to the lower area of the sidebar.
  *
- * Expected item shape:
- * - page   : internal page key
- * - label  : visible navigation label
- * - route  : named route string
- * - icon   : optional icon key
- * - active : whether the item is the current page
- * - config : resolved page config
- *
- * Notes:
- * - This component intentionally stays presentation-oriented.
- * - Route protection remains the responsibility of route middleware.
- * - Consumers may override this component to fully customize sidebar markup.
+ * Props:
+ * - currentPage: Current authenticated page key.
  */
 --}}
 
 @props([
-    /**
-     * Current authenticated app page key.
-     */
-    'pageKey' => null,
-
-    /**
-     * Current resolved page config.
-     */
-    'pageConfig' => [],
-
-    /**
-     * Normalized sidebar navigation items.
-     */
-    'items' => [],
+    'currentPage' => null,
 ])
 
 @php
+    $app = (array) config('authkit.app', []);
+    $pages = (array) data_get($app, 'pages', []);
+    $sidebarItems = (array) data_get($app, 'navigation.sidebar', []);
     $components = (array) config('authkit.components', []);
-    $appConfig = (array) config('authkit.app', []);
-    $navItemComponent = (string) data_get($components, 'app_nav_item', 'authkit::app.nav-item');
 
-    $resolvedItems = collect(is_array($items) ? $items : [])
-        ->filter(fn ($item) => is_array($item) && ((string) data_get($item, 'label', '')) !== '')
-        ->values()
-        ->all();
+    $navComponent = (string) ($components['app_nav'] ?? 'authkit::app.nav');
 
-    $appTitle = (string) data_get($appConfig, 'brand.name', 'AuthKit');
-    $appSubtitle = (string) data_get($appConfig, 'brand.subtitle', 'Account');
+    $brand = (array) data_get($app, 'brand', []);
+
+    $brandTitle = (string) ($brand['title'] ?? config('app.name', 'AuthKit'));
+    $brandSubtitle = (string) ($brand['subtitle'] ?? 'Application Console');
+    $brandType = (string) ($brand['type'] ?? 'letter');
+
+    $brandLetter = (string) ($brand['letter'] ?? 'AK');
+    $brandImage = (string) ($brand['image'] ?? '');
+    $brandImageAlt = (string) ($brand['image_alt'] ?? $brandTitle);
+
+    $showBrandSubtitle = (bool) ($brand['show_subtitle'] ?? true);
+
+    $brandType = in_array($brandType, ['letter', 'image'], true) ? $brandType : 'letter';
+    $shouldUseImage = $brandType === 'image' && $brandImage !== '';
+
+    $currentPageConfig = is_string($currentPage) && $currentPage !== ''
+        ? (array) ($pages[$currentPage] ?? [])
+        : [];
+
+    $currentPageTitle = (string) ($currentPageConfig['title'] ?? '');
+    $currentPageHeading = (string) ($currentPageConfig['heading'] ?? '');
+
+    $footerLabel = 'Workspace overview';
+    $footerTitle = $currentPageTitle !== '' ? $currentPageTitle : 'Account workspace';
+    $footerText = $currentPageHeading !== ''
+        ? $currentPageHeading
+        : 'Manage your account tools, workspace settings, and security controls from here.';
 @endphp
 
-<aside
-        {{ $attributes->merge([
-            'class' => 'authkit-app-sidebar',
-            'data-authkit-app-sidebar' => '1',
-        ]) }}
->
+<div class="authkit-app-sidebar" id="authkit-app-sidebar">
     <div class="authkit-app-sidebar__inner">
-        <div class="authkit-app-sidebar__brand" data-authkit-app-sidebar-brand="1">
-            <div class="authkit-app-sidebar__brand-mark" aria-hidden="true">
-                {{ strtoupper(substr($appTitle, 0, 1)) }}
-            </div>
+        <div class="authkit-app-sidebar__top">
+            <div class="authkit-app-sidebar__brand">
+                <a href="{{ url('/') }}" class="authkit-app-sidebar__brand-link" aria-label="{{ $brandTitle }}">
+                    <div class="authkit-app-sidebar__brand-mark" aria-hidden="true">
+                        @if ($shouldUseImage)
+                            <img
+                                    src="{{ asset($brandImage) }}"
+                                    alt="{{ $brandImageAlt }}"
+                                    class="authkit-app-sidebar__brand-image"
+                            >
+                        @else
+                            <span class="authkit-app-sidebar__brand-letter">
+                                {{ $brandLetter }}
+                            </span>
+                        @endif
+                    </div>
 
-            <div class="authkit-app-sidebar__brand-copy">
-                <div class="authkit-app-sidebar__brand-title">
-                    {{ $appTitle }}
-                </div>
+                    <div class="authkit-app-sidebar__brand-copy">
+                        <div class="authkit-app-sidebar__brand-title">
+                            {{ $brandTitle }}
+                        </div>
 
-                <div class="authkit-app-sidebar__brand-subtitle">
-                    {{ $appSubtitle }}
-                </div>
+                        @if ($showBrandSubtitle && $brandSubtitle !== '')
+                            <div class="authkit-app-sidebar__brand-subtitle">
+                                {{ $brandSubtitle }}
+                            </div>
+                        @endif
+                    </div>
+                </a>
             </div>
         </div>
 
-        <nav
-                class="authkit-app-sidebar__nav"
-                data-authkit-app-sidebar-nav="1"
-                aria-label="Application navigation"
-        >
-            @forelse ($resolvedItems as $item)
+        <div class="authkit-app-sidebar__middle">
+            <div class="authkit-app-sidebar__nav-scroll">
                 <x-dynamic-component
-                        :component="$navItemComponent"
-                        :page-key="$pageKey"
-                        :page-config="$pageConfig"
-                        :item="$item"
+                        :component="$navComponent"
+                        :items="$sidebarItems"
+                        :pages="$pages"
+                        :current-page="$currentPage"
                 />
-            @empty
-                <div class="authkit-app-sidebar__empty">
-                    No navigation items available.
+            </div>
+        </div>
+
+        <div class="authkit-app-sidebar__bottom">
+            <div class="authkit-app-sidebar__context">
+                <div class="authkit-app-sidebar__context-label">
+                    {{ $footerLabel }}
                 </div>
-            @endforelse
-        </nav>
+
+                <div class="authkit-app-sidebar__context-title">
+                    {{ $footerTitle }}
+                </div>
+
+                <div class="authkit-app-sidebar__context-text">
+                    {{ $footerText }}
+                </div>
+            </div>
+        </div>
     </div>
-</aside>
+</div>

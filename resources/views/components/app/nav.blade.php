@@ -1,80 +1,99 @@
 {{--
 /**
- * Component: App Navigation
+ * Component: App Nav
  *
- * Wrapper component for authenticated AuthKit navigation collections.
+ * Authenticated application navigation for AuthKit.
  *
- * Responsibilities:
- * - Renders a semantic navigation container for authenticated app links.
- * - Iterates over normalized navigation items.
- * - Delegates item rendering to the configured nav-item component.
- * - Provides stable structural hooks for package themes and consumer overrides.
- *
- * Expected item shape:
- * - page   : internal page key
- * - label  : visible label
- * - route  : named route string
- * - icon   : optional icon key
- * - active : whether the item is currently active
- * - config : resolved page config
- *
- * Notes:
- * - This component is intentionally thin and presentation-oriented.
- * - Sidebar/topbar components may compose this component or render nav items directly.
- * - Consumers may replace this component to support grouped navigation,
- *   badges, nested menus, or custom layouts.
+ * Supports:
+ * - top-level nav items
+ * - nested child nav items
+ * - independent route values
  */
 --}}
 
 @props([
-    /**
-     * Current authenticated app page key.
-     */
-    'pageKey' => null,
-
-    /**
-     * Current resolved page config.
-     */
-    'pageConfig' => [],
-
-    /**
-     * Navigation items to render.
-     */
     'items' => [],
-
-    /**
-     * Accessible label for the navigation region.
-     */
-    'label' => 'Application navigation',
+    'pages' => [],
+    'currentPage' => null,
 ])
 
 @php
     $components = (array) config('authkit.components', []);
-    $navItemComponent = (string) data_get($components, 'app_nav_item', 'authkit::app.nav-item');
+    $navItemComponent = (string) ($components['app_nav_item'] ?? 'authkit::app.nav-item');
 
-    $resolvedItems = collect(is_array($items) ? $items : [])
-        ->filter(fn ($item) => is_array($item) && ((string) data_get($item, 'label', '')) !== '')
-        ->values()
-        ->all();
+    $resolvedItems = is_array($items) ? $items : [];
+    $resolvedPages = is_array($pages) ? $pages : [];
+
+    $resolveItems = function (array $items) use ($resolvedPages): array {
+        return collect($items)
+            ->filter(fn ($item) => is_array($item))
+            ->map(function (array $item) use ($resolvedPages): ?array {
+                $pageKey = (string) ($item['page'] ?? '');
+
+                if ($pageKey === '') {
+                    return null;
+                }
+
+                $page = (array) ($resolvedPages[$pageKey] ?? []);
+
+                if ($page === []) {
+                    return null;
+                }
+
+                if (! (bool) ($page['enabled'] ?? false)) {
+                    return null;
+                }
+
+                return [
+                    'page_key' => $pageKey,
+                    'page' => $page,
+                    'route' => (string) ($item['route'] ?? ''),
+                    'icon' => (string) ($item['icon'] ?? ''),
+                    'label' => (string) ($item['label'] ?? ''),
+                    'children' => is_array($item['children'] ?? null) ? $item['children'] : [],
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    };
+
+    $navigationItems = $resolveItems($resolvedItems);
 @endphp
 
-<nav
-        {{ $attributes->merge([
-            'class' => 'authkit-app-nav',
-            'data-authkit-app-nav' => '1',
-            'aria-label' => $label,
-        ]) }}
->
-    @forelse ($resolvedItems as $item)
-        <x-dynamic-component
-                :component="$navItemComponent"
-                :page-key="$pageKey"
-                :page-config="$pageConfig"
-                :item="$item"
-        />
-    @empty
-        <div class="authkit-app-nav__empty">
-            No navigation items available.
+<nav class="authkit-app-nav" aria-label="Sidebar navigation">
+    <div class="authkit-app-nav__section">
+        <div class="authkit-app-nav__section-label">
+            Navigation
         </div>
-    @endforelse
+
+        <ul class="authkit-app-nav__list">
+            @foreach ($navigationItems as $item)
+                @php
+                    $children = $resolveItems((array) ($item['children'] ?? []));
+                    $pageKey = (string) ($item['page_key'] ?? '');
+                    $isActive = is_string($currentPage) && $currentPage === $pageKey;
+
+                    $hasActiveChild = collect($children)->contains(
+                        fn ($child) => is_string($currentPage) && $currentPage === (string) ($child['page_key'] ?? '')
+                    );
+                @endphp
+
+                <li class="authkit-app-nav__item">
+                    <x-dynamic-component
+                            :component="$navItemComponent"
+                            :page-key="$pageKey"
+                            :page="$item['page']"
+                            :route="$item['route']"
+                            :icon="$item['icon']"
+                            :label="$item['label']"
+                            :active="$isActive"
+                            :children="$children"
+                            :expanded="$isActive || $hasActiveChild"
+                            :current-page="$currentPage"
+                    />
+                </li>
+            @endforeach
+        </ul>
+    </div>
 </nav>

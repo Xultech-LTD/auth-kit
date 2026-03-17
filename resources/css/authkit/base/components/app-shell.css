@@ -1,0 +1,307 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/app-shell.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Structural authenticated application shell styles for AuthKit.
+ *
+ * This file styles the shared authenticated shell rendered by:
+ * - authkit::app.shell
+ *
+ * Responsibilities:
+ * - Render the authenticated app frame.
+ * - Create the sidebar + main panel layout.
+ * - Support desktop sidebar collapse.
+ * - Support mobile off-canvas sidebar behavior.
+ * - Support backdrop/overlay handling.
+ * - Keep the content area scroll-safe and viewport-aware.
+ *
+ * State attributes:
+ * - [data-authkit-sidebar-enabled="true|false"]
+ * - [data-authkit-sidebar-collapsed="true|false"]
+ * - [data-authkit-sidebar-open="true|false"]
+ * - [data-authkit-sidebar-collapsible="true|false"]
+ * - [data-authkit-sidebar-mobile-drawer="true|false"]
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - This file owns shell-level structure and responsive behavior.
+ * - Sidebar-specific visual polish should remain in app-sidebar.css.
+ * - Topbar-specific visual polish should remain in app-topbar.css.
+ */
+
+
+/* -------------------------------------------------------------
+ | Shell sizing tokens
+ |------------------------------------------------------------- */
+
+.authkit-app-shell {
+    --authkit-app-shell-sidebar-width: 17.5rem;
+    --authkit-app-shell-sidebar-width-collapsed: 5.25rem;
+    --authkit-app-shell-topbar-height: 4.5rem;
+    --authkit-app-shell-content-max-width: 100rem;
+    --authkit-app-shell-content-padding-x: var(--authkit-space-6);
+    --authkit-app-shell-content-padding-y: var(--authkit-space-6);
+    --authkit-app-shell-overlay-bg: rgba(15, 23, 42, 0.42);
+
+    position: relative;
+    min-height: 100vh;
+    width: 100%;
+    background-color: var(--authkit-color-bg);
+    color: var(--authkit-color-text);
+}
+
+
+/* -------------------------------------------------------------
+ | Backdrop
+ |------------------------------------------------------------- */
+
+.authkit-app-shell__backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+
+    display: block;
+    width: 100%;
+    height: 100%;
+
+    padding: 0;
+    margin: 0;
+    border: 0;
+
+    background: var(--authkit-app-shell-overlay-bg);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+
+    transition:
+            opacity var(--authkit-transition-base),
+            visibility var(--authkit-transition-base);
+}
+
+
+/* -------------------------------------------------------------
+ | Main shell layout
+ |------------------------------------------------------------- */
+
+.authkit-app-shell__layout {
+    position: relative;
+    min-height: 100vh;
+    width: 100%;
+
+    display: grid;
+    grid-template-columns: var(--authkit-app-shell-sidebar-width) minmax(0, 1fr);
+    align-items: stretch;
+
+    transition: grid-template-columns var(--authkit-transition-base);
+}
+
+
+/* -------------------------------------------------------------
+ | Sidebar column
+ |------------------------------------------------------------- */
+
+.authkit-app-shell__sidebar {
+    position: relative;
+    min-width: 0;
+    min-height: 100vh;
+    width: 100%;
+
+    border-right: var(--authkit-border-width) solid var(--authkit-color-border);
+    background-color: var(--authkit-color-surface);
+}
+
+.authkit-app-shell__sidebar-inner {
+    position: sticky;
+    top: 0;
+
+    height: 100vh;
+    min-height: 100vh;
+    max-height: 100vh;
+
+    overflow: hidden;
+}
+
+
+/* -------------------------------------------------------------
+ | Main panel
+ |------------------------------------------------------------- */
+
+.authkit-app-shell__panel {
+    min-width: 0;
+    min-height: 100vh;
+
+    display: flex;
+    flex-direction: column;
+    background-color: var(--authkit-color-bg);
+}
+
+
+/* -------------------------------------------------------------
+ | Topbar row
+ |------------------------------------------------------------- */
+
+.authkit-app-shell__topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+
+    min-width: 0;
+    min-height: var(--authkit-app-shell-topbar-height);
+
+    border-bottom: var(--authkit-border-width) solid var(--authkit-color-border);
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 92%, transparent);
+    backdrop-filter: blur(12px);
+}
+
+
+/* -------------------------------------------------------------
+ | Content region
+ |------------------------------------------------------------- */
+
+.authkit-app-shell__body {
+    min-width: 0;
+    flex: 1 1 auto;
+    width: 100%;
+}
+
+.authkit-app-shell__body-inner {
+    width: 100%;
+    max-width: var(--authkit-app-shell-content-max-width);
+    margin-inline: auto;
+    padding:
+            var(--authkit-app-shell-content-padding-y)
+            var(--authkit-app-shell-content-padding-x);
+}
+
+
+/* -------------------------------------------------------------
+ | No-sidebar mode
+ |------------------------------------------------------------- */
+
+.authkit-app-shell[data-authkit-sidebar-enabled="false"] .authkit-app-shell__layout {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+
+/* -------------------------------------------------------------
+ | Desktop collapsed sidebar
+ |------------------------------------------------------------- */
+
+.authkit-app-shell[data-authkit-sidebar-enabled="true"][data-authkit-sidebar-collapsible="true"][data-authkit-sidebar-collapsed="true"] .authkit-app-shell__layout {
+    grid-template-columns: var(--authkit-app-shell-sidebar-width-collapsed) minmax(0, 1fr);
+}
+
+
+/* -------------------------------------------------------------
+ | Desktop expanded sidebar
+ |------------------------------------------------------------- */
+
+.authkit-app-shell[data-authkit-sidebar-enabled="true"][data-authkit-sidebar-collapsible="true"][data-authkit-sidebar-collapsed="false"] .authkit-app-shell__layout {
+    grid-template-columns: var(--authkit-app-shell-sidebar-width) minmax(0, 1fr);
+}
+
+
+/* -------------------------------------------------------------
+ | Mobile drawer behavior
+ |------------------------------------------------------------- */
+
+@media (max-width: 1023.98px) {
+    .authkit-app-shell {
+        --authkit-app-shell-content-padding-x: var(--authkit-space-4);
+        --authkit-app-shell-content-padding-y: var(--authkit-space-5);
+    }
+
+    .authkit-app-shell__layout {
+        display: block;
+        min-height: 100vh;
+    }
+
+    .authkit-app-shell__sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 80;
+
+        width: min(19rem, calc(100vw - 2.5rem));
+        min-height: 100vh;
+        max-width: 100%;
+        border-right: var(--authkit-border-width) solid var(--authkit-color-border);
+
+        transform: translateX(-100%);
+        transition: transform var(--authkit-transition-base);
+        box-shadow: var(--authkit-shadow-lg);
+    }
+
+    .authkit-app-shell__sidebar-inner {
+        position: relative;
+        top: auto;
+
+        height: 100vh;
+        min-height: 100vh;
+        max-height: 100vh;
+
+        overflow: hidden;
+    }
+
+    .authkit-app-shell__panel {
+        min-height: 100vh;
+        width: 100%;
+    }
+
+    .authkit-app-shell[data-authkit-sidebar-enabled="true"][data-authkit-sidebar-mobile-drawer="true"][data-authkit-sidebar-open="true"] .authkit-app-shell__sidebar {
+        transform: translateX(0);
+    }
+
+    .authkit-app-shell[data-authkit-sidebar-enabled="true"][data-authkit-sidebar-mobile-drawer="true"][data-authkit-sidebar-open="true"] .authkit-app-shell__backdrop {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .authkit-app-shell[data-authkit-sidebar-enabled="false"] .authkit-app-shell__sidebar {
+        display: none;
+    }
+}
+
+
+/* -------------------------------------------------------------
+ | Narrow mobile spacing
+ |------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+    .authkit-app-shell {
+        --authkit-app-shell-topbar-height: 4rem;
+        --authkit-app-shell-content-padding-x: var(--authkit-space-3);
+        --authkit-app-shell-content-padding-y: var(--authkit-space-4);
+    }
+}
+
+
+/* -------------------------------------------------------------
+ | Wide viewport polish
+ |------------------------------------------------------------- */
+
+@media (min-width: 1280px) {
+    .authkit-app-shell {
+        --authkit-app-shell-content-padding-x: var(--authkit-space-8);
+        --authkit-app-shell-content-padding-y: var(--authkit-space-8);
+    }
+}
+
+
+/* -------------------------------------------------------------
+ | Reduced motion
+ |------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+    .authkit-app-shell__layout,
+    .authkit-app-shell__sidebar,
+    .authkit-app-shell__backdrop {
+        transition: none;
+    }
+}

@@ -1,0 +1,270 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/app-nav-item.css
+ * Author: Michael Erastus
+ */
+
+.authkit-app-nav-item {
+    display: block;
+    min-width: 0;
+}
+
+.authkit-app-nav-item__row {
+    display: flex;
+    align-items: stretch;
+    gap: var(--authkit-space-2);
+    min-width: 0;
+}
+
+.authkit-app-nav-item__link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--authkit-space-3);
+
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 3rem;
+    padding: 0.9rem 1rem;
+
+    border: var(--authkit-border-width) solid transparent;
+    border-radius: calc(var(--authkit-radius-lg) + 0.0625rem);
+
+    color: var(--authkit-color-text);
+    text-decoration: none;
+
+    transition:
+            background-color var(--authkit-transition-fast),
+            border-color var(--authkit-transition-fast),
+            color var(--authkit-transition-fast),
+            box-shadow var(--authkit-transition-fast),
+            transform var(--authkit-transition-fast);
+}
+
+.authkit-app-nav-item__link:hover {
+    background-color: color-mix(in srgb, var(--authkit-color-surface-alt) 86%, transparent);
+    border-color: color-mix(in srgb, var(--authkit-color-border) 88%, transparent);
+    transform: translateX(2px);
+}
+
+.authkit-app-nav-item__link:focus-visible {
+    outline: none;
+    box-shadow:
+            0 0 0 var(--authkit-focus-ring-offset) var(--authkit-color-surface),
+            0 0 0 calc(var(--authkit-focus-ring-offset) + var(--authkit-focus-ring-width))
+            var(--authkit-color-focus-ring);
+}
+
+.authkit-app-nav-item__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 auto;
+    width: 3rem;
+    min-width: 3rem;
+    min-height: 3rem;
+    padding: 0;
+
+    border: var(--authkit-border-width) solid transparent;
+    border-radius: calc(var(--authkit-radius-lg) + 0.0625rem);
+
+    background: transparent;
+    color: var(--authkit-color-text-muted);
+    cursor: pointer;
+
+    transition:
+            background-color var(--authkit-transition-fast),
+            border-color var(--authkit-transition-fast),
+            color var(--authkit-transition-fast),
+            box-shadow var(--authkit-transition-fast),
+            transform var(--authkit-transition-fast);
+}
+
+.authkit-app-nav-item__toggle:hover {
+    background-color: color-mix(in srgb, var(--authkit-color-surface-alt) 86%, transparent);
+    border-color: color-mix(in srgb, var(--authkit-color-border) 88%, transparent);
+    color: var(--authkit-color-text);
+}
+
+.authkit-app-nav-item__toggle:focus-visible {
+    outline: none;
+    box-shadow:
+            0 0 0 var(--authkit-focus-ring-offset) var(--authkit-color-surface),
+            0 0 0 calc(var(--authkit-focus-ring-offset) + var(--authkit-focus-ring-width))
+            var(--authkit-color-focus-ring);
+}
+
+.authkit-app-nav-item--active .authkit-app-nav-item__link,
+.authkit-app-nav-item__link[aria-current="page"] {
+    background:
+            linear-gradient(
+                    180deg,
+                    color-mix(in srgb, var(--authkit-color-primary) 11%, var(--authkit-color-surface)) 0%,
+                    color-mix(in srgb, var(--authkit-color-primary) 8%, var(--authkit-color-surface)) 100%
+            );
+    border-color: color-mix(in srgb, var(--authkit-color-primary) 24%, var(--authkit-color-border));
+    box-shadow: var(--authkit-shadow-sm);
+    color: var(--authkit-color-text);
+}
+
+.authkit-app-nav-item--active .authkit-app-nav-item__link::before,
+.authkit-app-nav-item__link[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    left: 0.42rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0.22rem;
+    height: 1.5rem;
+    border-radius: 9999px;
+    background-color: var(--authkit-color-primary);
+}
+
+.authkit-app-nav-item__icon,
+.authkit-app-nav-item__child-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    color: inherit;
+}
+
+.authkit-app-nav-item__icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: 0 0 1.25rem;
+    font-size: 0.95rem;
+}
+
+.authkit-app-nav-item__label,
+.authkit-app-nav-item__child-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.authkit-app-nav-item__label {
+    flex: 1 1 auto;
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-medium);
+    line-height: 1.2;
+}
+
+.authkit-app-nav-item__caret {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+    font-size: 1rem;
+    line-height: 1;
+    transition:
+            transform var(--authkit-transition-fast),
+            color var(--authkit-transition-fast);
+}
+
+.authkit-app-nav-item[data-authkit-app-nav-expanded="true"] .authkit-app-nav-item__caret {
+    transform: rotate(90deg);
+    color: var(--authkit-color-text);
+}
+
+.authkit-app-nav-item__children {
+    display: flex;
+    flex-direction: column;
+    gap: var(--authkit-space-2);
+
+    margin-top: var(--authkit-space-3);
+    margin-left: calc(var(--authkit-space-5) + 0.25rem);
+    padding-left: var(--authkit-space-3);
+
+    border-left: var(--authkit-border-width) solid color-mix(in srgb, var(--authkit-color-border) 84%, transparent);
+}
+
+.authkit-app-nav-item[data-authkit-app-nav-expanded="false"] .authkit-app-nav-item__children {
+    display: none;
+}
+
+.authkit-app-nav-item__children-item {
+    min-width: 0;
+}
+
+.authkit-app-nav-item__child-link {
+    display: flex;
+    align-items: center;
+    gap: var(--authkit-space-2);
+
+    min-height: 2.625rem;
+    padding: 0.72rem 0.82rem;
+
+    border: var(--authkit-border-width) solid transparent;
+    border-radius: var(--authkit-radius-lg);
+
+    color: var(--authkit-color-text-muted);
+    text-decoration: none;
+
+    transition:
+            background-color var(--authkit-transition-fast),
+            border-color var(--authkit-transition-fast),
+            color var(--authkit-transition-fast),
+            transform var(--authkit-transition-fast);
+}
+
+.authkit-app-nav-item__child-link:hover {
+    background-color: color-mix(in srgb, var(--authkit-color-surface-alt) 86%, transparent);
+    border-color: color-mix(in srgb, var(--authkit-color-border) 84%, transparent);
+    color: var(--authkit-color-text);
+    transform: translateX(2px);
+}
+
+.authkit-app-nav-item__child-link--active,
+.authkit-app-nav-item__child-link[aria-current="page"] {
+    background-color: color-mix(in srgb, var(--authkit-color-primary) 8%, var(--authkit-color-surface));
+    border-color: color-mix(in srgb, var(--authkit-color-primary) 18%, var(--authkit-color-border));
+    color: var(--authkit-color-text);
+}
+
+.authkit-app-nav-item__child-icon {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 1rem;
+    font-size: 0.8rem;
+}
+
+.authkit-app-nav-item__child-label {
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-medium);
+    line-height: 1.2;
+}
+
+/* -------------------------------------------------------------
+ | Collapsed sidebar mode
+ |------------------------------------------------------------- */
+
+.authkit-app-shell[data-authkit-sidebar-collapsed="true"] .authkit-app-nav__section-label,
+.authkit-app-shell[data-authkit-sidebar-collapsed="true"] .authkit-app-nav-item__label,
+.authkit-app-shell[data-authkit-sidebar-collapsed="true"] .authkit-app-nav-item__toggle,
+.authkit-app-shell[data-authkit-sidebar-collapsed="true"] .authkit-app-nav-item__children {
+    display: none;
+}
+
+.authkit-app-shell[data-authkit-sidebar-collapsed="true"] .authkit-app-nav-item__row {
+    display: block;
+}
+
+.authkit-app-shell[data-authkit-sidebar-collapsed="true"] .authkit-app-nav-item__link {
+    justify-content: center;
+    padding-inline: 0.75rem;
+}
+
+.authkit-app-shell[data-authkit-sidebar-collapsed="true"] .authkit-app-nav-item--active .authkit-app-nav-item__link::before,
+.authkit-app-shell[data-authkit-sidebar-collapsed="true"] .authkit-app-nav-item__link[aria-current="page"]::before {
+    left: 50%;
+    top: auto;
+    bottom: 0.28rem;
+    transform: translateX(-50%);
+    width: 1.2rem;
+    height: 0.2rem;
+}

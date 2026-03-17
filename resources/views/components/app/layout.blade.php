@@ -2,60 +2,51 @@
 /**
  * Component: App Layout
  *
- * Root authenticated document layout for AuthKit application pages.
+ * Root document layout for AuthKit authenticated application pages.
  *
  * Responsibilities:
- * - Defines the HTML document shell for authenticated AuthKit pages.
+ * - Defines the full HTML document shell for authenticated app pages.
  * - Resolves the active UI engine, theme, and appearance mode.
- * - Loads published AuthKit built assets and optional extension assets.
- * - Exposes stable root hooks for authenticated page styling and behavior.
+ * - Loads published AuthKit built assets.
+ * - Loads optional extension CSS/JS declared in configuration.
+ * - Exposes stable root hooks for package CSS, JavaScript, and consumer overrides.
  * - Exposes AuthKit browser runtime configuration on window.AuthKit.config.
- * - Resolves authenticated application configuration for page rendering.
- * - Renders the packaged authenticated shell component around page content.
+ * - Renders the authenticated application shell using the configured app components.
  *
- * Notes:
- * - This layout is intended for authenticated "app" pages such as dashboard,
- *   settings, security, sessions, and confirmation pages.
- * - This layout does not itself decide page authorization; route middleware
- *   remains responsible for access control.
- * - Presentation remains theme-driven. No inline visual styling is applied.
+ * Important:
+ * - This layout is intentionally separate from the guest/auth root layout.
+ * - It is intended for dashboard/settings/security/session pages and other
+ *   authenticated application-area screens.
+ * - It owns its own doctype/html/head/body structure.
+ *
+ * Props:
+ * - title: Browser/document title.
+ * - theme: Optional UI theme override.
+ * - engine: Optional UI engine override.
+ * - mode: Optional appearance mode override.
+ * - pageKey: Optional runtime page key for JavaScript/page detection.
+ * - currentPage: Current authenticated page key.
+ * - pageTitle: Visible page title rendered in the app topbar/page header.
+ * - pageHeading: Optional supporting text rendered in the page header.
+ * - showSidebar: Whether to render the default app sidebar.
+ * - showTopbar: Whether to render the default app topbar.
+ * - showThemeToggle: Whether the topbar should render the theme toggle.
+ * - showUserMenu: Whether the topbar should render the user menu.
  */
 --}}
-
 @props([
-    'title' => 'AuthKit',
+    'title' => 'Dashboard',
     'theme' => null,
     'engine' => null,
     'mode' => null,
-
-    /**
-     * Current authenticated app page key.
-     *
-     * Expected examples:
-     * - dashboard_web
-     * - settings
-     * - security
-     * - sessions
-     * - two_factor_settings
-     * - confirm_password
-     * - confirm_two_factor
-     */
     'pageKey' => null,
-
-    /**
-     * Optional page heading override.
-     *
-     * When null, the heading is resolved from authkit.app.pages.{pageKey}.heading.
-     */
-    'heading' => null,
-
-    /**
-     * Optional page title override.
-     *
-     * When null, the browser title is resolved from the explicit "title" prop first,
-     * then from authkit.app.pages.{pageKey}.title.
-     */
+    'currentPage' => null,
     'pageTitle' => null,
+    'pageHeading' => null,
+    'showSidebar' => true,
+    'showTopbar' => true,
+    'showThemeToggle' => true,
+    'showUserMenu' => true,
 ])
 
 @php
@@ -66,7 +57,7 @@
     $components = (array) config('authkit.components', []);
     $javascript = (array) config('authkit.javascript', []);
     $forms = (array) config('authkit.forms', []);
-    $appConfig = (array) config('authkit.app', []);
+    $app = (array) config('authkit.app', []);
 
     $resolvedEngine = is_string($engine) && $engine !== ''
         ? $engine
@@ -80,22 +71,6 @@
         ? $mode
         : (string) data_get($ui, 'mode', 'system');
 
-    $resolvedPageKey = is_string($pageKey) && $pageKey !== ''
-        ? $pageKey
-        : null;
-
-    $pageConfig = $resolvedPageKey !== null
-        ? (array) data_get($appConfig, "pages.{$resolvedPageKey}", [])
-        : [];
-
-    $resolvedPageTitle = is_string($pageTitle) && $pageTitle !== ''
-        ? $pageTitle
-        : ((string) data_get($pageConfig, 'title', $title));
-
-    $resolvedHeading = is_string($heading) && $heading !== ''
-        ? $heading
-        : (string) data_get($pageConfig, 'heading', '');
-
     $themeFilePattern = (string) data_get($themes, 'file_pattern', '{engine}-{theme}.css');
     $themeFile = strtr($themeFilePattern, [
         '{engine}' => $resolvedEngine,
@@ -108,11 +83,6 @@
 
     $useDataAttributes = (bool) data_get($ui, 'use_data_attributes', true);
     $enableRootHooks = (bool) data_get($ui, 'extensions.enable_root_hooks', true);
-
-    $toggleEnabled = (bool) data_get($ui, 'toggle.enabled', true);
-    $themeToggleComponent = (string) data_get($components, 'theme_toggle', 'authkit::theme-toggle');
-
-    $appShellComponent = (string) data_get($components, 'app_shell', 'authkit::app.shell');
 
     $extraCss = array_values(array_filter(
         (array) data_get($ui, 'extensions.extra_css', []),
@@ -145,7 +115,7 @@
 
     if ($enableRootHooks) {
         $htmlAttributes = $htmlAttributes->merge([
-            'class' => 'authkit authkit-app',
+            'class' => 'authkit',
         ]);
     }
 
@@ -154,14 +124,7 @@
             'data-authkit-engine' => $resolvedEngine,
             'data-authkit-theme' => $resolvedTheme,
             'data-authkit-mode' => $resolvedMode,
-            'data-authkit-surface' => 'app',
         ]);
-
-        if ($resolvedPageKey !== null) {
-            $htmlAttributes = $htmlAttributes->merge([
-                'data-authkit-page' => $resolvedPageKey,
-            ]);
-        }
     }
 
     $storageEnabled = (bool) data_get($ui, 'persistence.enabled', true);
@@ -177,6 +140,12 @@
             ];
         })
         ->all();
+
+    $shellDefaultCollapsed = (bool) data_get($app, 'shell.sidebar.collapsed', false);
+    $shellAllowCollapse = (bool) data_get($app, 'shell.sidebar.allow_collapse', true);
+    $shellAllowMobileDrawer = (bool) data_get($app, 'shell.sidebar.mobile_drawer', true);
+    $shellDesktopStorageKey = (string) data_get($app, 'shell.sidebar.storage_key', 'authkit.app.sidebar.collapsed');
+    $shellBreakpoint = (int) data_get($app, 'shell.sidebar.mobile_breakpoint', 1024);
 
     $browserConfig = [
         'runtime' => [
@@ -211,6 +180,14 @@
             'forms' => [
                 'enabled' => (bool) data_get($javascript, 'modules.forms.enabled', true),
             ],
+            'appShell' => [
+                'enabled' => true,
+                'allowCollapse' => $shellAllowCollapse,
+                'allowMobileDrawer' => $shellAllowMobileDrawer,
+                'defaultCollapsed' => $shellDefaultCollapsed,
+                'storageKey' => $shellDesktopStorageKey,
+                'mobileBreakpoint' => $shellBreakpoint,
+            ],
         ],
         'pages' => $browserPages,
         'forms' => [
@@ -234,12 +211,18 @@
             ],
         ],
         'app' => [
-            'enabled' => (bool) data_get($appConfig, 'enabled', true),
-            'pageKey' => $resolvedPageKey,
-            'page' => [
-                'title' => $resolvedPageTitle,
-                'heading' => $resolvedHeading,
-                'showInSidebar' => (bool) data_get($pageConfig, 'show_in_sidebar', false),
+            'enabled' => (bool) data_get($app, 'enabled', true),
+            'currentPage' => is_string($currentPage) ? $currentPage : null,
+            'pageTitle' => is_string($pageTitle) ? $pageTitle : null,
+            'pageHeading' => is_string($pageHeading) ? $pageHeading : null,
+            'shell' => [
+                'sidebar' => [
+                    'allowCollapse' => $shellAllowCollapse,
+                    'allowMobileDrawer' => $shellAllowMobileDrawer,
+                    'defaultCollapsed' => $shellDefaultCollapsed,
+                    'storageKey' => $shellDesktopStorageKey,
+                    'mobileBreakpoint' => $shellBreakpoint,
+                ],
             ],
         ],
     ];
@@ -252,7 +235,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $resolvedPageTitle }}</title>
+    <title>{{ $title }}</title>
 
     @if ($useDataAttributes)
         <script>
@@ -317,17 +300,23 @@
         <script src="{{ asset($basePath . '/' . ltrim($path, '/')) }}" defer></script>
     @endforeach
 </head>
-<body class="authkit-body authkit-app-body">
-<x-dynamic-component
-        :component="$appShellComponent"
-        :page-key="$resolvedPageKey"
-        :page-config="$pageConfig"
-        :heading="$resolvedHeading"
-        :title="$resolvedPageTitle"
-        :toggle-enabled="$toggleEnabled"
-        :theme-toggle-component="$themeToggleComponent"
+<body
+        class="authkit-body authkit-app-body"
+        @if(is_string($pageKey) && $pageKey !== '') data-authkit-page="{{ $pageKey }}" @endif
+        @if(is_string($currentPage) && $currentPage !== '') data-authkit-app-current-page="{{ $currentPage }}" @endif
 >
-    {{ $slot }}
-</x-dynamic-component>
+<div class="authkit-app-layout">
+    <x-authkit::app.shell
+            :current-page="$currentPage"
+            :page-title="$pageTitle"
+            :page-heading="$pageHeading"
+            :show-sidebar="$showSidebar"
+            :show-topbar="$showTopbar"
+            :show-theme-toggle="$showThemeToggle"
+            :show-user-menu="$showUserMenu"
+    >
+        {{ $slot }}
+    </x-authkit::app.shell>
+</div>
 </body>
 </html>

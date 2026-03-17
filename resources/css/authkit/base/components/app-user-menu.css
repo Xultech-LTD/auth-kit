@@ -1,0 +1,277 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/app-user-menu.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Authenticated application user-menu styles for AuthKit.
+ */
+
+.authkit-app-user-menu {
+    position: relative;
+    min-width: 0;
+}
+
+.authkit-app-user-menu > summary {
+    list-style: none;
+}
+
+.authkit-app-user-menu > summary::-webkit-details-marker {
+    display: none;
+}
+
+.authkit-app-user-menu__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--authkit-space-3);
+
+    min-height: 2.75rem;
+    max-width: 100%;
+
+    padding: var(--authkit-space-2) var(--authkit-space-3);
+    border: var(--authkit-border-width) solid var(--authkit-color-border);
+    border-radius: calc(var(--authkit-radius-xl) + 0.125rem);
+
+    background-color: var(--authkit-color-surface);
+    color: var(--authkit-color-text);
+
+    cursor: pointer;
+    user-select: none;
+    box-shadow: var(--authkit-shadow-sm);
+
+    transition:
+            background-color var(--authkit-transition-fast),
+            border-color var(--authkit-transition-fast),
+            box-shadow var(--authkit-transition-fast),
+            transform var(--authkit-transition-fast);
+}
+
+.authkit-app-user-menu__trigger:hover {
+    background-color: var(--authkit-color-surface-alt);
+    border-color: var(--authkit-color-border-strong, var(--authkit-color-text-muted));
+    transform: translateY(-1px);
+}
+
+.authkit-app-user-menu__trigger:focus-visible {
+    outline: none;
+    border-color: var(--authkit-color-primary);
+    box-shadow:
+            0 0 0 var(--authkit-focus-ring-offset) var(--authkit-color-surface),
+            0 0 0 calc(var(--authkit-focus-ring-offset) + var(--authkit-focus-ring-width))
+            var(--authkit-color-focus-ring);
+}
+
+.authkit-app-user-menu[open] .authkit-app-user-menu__trigger {
+    border-color: color-mix(in srgb, var(--authkit-color-primary) 30%, var(--authkit-color-border));
+    box-shadow:
+            0 10px 28px color-mix(in srgb, var(--authkit-color-primary) 10%, transparent);
+}
+
+.authkit-app-user-menu__identity {
+    min-width: 0;
+
+    display: inline-flex;
+    align-items: center;
+    gap: var(--authkit-space-3);
+}
+
+.authkit-app-user-menu__avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 2.3rem;
+    height: 2.3rem;
+    flex: 0 0 auto;
+
+    border-radius: 9999px;
+    background-color: color-mix(in srgb, var(--authkit-color-primary) 14%, var(--authkit-color-surface));
+    color: var(--authkit-color-primary);
+
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-bold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.authkit-app-user-menu__copy {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0.08rem;
+}
+
+.authkit-app-user-menu__name {
+    min-width: 0;
+
+    color: var(--authkit-color-text);
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-semibold);
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.authkit-app-user-menu__meta {
+    min-width: 0;
+
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-xs);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.authkit-app-user-menu__chevron {
+    flex: 0 0 auto;
+    width: 0.7rem;
+    height: 0.7rem;
+    position: relative;
+}
+
+.authkit-app-user-menu__chevron::before,
+.authkit-app-user-menu__chevron::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 0.4rem;
+    height: 2px;
+    border-radius: 9999px;
+    background-color: currentColor;
+    transform-origin: center;
+}
+
+.authkit-app-user-menu__chevron::before {
+    left: 0;
+    transform: translateY(-50%) rotate(45deg);
+}
+
+.authkit-app-user-menu__chevron::after {
+    right: 0;
+    transform: translateY(-50%) rotate(-45deg);
+}
+
+.authkit-app-user-menu[open] .authkit-app-user-menu__chevron {
+    transform: rotate(180deg);
+}
+
+.authkit-app-user-menu__dropdown {
+    position: absolute;
+    top: calc(100% + var(--authkit-space-2));
+    right: 0;
+    z-index: 60;
+
+    width: min(18rem, calc(100vw - 2rem));
+    overflow: hidden;
+
+    border: var(--authkit-border-width) solid color-mix(in srgb, var(--authkit-color-border) 88%, transparent);
+    border-radius: calc(var(--authkit-radius-xl) + 0.125rem);
+
+    background-color: var(--authkit-color-surface);
+    box-shadow: var(--authkit-shadow-lg);
+}
+
+.authkit-app-user-menu__dropdown-header {
+    padding: var(--authkit-space-4);
+    border-bottom: var(--authkit-border-width) solid color-mix(in srgb, var(--authkit-color-border) 86%, transparent);
+    background-color: color-mix(in srgb, var(--authkit-color-surface-alt) 72%, var(--authkit-color-surface));
+}
+
+.authkit-app-user-menu__dropdown-name {
+    color: var(--authkit-color-text);
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-semibold);
+    line-height: 1.25;
+}
+
+.authkit-app-user-menu__dropdown-meta {
+    margin-top: var(--authkit-space-1);
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-xs);
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.authkit-app-user-menu__dropdown-list {
+    display: flex;
+    flex-direction: column;
+    padding: var(--authkit-space-2);
+}
+
+.authkit-app-user-menu__item {
+    display: flex;
+    align-items: center;
+
+    min-height: 2.5rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: var(--authkit-radius-lg);
+
+    color: var(--authkit-color-text);
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-medium);
+    text-decoration: none;
+
+    transition:
+            background-color var(--authkit-transition-fast),
+            color var(--authkit-transition-fast);
+}
+
+.authkit-app-user-menu__item:hover {
+    background-color: var(--authkit-color-surface-alt);
+    color: var(--authkit-color-text);
+}
+
+.authkit-app-user-menu__dropdown-footer {
+    padding: var(--authkit-space-2);
+    border-top: var(--authkit-border-width) solid color-mix(in srgb, var(--authkit-color-border) 86%, transparent);
+}
+
+.authkit-app-user-menu__form {
+    display: block;
+    width: 100%;
+}
+
+.authkit-app-user-menu__logout.authkit-btn {
+    width: 100%;
+    min-height: 2.5rem;
+    justify-content: center;
+    box-shadow: none;
+}
+
+@media (max-width: 768px) {
+    .authkit-app-user-menu__meta {
+        display: none;
+    }
+
+    .authkit-app-user-menu__dropdown {
+        width: min(16rem, calc(100vw - 1.5rem));
+    }
+}
+
+@media (max-width: 640px) {
+    .authkit-app-user-menu__trigger {
+        padding: var(--authkit-space-2);
+        min-height: 2.5rem;
+        gap: var(--authkit-space-2);
+    }
+
+    .authkit-app-user-menu__copy {
+        display: none;
+    }
+
+    .authkit-app-user-menu__avatar {
+        width: 2rem;
+        height: 2rem;
+        font-size: var(--authkit-font-size-xs);
+    }
+
+    .authkit-app-user-menu__dropdown {
+        right: 0;
+        width: min(15rem, calc(100vw - 1rem));
+    }
+}

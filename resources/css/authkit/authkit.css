@@ -15,7 +15,8 @@
  * - reset
  * - layout
  * - utilities
- * - base components
+ * - base components (auth + primitives)
+ * - app components (authenticated UI layer)
  *
  * Notes:
  * -----------------------------------------------------------------------------
@@ -29,6 +30,10 @@
 @import "./base/layout.css";
 @import "./base/utilities.css";
 
+/* -----------------------------------------------------------------
+ | Base components (auth + primitives)
+ |----------------------------------------------------------------- */
+
 @import "./base/components/page.css";
 @import "./base/components/container.css";
 @import "./base/components/card.css";
@@ -36,8 +41,10 @@
 @import "./base/components/divider.css";
 @import "./base/components/button.css";
 @import "./base/components/link.css";
+
 @import "./base/components/auth-header.css";
 @import "./base/components/auth-footer.css";
+
 @import "./base/components/field.css";
 @import "./base/components/label.css";
 @import "./base/components/input.css";
@@ -45,7 +52,22 @@
 @import "./base/components/select.css";
 @import "./base/components/checkbox.css";
 @import "./base/components/otp.css";
+
 @import "./base/components/help.css";
 @import "./base/components/error.css";
 @import "./base/components/errors.css";
+
 @import "./base/components/theme-toggle.css";
+
+/* -----------------------------------------------------------------
+ | App components (authenticated UI layer)
+ |----------------------------------------------------------------- */
+
+@import "./base/components/app-shell.css";
+@import "./base/components/app-sidebar.css";
+@import "./base/components/app-nav.css";
+@import "./base/components/app-nav-item.css";
+@import "./base/components/app-topbar.css";
+@import "./base/components/app-user-menu.css";
+@import "./base/components/app-page-header.css";
+@import "./base/components/app-layout.css";

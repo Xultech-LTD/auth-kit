@@ -1,0 +1,231 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/app-sidebar.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Authenticated application sidebar styles.
+ *
+ * Design goals:
+ * - Keep brand block fixed at the top.
+ * - Keep navigation as the only scrollable area.
+ * - Keep the context/workspace card pinned to the bottom.
+ * - Collapse cleanly in desktop collapsed mode.
+ */
+
+.authkit-app-sidebar {
+    height: 100%;
+    min-height: 100%;
+    min-width: 0;
+}
+
+.authkit-app-sidebar__inner {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+
+    height: 100%;
+    min-height: 100%;
+    min-width: 0;
+
+    padding: var(--authkit-space-5);
+    gap: var(--authkit-space-5);
+}
+
+.authkit-app-sidebar__top {
+    min-width: 0;
+}
+
+.authkit-app-sidebar__middle {
+    min-width: 0;
+    min-height: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.authkit-app-sidebar__bottom {
+    min-width: 0;
+}
+
+/* -------------------------------------------------------------
+ | Brand
+ |------------------------------------------------------------- */
+
+.authkit-app-sidebar__brand {
+    min-width: 0;
+}
+
+.authkit-app-sidebar__brand-link {
+    display: flex;
+    align-items: center;
+    gap: var(--authkit-space-3);
+    min-width: 0;
+    text-decoration: none;
+}
+
+.authkit-app-sidebar__brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 2.875rem;
+    height: 2.875rem;
+    flex: 0 0 2.875rem;
+
+    border-radius: calc(var(--authkit-radius-lg) + 0.125rem);
+    background:
+            linear-gradient(
+                    180deg,
+                    color-mix(in srgb, var(--authkit-color-text) 90%, #ffffff 10%) 0%,
+                    var(--authkit-color-text) 100%
+            );
+    color: var(--authkit-color-primary-contrast);
+    box-shadow: var(--authkit-shadow-sm);
+
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-bold);
+    line-height: 1;
+    letter-spacing: 0.03em;
+}
+
+.authkit-app-sidebar__brand-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+}
+
+.authkit-app-sidebar__brand-letter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.authkit-app-sidebar__brand-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.14rem;
+}
+
+.authkit-app-sidebar__brand-title {
+    color: var(--authkit-color-text);
+    font-size: 1rem;
+    font-weight: var(--authkit-font-weight-bold);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.authkit-app-sidebar__brand-subtitle {
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-sm);
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* -------------------------------------------------------------
+ | Scrollable navigation region
+ |------------------------------------------------------------- */
+
+.authkit-app-sidebar__nav-scroll {
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    padding-right: 0.2rem;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--authkit-color-border) 86%, transparent) transparent;
+}
+
+.authkit-app-sidebar__nav-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.authkit-app-sidebar__nav-scroll::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--authkit-color-border) 90%, transparent);
+    border-radius: 9999px;
+}
+
+.authkit-app-sidebar__nav-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* -------------------------------------------------------------
+ | Bottom context card
+ |------------------------------------------------------------- */
+
+.authkit-app-sidebar__context {
+    padding: var(--authkit-space-4);
+    border: var(--authkit-border-width) solid color-mix(in srgb, var(--authkit-color-border) 88%, transparent);
+    border-radius: calc(var(--authkit-radius-xl) - 0.125rem);
+    background:
+            linear-gradient(
+                    180deg,
+                    color-mix(in srgb, var(--authkit-color-surface) 94%, #ffffff 6%) 0%,
+                    var(--authkit-color-surface) 100%
+            );
+    box-shadow: var(--authkit-shadow-sm);
+}
+
+.authkit-app-sidebar__context-label {
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-xs);
+    font-weight: var(--authkit-font-weight-semibold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.authkit-app-sidebar__context-title {
+    margin-top: var(--authkit-space-2);
+    color: var(--authkit-color-text);
+    font-size: var(--authkit-font-size-md);
+    font-weight: var(--authkit-font-weight-bold);
+    line-height: 1.3;
+}
+
+.authkit-app-sidebar__context-text {
+    margin-top: var(--authkit-space-2);
+    color: var(--authkit-color-text-muted);
+    font-size: var(--authkit-font-size-sm);
+    line-height: 1.55;
+}
+
+/* -------------------------------------------------------------
+ | Collapsed desktop sidebar
+ |------------------------------------------------------------- */
+
+.authkit-app-shell[data-authkit-sidebar-collapsed="true"] .authkit-app-sidebar__brand-copy,
+.authkit-app-shell[data-authkit-sidebar-collapsed="true"] .authkit-app-sidebar__context {
+    display: none;
+}
+
+.authkit-app-shell[data-authkit-sidebar-collapsed="true"] .authkit-app-sidebar__inner {
+    padding-inline: var(--authkit-space-3);
+}
+
+.authkit-app-shell[data-authkit-sidebar-collapsed="true"] .authkit-app-sidebar__brand-link {
+    justify-content: center;
+}
+
+/* -------------------------------------------------------------
+ | Mobile drawer spacing
+ |------------------------------------------------------------- */
+
+@media (max-width: 1023.98px) {
+    .authkit-app-sidebar__inner {
+        padding: var(--authkit-space-4);
+    }
+
+    .authkit-app-sidebar__nav-scroll {
+        padding-right: 0;
+    }
+}

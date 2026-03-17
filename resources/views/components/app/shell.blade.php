@@ -2,168 +2,157 @@
 /**
  * Component: App Shell
  *
- * Shared authenticated shell for AuthKit application pages.
+ * Structural authenticated shell wrapper for AuthKit application pages.
+ *
+ * Purpose:
+ * - Provides the shared authenticated application structure used by the
+ *   authenticated root app layout.
+ * - Separates overall app-shell markup from the root document layout so the
+ *   shell can evolve independently.
+ * - Supports default sidebar/topbar rendering as well as consumer overrides
+ *   through named slots.
+ * - Provides first-class shell hooks for:
+ *   - desktop sidebar collapse
+ *   - mobile sidebar drawer
+ *   - overlay/backdrop handling
+ *   - topbar-driven shell toggles
  *
  * Responsibilities:
- * - Renders the authenticated application chrome around page content.
- * - Resolves sidebar, topbar, and page-header support components from configuration.
- * - Resolves the current page definition and navigation context.
- * - Renders the packaged theme toggle within the authenticated shell when enabled.
- * - Provides stable structural hooks for authenticated page styling.
+ * - Render the authenticated application frame.
+ * - Render the sidebar column when enabled.
+ * - Render the main application column.
+ * - Render the topbar row when enabled.
+ * - Render the main page content region.
+ * - Expose stateful shell attributes for CSS and JavaScript.
+ *
+ * Shell state attributes:
+ * - data-authkit-shell
+ * - data-authkit-sidebar-collapsed="true|false"
+ * - data-authkit-sidebar-open="true|false"
+ * - data-authkit-sidebar-enabled="true|false"
+ *
+ * Structure:
+ * - .authkit-app-shell
+ *   - .authkit-app-shell__backdrop
+ *   - .authkit-app-shell__layout
+ *     - .authkit-app-shell__sidebar
+ *       - .authkit-app-shell__sidebar-inner
+ *     - .authkit-app-shell__panel
+ *       - .authkit-app-shell__topbar
+ *       - .authkit-app-shell__body
+ *         - .authkit-app-shell__body-inner
  *
  * Notes:
- * - This component is intentionally layout-agnostic and expects the root document
- *   shell to be handled by the authenticated app layout.
- * - Authorization remains the responsibility of route middleware.
- * - Navigation visibility is driven by authkit.app.pages and authkit.app.navigation.
- */
---}}
-
+ * - This component is intentionally structural first.
+ * - Sidebar visual rules belong in app-sidebar.css.
+ * - Topbar visual rules belong in app-topbar.css.
+ * - The shell owns shell-level interaction hooks even when actual interaction
+ *   logic is implemented in JavaScript.
+ *
+ * Props:
+ * - currentPage: Current authenticated page key.
+ * - pageTitle: Visible page title rendered in the topbar/page header.
+ * - pageHeading: Optional supporting text rendered in the topbar/page header.
+ * - showSidebar: Whether to render the sidebar region.
+ * - showTopbar: Whether to render the topbar region.
+ * - showThemeToggle: Whether the topbar should render the theme toggle.
+ * - showUserMenu: Whether the topbar should render the user menu.
+ *
+ * Slots:
+ * - sidebar: Optional custom sidebar content.
+ * - topbar: Optional custom topbar content.
+ * - default slot: Main page content.
+ --}}
 @props([
-    /**
-     * Current authenticated app page key.
-     */
-    'pageKey' => null,
-
-    /**
-     * Resolved current page config.
-     *
-     * Expected shape:
-     * - title
-     * - heading
-     * - nav_label
-     * - show_in_sidebar
-     * - route
-     * - view
-     */
-    'pageConfig' => [],
-
-    /**
-     * Resolved page heading text.
-     */
-    'heading' => null,
-
-    /**
-     * Resolved browser/page title text.
-     */
-    'title' => null,
-
-    /**
-     * Whether the packaged theme toggle should be rendered in the shell.
-     */
-    'toggleEnabled' => false,
-
-    /**
-     * Theme toggle component alias.
-     */
-    'themeToggleComponent' => 'authkit::theme-toggle',
+    'currentPage' => null,
+    'pageTitle' => null,
+    'pageHeading' => null,
+    'showSidebar' => true,
+    'showTopbar' => true,
+    'showThemeToggle' => true,
+    'showUserMenu' => true,
 ])
 
 @php
-    $appConfig = (array) config('authkit.app', []);
     $components = (array) config('authkit.components', []);
-    $navigation = (array) data_get($appConfig, 'navigation.sidebar', []);
-    $pages = (array) data_get($appConfig, 'pages', []);
+    $app = (array) config('authkit.app', []);
 
-    $sidebarComponent = (string) data_get($components, 'app_sidebar', 'authkit::app.sidebar');
-    $topbarComponent = (string) data_get($components, 'app_topbar', 'authkit::app.topbar');
-    $pageHeaderComponent = (string) data_get($components, 'app_page_header', 'authkit::app.page-header');
+    $sidebarComponent = (string) ($components['app_sidebar'] ?? 'authkit::app.sidebar');
+    $topbarComponent = (string) ($components['app_topbar'] ?? 'authkit::app.topbar');
 
-    $resolvedPageKey = is_string($pageKey) && $pageKey !== ''
-        ? $pageKey
-        : null;
+    $hasSidebarSlot = isset($sidebar) && trim((string) $sidebar) !== '';
+    $hasTopbarSlot = isset($topbar) && trim((string) $topbar) !== '';
 
-    $resolvedPageConfig = is_array($pageConfig) ? $pageConfig : [];
+    $allowCollapse = (bool) data_get($app, 'shell.sidebar.allow_collapse', true);
+    $allowMobileDrawer = (bool) data_get($app, 'shell.sidebar.mobile_drawer', true);
+    $defaultCollapsed = (bool) data_get($app, 'shell.sidebar.collapsed', false);
 
-    $resolvedHeading = is_string($heading) && $heading !== ''
-        ? $heading
-        : (string) data_get($resolvedPageConfig, 'heading', '');
-
-    $resolvedTitle = is_string($title) && $title !== ''
-        ? $title
-        : (string) data_get($resolvedPageConfig, 'title', '');
-
-    /**
-     * Normalize sidebar items against configured app pages.
-     *
-     * Rules:
-     * - Ignore invalid page references.
-     * - Ignore disabled pages.
-     * - Ignore pages hidden from sidebar.
-     * - Preserve configured item ordering.
-     */
-    $sidebarItems = collect($navigation)
-        ->map(function ($item) use ($pages, $resolvedPageKey) {
-            $item = is_array($item) ? $item : [];
-            $page = (string) data_get($item, 'page', '');
-
-            if ($page === '') {
-                return null;
-            }
-
-            $pageConfig = (array) data_get($pages, $page, []);
-
-            if ($pageConfig === []) {
-                return null;
-            }
-
-            if (! (bool) data_get($pageConfig, 'enabled', true)) {
-                return null;
-            }
-
-            if (! (bool) data_get($pageConfig, 'show_in_sidebar', false)) {
-                return null;
-            }
-
-            return [
-                'page' => $page,
-                'icon' => (string) data_get($item, 'icon', ''),
-                'label' => (string) data_get($pageConfig, 'nav_label', data_get($pageConfig, 'title', $page)),
-                'route' => (string) data_get($pageConfig, 'route', ''),
-                'active' => $page === $resolvedPageKey,
-                'config' => $pageConfig,
-            ];
-        })
-        ->filter()
-        ->values()
-        ->all();
+    $shellAttributes = new \Illuminate\View\ComponentAttributeBag([
+        'class' => 'authkit-app-shell',
+        'data-authkit-shell' => '1',
+        'data-authkit-sidebar-enabled' => $showSidebar ? 'true' : 'false',
+        'data-authkit-sidebar-collapsed' => $defaultCollapsed ? 'true' : 'false',
+        'data-authkit-sidebar-open' => 'false',
+        'data-authkit-sidebar-collapsible' => $allowCollapse ? 'true' : 'false',
+        'data-authkit-sidebar-mobile-drawer' => $allowMobileDrawer ? 'true' : 'false',
+    ]);
 @endphp
 
-<div
-        {{ $attributes->merge([
-            'class' => 'authkit-app-shell',
-            'data-authkit-app-shell' => '1',
-        ]) }}
->
-    <x-dynamic-component
-            :component="$sidebarComponent"
-            :page-key="$resolvedPageKey"
-            :page-config="$resolvedPageConfig"
-            :items="$sidebarItems"
-    />
+<div {{ $shellAttributes }}>
+    @if ($showSidebar && $allowMobileDrawer)
+        <button
+                type="button"
+                class="authkit-app-shell__backdrop"
+                data-authkit-sidebar-backdrop
+                aria-label="Close sidebar"
+                aria-hidden="true"
+                tabindex="-1"
+        ></button>
+    @endif
 
-    <div class="authkit-app-shell__main" data-authkit-app-main="1">
-        <x-dynamic-component
-                :component="$topbarComponent"
-                :page-key="$resolvedPageKey"
-                :page-config="$resolvedPageConfig"
-                :title="$resolvedTitle"
-                :toggle-enabled="$toggleEnabled"
-                :theme-toggle-component="$themeToggleComponent"
-        />
+    <div class="authkit-app-shell__layout">
+        @if ($showSidebar)
+            <aside
+                    class="authkit-app-shell__sidebar"
+                    aria-label="Application sidebar"
+                    data-authkit-sidebar
+            >
+                <div class="authkit-app-shell__sidebar-inner">
+                    @if ($hasSidebarSlot)
+                        {{ $sidebar }}
+                    @else
+                        <x-dynamic-component
+                                :component="$sidebarComponent"
+                                :current-page="$currentPage"
+                        />
+                    @endif
+                </div>
+            </aside>
+        @endif
 
-        <main class="authkit-app-shell__content" data-authkit-app-content="1">
-            <x-dynamic-component
-                    :component="$pageHeaderComponent"
-                    :page-key="$resolvedPageKey"
-                    :page-config="$resolvedPageConfig"
-                    :title="$resolvedTitle"
-                    :heading="$resolvedHeading"
-            />
+        <div class="authkit-app-shell__panel">
+            @if ($showTopbar)
+                <header class="authkit-app-shell__topbar" data-authkit-topbar>
+                    @if ($hasTopbarSlot)
+                        {{ $topbar }}
+                    @else
+                        <x-dynamic-component
+                                :component="$topbarComponent"
+                                :current-page="$currentPage"
+                                :page-title="$pageTitle"
+                                :page-heading="$pageHeading"
+                                :show-theme-toggle="$showThemeToggle"
+                                :show-user-menu="$showUserMenu"
+                        />
+                    @endif
+                </header>
+            @endif
 
-            <div class="authkit-app-shell__body" data-authkit-app-body="1">
-                {{ $slot }}
-            </div>
-        </main>
+            <main class="authkit-app-shell__body">
+                <div class="authkit-app-shell__body-inner">
+                    {{ $slot }}
+                </div>
+            </main>
+        </div>
     </div>
 </div>

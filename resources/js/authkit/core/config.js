@@ -98,6 +98,14 @@ const DEFAULT_CONFIG = {
         forms: {
             enabled: true,
         },
+        appShell: {
+            enabled: false,
+            allowCollapse: true,
+            allowMobileDrawer: true,
+            defaultCollapsed: false,
+            storageKey: 'authkit.app.sidebar.collapsed',
+            mobileBreakpoint: 1024,
+        },
     },
 
     pages: {},
@@ -250,6 +258,10 @@ export function getConfig() {
             forms: {
                 ...DEFAULT_CONFIG.modules.forms,
                 ...(isObject(rawConfig.modules?.forms) ? rawConfig.modules.forms : {}),
+            },
+            appShell: {
+                ...DEFAULT_CONFIG.modules.appShell,
+                ...(isObject(rawConfig.modules?.appShell) ? rawConfig.modules.appShell : {}),
             },
         },
 
@@ -468,6 +480,10 @@ export function setConfig(payload = {}) {
             forms: {
                 ...currentConfig.modules.forms,
                 ...(isObject(nextConfig.modules?.forms) ? nextConfig.modules.forms : {}),
+            },
+            appShell: {
+                ...currentConfig.modules.appShell,
+                ...(isObject(nextConfig.modules?.appShell) ? nextConfig.modules.appShell : {}),
             },
         },
         pages: {

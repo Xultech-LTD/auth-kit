@@ -2,91 +2,111 @@
 /**
  * Component: App Topbar
  *
- * Authenticated application topbar for AuthKit pages.
+ * Authenticated application topbar for AuthKit.
  *
- * Responsibilities:
- * - Renders the upper action bar for authenticated pages.
- * - Displays current page context using resolved title metadata.
- * - Optionally renders the packaged theme toggle inside the app shell.
- * - Renders the configured user menu component.
- * - Provides stable structural hooks for authenticated shell styling.
- *
- * Notes:
- * - This component is intentionally lightweight and compositional.
- * - Consumers may replace it to introduce breadcrumbs, notifications,
- *   tenant switchers, search, or other project-specific actions.
+ * Purpose:
+ * - Renders the top region of authenticated AuthKit pages.
+ * - Displays sidebar toggle controls for desktop/mobile shell behavior.
+ * - Displays the page header block for the current page.
+ * - Displays a compact theme selector beside the authenticated user menu.
  */
 --}}
-
 @props([
-    /**
-     * Current authenticated app page key.
-     */
-    'pageKey' => null,
-
-    /**
-     * Current resolved page config.
-     */
-    'pageConfig' => [],
-
-    /**
-     * Current page/browser title text.
-     */
-    'title' => null,
-
-    /**
-     * Whether the packaged theme toggle should be shown here.
-     */
-    'toggleEnabled' => false,
-
-    /**
-     * Theme toggle component alias.
-     */
-    'themeToggleComponent' => 'authkit::theme-toggle',
+    'currentPage' => null,
+    'pageTitle' => null,
+    'pageHeading' => null,
+    'showThemeToggle' => true,
+    'showUserMenu' => true,
 ])
 
 @php
     $components = (array) config('authkit.components', []);
-    $userMenuComponent = (string) data_get($components, 'app_user_menu', 'authkit::app.user-menu');
+    $app = (array) config('authkit.app', []);
+    $pages = (array) data_get($app, 'pages', []);
 
-    $resolvedTitle = is_string($title) && $title !== ''
-        ? $title
-        : (string) data_get((array) $pageConfig, 'title', 'Account');
+    $pageHeaderComponent = (string) ($components['app_page_header'] ?? 'authkit::app.page-header');
+    $userMenuComponent = (string) ($components['app_user_menu'] ?? 'authkit::app.user-menu');
+    $themeToggleComponent = (string) ($components['theme_toggle'] ?? 'authkit::theme-toggle');
 
-    $resolvedPageKey = is_string($pageKey) && $pageKey !== ''
-        ? $pageKey
-        : '';
+    $resolvedPage = is_string($currentPage) && $currentPage !== ''
+        ? (array) ($pages[$currentPage] ?? [])
+        : [];
+
+    $resolvedTitle = is_string($pageTitle) && trim($pageTitle) !== ''
+        ? trim($pageTitle)
+        : (string) ($resolvedPage['title'] ?? 'Dashboard');
+
+    $resolvedHeading = is_string($pageHeading) && trim($pageHeading) !== ''
+        ? trim($pageHeading)
+        : (string) ($resolvedPage['heading'] ?? '');
+
+    $allowCollapse = (bool) data_get($app, 'shell.sidebar.allow_collapse', true);
+    $allowMobileDrawer = (bool) data_get($app, 'shell.sidebar.mobile_drawer', true);
 @endphp
 
-<header
-        {{ $attributes->merge([
-            'class' => 'authkit-app-topbar',
-            'data-authkit-app-topbar' => '1',
-        ]) }}
->
-    <div class="authkit-app-topbar__inner">
-        <div class="authkit-app-topbar__context" data-authkit-app-topbar-context="1">
-            <div class="authkit-app-topbar__eyebrow">
-                Authenticated area
+<div class="authkit-app-topbar">
+    <div class="authkit-app-topbar__left">
+        @if ($allowMobileDrawer || $allowCollapse)
+            <div class="authkit-app-topbar__toggles">
+                @if ($allowMobileDrawer)
+                    <button
+                            type="button"
+                            class="authkit-app-topbar__toggle authkit-app-topbar__toggle--mobile"
+                            data-authkit-sidebar-open-trigger
+                            aria-label="Open sidebar"
+                            aria-controls="authkit-app-sidebar"
+                    >
+                        <span class="authkit-app-topbar__toggle-bars" aria-hidden="true">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </span>
+                    </button>
+                @endif
+
+                @if ($allowCollapse)
+                    <button
+                            type="button"
+                            class="authkit-app-topbar__toggle authkit-app-topbar__toggle--desktop"
+                            data-authkit-sidebar-collapse-trigger
+                            aria-label="Toggle sidebar"
+                            aria-controls="authkit-app-sidebar"
+                    >
+                        <span class="authkit-app-topbar__collapse-icon" aria-hidden="true">
+                            <span></span>
+                            <span></span>
+                        </span>
+                    </button>
+                @endif
             </div>
+        @endif
 
-            <div class="authkit-app-topbar__title" data-authkit-app-page="{{ $resolvedPageKey }}">
-                {{ $resolvedTitle }}
-            </div>
-        </div>
-
-        <div class="authkit-app-topbar__actions" data-authkit-app-topbar-actions="1">
-            @if ($toggleEnabled)
-                <div class="authkit-app-topbar__toggle" data-authkit-app-topbar-toggle="1">
-                    <x-dynamic-component :component="$themeToggleComponent" />
-                </div>
-            @endif
-
+        <div class="authkit-app-topbar__main">
             <x-dynamic-component
-                    :component="$userMenuComponent"
-                    :page-key="$resolvedPageKey"
-                    :page-config="$pageConfig"
+                    :component="$pageHeaderComponent"
+                    :title="$resolvedTitle"
+                    :subtitle="$resolvedHeading"
             />
         </div>
     </div>
-</header>
+
+    @if ($showThemeToggle || $showUserMenu)
+        <div class="authkit-app-topbar__right">
+            @if ($showThemeToggle)
+                <div class="authkit-app-topbar__theme-toggle">
+                    <x-dynamic-component
+                            :component="$themeToggleComponent"
+                            variant="dropdown"
+                            :show-labels="true"
+                    />
+                </div>
+            @endif
+
+            @if ($showUserMenu)
+                <div class="authkit-app-topbar__user-menu">
+                    <x-dynamic-component :component="$userMenuComponent" />
+                </div>
+            @endif
+        </div>
+    @endif
+</div>

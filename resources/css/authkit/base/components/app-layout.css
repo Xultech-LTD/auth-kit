@@ -1,0 +1,38 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/app-layout.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Root authenticated application layout styles for AuthKit.
+ *
+ * This file styles the outermost authenticated app layout wrapper rendered by:
+ * - authkit::app.layout
+ *
+ * Responsibilities:
+ * - Provide the immediate document-level wrapper for authenticated pages.
+ * - Ensure the authenticated area stretches to the viewport height.
+ * - Establish a stable background/surface context for the application shell.
+ *
+ * Notes:
+ * -----------------------------------------------------------------------------
+ * - This file should remain intentionally lightweight.
+ * - Structural sidebar/topbar/content behavior belongs in app-shell.css.
+ * - Visual treatment for sidebar and topbar belongs in their own component files.
+ */
+
+.authkit-app-body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: var(--authkit-color-bg);
+    color: var(--authkit-color-text);
+}
+
+.authkit-app-layout {
+    min-height: 100vh;
+    width: 100%;
+    background-color: var(--authkit-color-bg);
+    color: var(--authkit-color-text);
+}

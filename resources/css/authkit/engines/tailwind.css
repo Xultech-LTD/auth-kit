@@ -247,3 +247,32 @@
 .authkit[data-authkit-engine="tailwind"] .authkit-auth-footer {
     gap: var(--authkit-space-1);
 }
+
+/* -------------------------------------------------------------
+ | Authenticated app shell
+ |------------------------------------------------------------- */
+
+[data-authkit-engine="tailwind"] .authkit-app-shell__sidebar,
+.authkit[data-authkit-engine="tailwind"] .authkit-app-shell__sidebar {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 96%, var(--authkit-color-primary) 4%);
+}
+
+[data-authkit-engine="tailwind"] .authkit-app-topbar,
+.authkit[data-authkit-engine="tailwind"] .authkit-app-topbar {
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 90%, transparent);
+}
+
+[data-authkit-engine="tailwind"] .authkit-app-nav-item,
+.authkit[data-authkit-engine="tailwind"] .authkit-app-nav-item {
+    border-radius: var(--authkit-radius-lg);
+}
+
+[data-authkit-engine="tailwind"] .authkit-app-nav-item:hover,
+.authkit[data-authkit-engine="tailwind"] .authkit-app-nav-item:hover {
+    transform: translateX(2px);
+}
+
+[data-authkit-engine="tailwind"] .authkit-app-user-menu__trigger,
+.authkit[data-authkit-engine="tailwind"] .authkit-app-user-menu__trigger {
+    border-radius: var(--authkit-radius-lg);
+}

@@ -1,98 +1,164 @@
 {{--
 /**
- * Component: App Navigation Item
+ * Component: App Nav Item
  *
- * Single authenticated navigation link renderer for AuthKit.
+ * Single authenticated application navigation item for AuthKit.
  *
- * Responsibilities:
- * - Renders one normalized navigation item.
- * - Resolves the final destination URL from the configured route name.
- * - Determines active state from the normalized item or current page key.
- * - Emits stable semantic hooks for icon, label, and active state styling.
- *
- * Expected item shape:
- * - page   : internal page key
- * - label  : visible label
- * - route  : named route string
- * - icon   : optional icon key
- * - active : optional explicit active flag
- * - config : optional resolved page config
- *
- * Notes:
- * - Icon rendering is intentionally text/attribute based for now so the package
- *   can remain framework-agnostic.
- * - Consumers may override this component to swap icon systems, add badges,
- *   support nested items, or change active-state presentation.
+ * Supports:
+ * - main nav link
+ * - optional child links
+ * - independent route override
+ * - independent child-menu toggle control
  */
 --}}
 
 @props([
-    /**
-     * Current authenticated app page key.
-     */
-    'pageKey' => null,
-
-    /**
-     * Current resolved page config.
-     */
-    'pageConfig' => [],
-
-    /**
-     * Normalized navigation item.
-     */
-    'item' => [],
+    'pageKey',
+    'page' => [],
+    'route' => '',
+    'icon' => '',
+    'label' => '',
+    'active' => false,
+    'children' => [],
+    'expanded' => false,
+    'currentPage' => null,
 ])
 
 @php
-    $item = is_array($item) ? $item : [];
+    $resolvedPageKey = is_string($pageKey) ? $pageKey : '';
+    $resolvedPage = is_array($page) ? $page : [];
+    $resolvedRoute = is_string($route) ? trim($route) : '';
+    $resolvedIcon = is_string($icon) ? trim($icon) : '';
+    $resolvedLabel = is_string($label) ? trim($label) : '';
+    $resolvedChildren = is_array($children) ? $children : [];
 
-    $itemPage = (string) data_get($item, 'page', '');
-    $itemLabel = (string) data_get($item, 'label', '');
-    $itemRoute = (string) data_get($item, 'route', '');
-    $itemIcon = (string) data_get($item, 'icon', '');
-    $itemConfig = (array) data_get($item, 'config', []);
+    $hasChildren = !empty($resolvedChildren);
 
-    $isActive = (bool) data_get($item, 'active', false);
+    $finalLabel = $resolvedLabel !== ''
+        ? $resolvedLabel
+        : (string) (
+            $resolvedPage['nav_label']
+            ?? $resolvedPage['title']
+            ?? ucfirst(str_replace('_', ' ', $resolvedPageKey))
+        );
 
-    if (! $isActive && $itemPage !== '' && is_string($pageKey) && $pageKey !== '') {
-        $isActive = $itemPage === $pageKey;
-    }
+    $pageRouteName = (string) ($resolvedPage['route'] ?? '');
+    $routeName = $resolvedRoute !== '' ? $resolvedRoute : $pageRouteName;
 
     $href = '#';
 
-    if ($itemRoute !== '' && \Illuminate\Support\Facades\Route::has($itemRoute)) {
-        $href = route($itemRoute);
+    if ($routeName === '#') {
+        $href = '#';
+    } elseif ($routeName !== '' && \Illuminate\Support\Facades\Route::has($routeName)) {
+        $href = route($routeName);
     }
 
-    $classes = trim(implode(' ', array_filter([
-        'authkit-app-nav-item',
-        $isActive ? 'authkit-app-nav-item--active' : '',
-    ])));
+    $iconMap = [
+        'home' => '⌂',
+        'settings' => '⚙',
+        'shield' => '🛡',
+        'devices' => '◫',
+        'key' => '🔑',
+        'user' => '◉',
+        'lock' => '🔒',
+        'help' => '?',
+        'book' => '≣',
+        'mail' => '✉',
+    ];
 
-    $ariaCurrent = $isActive ? 'page' : null;
+    $iconGlyph = $iconMap[$resolvedIcon] ?? '•';
 
-    $label = $itemLabel !== ''
-        ? $itemLabel
-        : (string) data_get($itemConfig, 'nav_label', data_get($itemConfig, 'title', 'Navigation item'));
+    $rootClass = trim('authkit-app-nav-item' . ($active ? ' authkit-app-nav-item--active' : ''));
+    $childrenId = $resolvedPageKey !== '' ? 'authkit-app-nav-children-' . $resolvedPageKey : null;
 @endphp
 
-<a
-        href="{{ $href }}"
-        {{ $attributes->merge([
-            'class' => $classes,
-            'data-authkit-app-nav-item' => $itemPage !== '' ? $itemPage : 'item',
-            'aria-current' => $ariaCurrent,
-        ]) }}
+<div
+        class="{{ $rootClass }}"
+        data-authkit-app-nav-item="{{ $resolvedPageKey }}"
+        @if($hasChildren) data-authkit-app-nav-has-children="true" @endif
+        @if($hasChildren) data-authkit-app-nav-expanded="{{ $expanded ? 'true' : 'false' }}" @endif
 >
-    <span
-            class="authkit-app-nav-item__icon"
-            data-authkit-app-nav-icon="{{ $itemIcon !== '' ? $itemIcon : 'default' }}"
-            aria-hidden="true"
-    >
-        {{ $itemIcon !== '' ? strtoupper(substr($itemIcon, 0, 1)) : '•' }}
-    </span>
+    <div class="authkit-app-nav-item__row">
+        <a
+                href="{{ $href }}"
+                class="authkit-app-nav-item__link"
+                @if($active) aria-current="page" @endif
+        >
+            <span class="authkit-app-nav-item__icon" aria-hidden="true">
+                {{ $iconGlyph }}
+            </span>
 
-    <span class="authkit-app-nav-item__label">
-        {{ $label }}
-    </span>
-</a>
+            <span class="authkit-app-nav-item__label">
+                {{ $finalLabel }}
+            </span>
+        </a>
+
+        @if ($hasChildren)
+            <button
+                    type="button"
+                    class="authkit-app-nav-item__toggle"
+                    data-authkit-app-nav-toggle
+                    aria-label="Toggle {{ $finalLabel }} submenu"
+                    aria-expanded="{{ $expanded ? 'true' : 'false' }}"
+                    @if($childrenId) aria-controls="{{ $childrenId }}" @endif
+            >
+                <span class="authkit-app-nav-item__caret" aria-hidden="true">›</span>
+            </button>
+        @endif
+    </div>
+
+    @if ($hasChildren)
+        <ul
+                class="authkit-app-nav-item__children"
+                @if($childrenId) id="{{ $childrenId }}" @endif
+        >
+            @foreach ($resolvedChildren as $child)
+                @php
+                    $childPageKey = (string) ($child['page_key'] ?? '');
+                    $childPage = (array) ($child['page'] ?? []);
+                    $childRoute = (string) ($child['route'] ?? '');
+                    $childIcon = (string) ($child['icon'] ?? '');
+                    $childLabelOverride = (string) ($child['label'] ?? '');
+
+                    $childLabel = $childLabelOverride !== ''
+                        ? $childLabelOverride
+                        : (string) (
+                            $childPage['nav_label']
+                            ?? $childPage['title']
+                            ?? ucfirst(str_replace('_', ' ', $childPageKey))
+                        );
+
+                    $childPageRouteName = (string) ($childPage['route'] ?? '');
+                    $childRouteName = $childRoute !== '' ? $childRoute : $childPageRouteName;
+
+                    $childHref = '#';
+
+                    if ($childRouteName === '#') {
+                        $childHref = '#';
+                    } elseif ($childRouteName !== '' && \Illuminate\Support\Facades\Route::has($childRouteName)) {
+                        $childHref = route($childRouteName);
+                    }
+
+                    $childActive = is_string($currentPage) && $currentPage === $childPageKey;
+                    $childIconGlyph = $iconMap[$childIcon] ?? '•';
+                @endphp
+
+                <li class="authkit-app-nav-item__children-item">
+                    <a
+                            href="{{ $childHref }}"
+                            class="authkit-app-nav-item__child-link{{ $childActive ? ' authkit-app-nav-item__child-link--active' : '' }}"
+                            @if($childActive) aria-current="page" @endif
+                    >
+                        <span class="authkit-app-nav-item__child-icon" aria-hidden="true">
+                            {{ $childIconGlyph }}
+                        </span>
+
+                        <span class="authkit-app-nav-item__child-label">
+                            {{ $childLabel }}
+                        </span>
+                    </a>
+                </li>
+            @endforeach
+        </ul>
+    @endif
+</div>

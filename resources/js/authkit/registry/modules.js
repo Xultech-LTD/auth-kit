@@ -30,7 +30,7 @@
 import * as themeModule from '../modules/theme/index.js';
 import * as formsModule from '../modules/forms/index.js';
 import { normalizeString } from '../core/helpers.js';
-
+import * as appShellModule from '../modules/app-shell/index.js';
 
 /**
  * Built-in shared runtime module registry.
@@ -47,6 +47,7 @@ import { normalizeString } from '../core/helpers.js';
 export const moduleRegistry = Object.freeze({
     theme: themeModule,
     forms: formsModule,
+    appShell: appShellModule,
 });
 
 

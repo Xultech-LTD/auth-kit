@@ -1,0 +1,229 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/app-topbar.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Authenticated application topbar styles for AuthKit.
+ */
+
+.authkit-app-topbar {
+    min-height: 5.5rem;
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--authkit-space-5);
+
+    padding: var(--authkit-space-4) var(--authkit-space-6);
+    border-bottom: var(--authkit-border-width) solid color-mix(in srgb, var(--authkit-color-border) 88%, transparent);
+    background-color: color-mix(in srgb, var(--authkit-color-surface) 96%, transparent);
+    backdrop-filter: blur(12px);
+}
+
+.authkit-app-topbar__left {
+    min-width: 0;
+    flex: 1 1 auto;
+
+    display: flex;
+    align-items: center;
+    gap: var(--authkit-space-4);
+}
+
+.authkit-app-topbar__main {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.authkit-app-topbar__toggles {
+    flex: 0 0 auto;
+
+    display: inline-flex;
+    align-items: center;
+    gap: var(--authkit-space-2);
+}
+
+.authkit-app-topbar__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 auto;
+
+    border: var(--authkit-border-width) solid var(--authkit-color-border);
+    border-radius: var(--authkit-radius-xl);
+
+    background-color: var(--authkit-color-surface);
+    color: var(--authkit-color-text);
+
+    box-shadow: var(--authkit-shadow-sm);
+
+    transition:
+            background-color var(--authkit-transition-fast),
+            border-color var(--authkit-transition-fast),
+            color var(--authkit-transition-fast),
+            box-shadow var(--authkit-transition-fast),
+            transform var(--authkit-transition-fast);
+}
+
+.authkit-app-topbar__toggle:hover {
+    background-color: var(--authkit-color-surface-alt);
+    border-color: var(--authkit-color-border-strong, var(--authkit-color-text-muted));
+    transform: translateY(-1px);
+}
+
+.authkit-app-topbar__toggle:focus-visible {
+    outline: none;
+    border-color: var(--authkit-color-primary);
+    box-shadow:
+            0 0 0 var(--authkit-focus-ring-offset) var(--authkit-color-surface),
+            0 0 0 calc(var(--authkit-focus-ring-offset) + var(--authkit-focus-ring-width))
+            var(--authkit-color-focus-ring);
+}
+
+.authkit-app-topbar__toggle-bars {
+    width: 1rem;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.18rem;
+}
+
+.authkit-app-topbar__toggle-bars span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    border-radius: 9999px;
+    background-color: currentColor;
+}
+
+.authkit-app-topbar__collapse-icon {
+    position: relative;
+    display: inline-block;
+    width: 0.95rem;
+    height: 0.95rem;
+}
+
+.authkit-app-topbar__collapse-icon span {
+    position: absolute;
+    top: 50%;
+    width: 0.45rem;
+    height: 2px;
+    border-radius: 9999px;
+    background-color: currentColor;
+    transform-origin: center;
+}
+
+.authkit-app-topbar__collapse-icon span:first-child {
+    left: 0.06rem;
+    transform: translateY(-50%) rotate(45deg);
+}
+
+.authkit-app-topbar__collapse-icon span:last-child {
+    right: 0.06rem;
+    transform: translateY(-50%) rotate(-45deg);
+}
+
+.authkit-app-shell[data-authkit-sidebar-collapsed="true"] .authkit-app-topbar__collapse-icon {
+    transform: rotate(180deg);
+}
+
+.authkit-app-topbar__right {
+    flex: 0 0 auto;
+
+    display: inline-flex;
+    align-items: center;
+    gap: var(--authkit-space-3);
+}
+
+.authkit-app-topbar__theme-toggle,
+.authkit-app-topbar__user-menu {
+    display: inline-flex;
+    align-items: center;
+}
+
+.authkit-app-topbar__theme-toggle {
+    flex: 0 0 auto;
+}
+
+.authkit-app-topbar__theme-toggle .authkit-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+}
+
+.authkit-app-topbar__theme-toggle .authkit-theme-toggle__dropdown-wrapper {
+    display: inline-flex;
+    align-items: center;
+}
+
+.authkit-app-topbar__theme-toggle .authkit-theme-toggle__select {
+    min-width: 8.25rem;
+    height: 2.75rem;
+    min-height: 2.75rem;
+    border-radius: var(--authkit-radius-xl);
+    box-shadow: var(--authkit-shadow-sm);
+}
+
+.authkit-app-topbar__toggle--mobile {
+    display: none;
+}
+
+.authkit-app-topbar__toggle--desktop {
+    display: inline-flex;
+}
+
+@media (max-width: 1023.98px) {
+    .authkit-app-topbar {
+        padding: var(--authkit-space-4);
+    }
+
+    .authkit-app-topbar__toggle--mobile {
+        display: inline-flex;
+    }
+
+    .authkit-app-topbar__toggle--desktop {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .authkit-app-topbar {
+        gap: var(--authkit-space-3);
+    }
+
+    .authkit-app-topbar__right {
+        gap: var(--authkit-space-2);
+    }
+
+    .authkit-app-topbar__theme-toggle .authkit-theme-toggle__select {
+        min-width: 7rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .authkit-app-topbar {
+        padding: var(--authkit-space-3);
+    }
+
+    .authkit-app-topbar__left {
+        gap: var(--authkit-space-3);
+    }
+
+    .authkit-app-topbar__toggle {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+
+    .authkit-app-topbar__theme-toggle .authkit-theme-toggle__select {
+        min-width: 0;
+        width: 6.1rem;
+        height: 2.5rem;
+        min-height: 2.5rem;
+        padding-inline: 0.65rem 1.9rem;
+        font-size: var(--authkit-font-size-xs);
+    }
+}

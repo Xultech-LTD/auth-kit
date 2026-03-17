@@ -206,3 +206,77 @@
     min-width: 2.5rem;
     padding-inline: var(--authkit-space-3);
 }
+
+/* -------------------------------------------------------------
+ | Dropdown variant
+ |------------------------------------------------------------- */
+
+.authkit-theme-toggle__dropdown-wrapper {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+}
+
+.authkit-theme-toggle__dropdown-wrapper::after {
+    content: "";
+    position: absolute;
+    right: 0.9rem;
+    top: 50%;
+    width: 0.45rem;
+    height: 0.45rem;
+    margin-top: -0.22rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.authkit-theme-toggle__select {
+    min-height: 2.5rem;
+    padding: var(--authkit-space-2) 2.35rem var(--authkit-space-2) var(--authkit-space-3);
+
+    border: var(--authkit-border-width) solid var(--authkit-color-border);
+    border-radius: var(--authkit-radius-pill);
+
+    background-color: var(--authkit-color-surface);
+    color: var(--authkit-color-text);
+
+    font-size: var(--authkit-font-size-sm);
+    font-weight: var(--authkit-font-weight-medium);
+    line-height: 1.2;
+
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+
+    transition:
+            border-color var(--authkit-transition-fast),
+            box-shadow var(--authkit-transition-fast),
+            background-color var(--authkit-transition-fast),
+            color var(--authkit-transition-fast),
+            transform var(--authkit-transition-fast);
+}
+
+.authkit-theme-toggle__select:hover {
+    background-color: var(--authkit-color-surface-alt);
+    border-color: var(--authkit-color-text-muted);
+}
+
+.authkit-theme-toggle__select:focus,
+.authkit-theme-toggle__select:focus-visible {
+    outline: none;
+    border-color: var(--authkit-color-primary);
+
+    box-shadow:
+            0 0 0 var(--authkit-focus-ring-offset) var(--authkit-color-surface),
+            0 0 0 calc(var(--authkit-focus-ring-offset) + var(--authkit-focus-ring-width))
+            var(--authkit-color-focus-ring);
+}
+
+.authkit-theme-toggle__select:disabled,
+.authkit-theme-toggle__select[disabled] {
+    background-color: var(--authkit-color-surface-alt);
+    color: var(--authkit-color-text-muted);
+    cursor: not-allowed;
+}

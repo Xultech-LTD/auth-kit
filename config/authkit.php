@@ -2783,6 +2783,63 @@ return [
         'enabled' => true,
 
         /**
+         * Authenticated application brand configuration.
+         *
+         * This controls the small branding block rendered in the app sidebar.
+         *
+         * Supported types:
+         * - letter : render a short text mark such as "AK"
+         * - image  : render an image logo
+         *
+         * Notes:
+         * - `image` should be a public path resolvable by asset().
+         * - When type=image but no image path is provided, AuthKit falls back to letter mode.
+         */
+        'brand' => [
+            'title' => env('APP_NAME', 'AuthKit'),
+            'subtitle' => 'Application Console',
+
+            /**
+             * letter|image
+             */
+            'type' => 'letter',
+
+            /**
+             * Short textual mark used when type=letter.
+             */
+            'letter' => 'AK',
+
+            /**
+             * Public asset path used when type=image.
+             *
+             * Example:
+             * - 'vendor/authkit/images/logo.svg'
+             * - 'images/brand/authkit-logo.png'
+             */
+            'image' => '',
+
+            /**
+             * Alt text for the logo image.
+             */
+            'image_alt' => env('APP_NAME', 'AuthKit'),
+
+            /**
+             * Whether to show the subtitle under the brand title.
+             */
+            'show_subtitle' => true,
+        ],
+
+        'shell' => [
+            'sidebar' => [
+                'allow_collapse' => true,
+                'collapsed' => false,
+                'mobile_drawer' => true,
+                'storage_key' => 'authkit.app.sidebar.collapsed',
+                'mobile_breakpoint' => 1024,
+            ],
+        ],
+
+        /**
          * Available authenticated layout variants.
          *
          * Values are Blade view/component references used by authenticated pages.
@@ -2957,19 +3014,118 @@ return [
             'sidebar' => [
                 [
                     'page' => 'dashboard_web',
+                    'route' => 'authkit.web.dashboard',
                     'icon' => 'home',
                 ],
+
                 [
                     'page' => 'settings',
+                    'route' => '#',
                     'icon' => 'settings',
+                    'children' => [
+                        [
+                            'page' => 'security',
+                            'route' => 'authkit.web.settings.security',
+                            'icon' => 'shield',
+                        ],
+                        [
+                            'page' => 'settings',
+                            'route' => 'authkit.web.settings',
+                            'icon' => 'settings',
+                        ],
+                        [
+                            'page' => 'sessions',
+                            'route' => 'authkit.web.settings.sessions',
+                            'icon' => 'devices',
+                        ],
+                    ],
                 ],
+
                 [
-                    'page' => 'security',
-                    'icon' => 'shield',
+                    'page' => 'two_factor_settings',
+                    'route' => 'authkit.web.settings.two_factor',
+                    'icon' => 'key',
                 ],
+
                 [
-                    'page' => 'sessions',
+                    'page' => 'settings',
+                    'route' => '#',
+                    'icon' => 'user',
+                    'label' => 'Profile',
+                    'children' => [
+                        [
+                            'page' => 'settings',
+                            'route' => '#',
+                            'icon' => 'user',
+                            'label' => 'Personal details',
+                        ],
+                        [
+                            'page' => 'settings',
+                            'route' => '#',
+                            'icon' => 'lock',
+                            'label' => 'Login preferences',
+                        ],
+                        [
+                            'page' => 'settings',
+                            'route' => '#',
+                            'icon' => 'settings',
+                            'label' => 'Notifications',
+                        ],
+                    ],
+                ],
+
+                [
+                    'page' => 'settings',
+                    'route' => '#',
                     'icon' => 'devices',
+                    'label' => 'Workspace',
+                    'children' => [
+                        [
+                            'page' => 'settings',
+                            'route' => '#',
+                            'icon' => 'settings',
+                            'label' => 'General workspace',
+                        ],
+                        [
+                            'page' => 'settings',
+                            'route' => '#',
+                            'icon' => 'user',
+                            'label' => 'Members',
+                        ],
+                        [
+                            'page' => 'settings',
+                            'route' => '#',
+                            'icon' => 'shield',
+                            'label' => 'Permissions',
+                        ],
+                    ],
+                ],
+
+                [
+                    'page' => 'settings',
+                    'route' => '#',
+                    'icon' => 'help',
+                    'label' => 'Resources',
+                    'children' => [
+                        [
+                            'page' => 'settings',
+                            'route' => '#',
+                            'icon' => 'help',
+                            'label' => 'Help center',
+                        ],
+                        [
+                            'page' => 'settings',
+                            'route' => '#',
+                            'icon' => 'book',
+                            'label' => 'Documentation',
+                        ],
+                        [
+                            'page' => 'settings',
+                            'route' => '#',
+                            'icon' => 'mail',
+                            'label' => 'Support',
+                        ],
+                    ],
                 ],
             ],
         ],
