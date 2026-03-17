@@ -1,201 +1,193 @@
 {{--
 /**
- * Page: Security
+ * Page: App Security
  *
  * Authenticated AuthKit security page.
  *
  * Responsibilities:
- * - Resolves the configured AuthKit app page metadata for the security page.
- * - Renders inside the configured authenticated app layout.
- * - Displays a more action-oriented packaged security overview.
- * - Respects config-driven section visibility for packaged security blocks.
+ * - Render the authenticated app layout.
+ * - Display security overview content.
+ * - Show two-factor status with navigation to dedicated management page.
+ * - Show sessions shortcut with navigation to the sessions page.
+ * - Resolve and render the password-update schema as the only packaged form on the page.
  *
- * Notes:
- * - This page is intentionally config-driven.
- * - Consumers may replace this page entirely by changing authkit.app.pages.security.view.
+ * Expected data:
+ * - $title
+ * - $heading
+ * - $pageKey
+ * - $currentPage
+ * - $sections
+ * - $twoFactorEnabled
+ * - $twoFactorMethods
+ * - $hasRecoveryCodes
  */
 --}}
+
 @php
     $c = (array) config('authkit.components', []);
-    $appPages = (array) config('authkit.app.pages', []);
+    $apiNames = (array) config('authkit.route_names.api', []);
     $webNames = (array) config('authkit.route_names.web', []);
 
-    $page = is_array($pageConfig ?? null) ? $pageConfig : (array) ($appPages['security'] ?? []);
+    $formsMode = (string) config('authkit.forms.mode', 'http');
+    $ajaxAttr = (string) config('authkit.forms.ajax.attribute', 'data-authkit-ajax');
+    $isAjax = $formsMode === 'ajax';
 
-    $pageKey = is_string($pageKey ?? null) && $pageKey !== ''
-        ? $pageKey
-        : 'security';
+    $passwordUpdateAction = (string) ($apiNames['password_update'] ?? 'authkit.api.settings.password.update');
+    $twoFactorPage = (string) ($webNames['two_factor_settings'] ?? 'authkit.web.settings.two_factor');
+    $sessionsPage = (string) ($webNames['sessions'] ?? 'authkit.web.settings.sessions');
 
-    $layoutComponent = (string) data_get(config('authkit.app.layouts', []), data_get($page, 'layout', 'default'), 'authkit::app.layout');
+    $schema = app(\Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract::class)->resolve('password_update');
 
-    $containerComponent = (string) data_get($c, 'container', 'authkit::container');
-    $cardComponent = (string) data_get($c, 'card', 'authkit::card');
-    $alertComponent = (string) data_get($c, 'alert', 'authkit::alert');
-    $buttonComponent = (string) data_get($c, 'button', 'authkit::button');
-    $linkComponent = (string) data_get($c, 'link', 'authkit::link');
-    $dividerComponent = (string) data_get($c, 'divider', 'authkit::divider');
+    $fields = is_array($schema['fields'] ?? null) ? $schema['fields'] : [];
+    $submit = is_array($schema['submit'] ?? null) ? $schema['submit'] : [];
+    $submitLabel = (string) ($submit['label'] ?? 'Update password');
+
+    $status = (string) session('status', session('message', ''));
+    $error = (string) session('error', '');
+
+    $sections = is_array($sections ?? null) ? $sections : [];
+    $showPasswordUpdate = (bool) ($sections['password_update'] ?? true);
+
+    $twoFactorEnabled = (bool) ($twoFactorEnabled ?? false);
+    $twoFactorMethods = array_values(array_filter(
+        (array) ($twoFactorMethods ?? []),
+        static fn ($method) => is_string($method) && trim($method) !== ''
+    ));
+    $hasRecoveryCodes = (bool) ($hasRecoveryCodes ?? false);
+
     $settingsSectionComponent = (string) data_get($c, 'settings_section', 'authkit::app.settings.section');
-
-    $title = (string) data_get($page, 'title', 'Security');
-    $heading = (string) data_get($page, 'heading', 'Security settings');
-
-    $sections = (array) data_get($page, 'sections', []);
-    $showPasswordUpdate = (bool) data_get($sections, 'password_update', true);
-    $showTwoFactor = (bool) data_get($sections, 'two_factor', true);
-    $showRecoveryCodes = (bool) data_get($sections, 'recovery_codes', true);
-
-    $twoFactorRouteName = (string) ($webNames['two_factor_settings'] ?? 'authkit.web.settings.two_factor');
-    $sessionsRouteName = (string) ($webNames['sessions'] ?? 'authkit.web.settings.sessions');
-    $settingsRouteName = (string) ($webNames['settings'] ?? 'authkit.web.settings');
-    $confirmPasswordRouteName = (string) ($webNames['confirm_password'] ?? 'authkit.web.confirm.password');
-
-    $twoFactorUrl = \Illuminate\Support\Facades\Route::has($twoFactorRouteName) ? route($twoFactorRouteName) : '#';
-    $sessionsUrl = \Illuminate\Support\Facades\Route::has($sessionsRouteName) ? route($sessionsRouteName) : '#';
-    $settingsUrl = \Illuminate\Support\Facades\Route::has($settingsRouteName) ? route($settingsRouteName) : '#';
-    $confirmPasswordUrl = \Illuminate\Support\Facades\Route::has($confirmPasswordRouteName) ? route($confirmPasswordRouteName) : '#';
-
-    $guard = (string) config('authkit.auth.guard', 'web');
-    $user = auth($guard)->user();
-
-    $userName = is_object($user)
-        ? (string) (data_get($user, 'name') ?: data_get($user, 'email', 'there'))
-        : 'there';
-
-    $userEmail = is_object($user)
-        ? (string) data_get($user, 'email', '')
-        : '';
-
-    $twoFactorEnabledColumn = (string) config('authkit.two_factor.columns.enabled', 'two_factor_enabled');
-    $twoFactorConfirmedAtColumn = (string) config('authkit.two_factor.columns.confirmed_at', 'two_factor_confirmed_at');
-
-    $twoFactorEnabled = is_object($user) ? (bool) data_get($user, $twoFactorEnabledColumn, false) : false;
-    $twoFactorConfirmedAt = is_object($user) ? data_get($user, $twoFactorConfirmedAtColumn) : null;
-
-    $twoFactorStatus = $twoFactorEnabled
-        ? ($twoFactorConfirmedAt ? 'Enabled and confirmed' : 'Enabled but not yet confirmed')
-        : 'Not enabled';
-
-    $hasSecurityActions = $showPasswordUpdate || $showTwoFactor || $showRecoveryCodes;
+    $fieldsComponent = (string) data_get($c, 'fields', 'authkit::form.fields');
 @endphp
 
-<x-dynamic-component
-        :component="$layoutComponent"
-        :page-key="$pageKey"
-        :page-config="$page"
-        :page-title="$title"
-        :heading="$heading"
+<x-authkit::app.layout
+        :title="$title ?? 'Security'"
+        :page-key="$pageKey ?? 'security'"
+        :current-page="$currentPage ?? 'security'"
+        :page-title="$title ?? 'Security'"
+        :page-heading="$heading ?? 'Manage your account security'"
 >
-    <x-dynamic-component :component="$containerComponent" size="lg">
-        <div class="authkit-page-stack">
+    <div class="authkit-dashboard authkit-dashboard__stack">
+        <section class="authkit-dashboard__hero">
+            <div class="authkit-dashboard__hero-copy">
+                <div class="authkit-dashboard__eyebrow">
+                    Account protection
+                </div>
 
-            <x-dynamic-component
-                    :component="$alertComponent"
-                    variant="info"
-            >
-                Signed in as <strong>{{ $userName }}</strong>@if($userEmail !== '') ({{ $userEmail }}) @endif.
-                Review your account protection below and use the quick actions to manage important security settings.
-            </x-dynamic-component>
+                <h2 class="authkit-dashboard__hero-title">
+                    Security controls
+                </h2>
 
-            <x-dynamic-component
-                    :component="$cardComponent"
-                    class="authkit-security-hero"
-            >
-                <div class="authkit-security-hero__content">
-                    <div class="authkit-security-hero__copy">
-                        <h2 class="authkit-security-hero__title">
-                            Protect your account
-                        </h2>
+                <p class="authkit-dashboard__hero-text">
+                    Review how your account is protected, manage your authentication
+                    settings, and keep your password up to date.
+                </p>
+            </div>
 
-                        <p class="authkit-security-hero__text">
-                            Welcome, {{ $userName }}. Keep your account safe by reviewing your password,
-                            enabling two-factor authentication, and checking your active sessions.
+            <div class="authkit-dashboard__hero-meta">
+                <div class="authkit-dashboard__hero-chip">
+                    <span class="authkit-dashboard__hero-chip-label">Two-factor</span>
+                    <span class="authkit-dashboard__hero-chip-value">
+                        {{ $twoFactorEnabled ? 'Enabled' : 'Disabled' }}
+                    </span>
+                </div>
+
+                <div class="authkit-dashboard__hero-chip">
+                    <span class="authkit-dashboard__hero-chip-label">Recovery codes</span>
+                    <span class="authkit-dashboard__hero-chip-value">
+                        {{ $hasRecoveryCodes ? 'Available' : 'Not generated' }}
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <section class="authkit-dashboard__grid">
+            <article class="authkit-dashboard-card">
+                <div class="authkit-dashboard-card__header">
+                    <div>
+                        <h3 class="authkit-dashboard-card__title">Two-factor authentication</h3>
+                        <p class="authkit-dashboard-card__text">
+                            Add an extra verification step to help protect your account
+                            from unauthorized access.
                         </p>
                     </div>
+                </div>
 
-                    <div class="authkit-security-hero__actions">
-                        <x-dynamic-component
-                                :component="$linkComponent"
-                                :href="$twoFactorUrl"
-                                variant="primary"
-                                class="authkit-security-hero__link"
-                        >
-                            Manage two-factor authentication
-                        </x-dynamic-component>
+                <div class="authkit-settings-links">
+                    <a href="{{ route($twoFactorPage) }}" class="authkit-settings-links__item">
+                        <span class="authkit-settings-links__title">
+                            {{ $twoFactorEnabled ? 'Manage two-factor' : 'Set up two-factor' }}
+                        </span>
 
-                        <x-dynamic-component
-                                :component="$linkComponent"
-                                :href="$sessionsUrl"
-                                variant="default"
-                                class="authkit-security-hero__link"
-                        >
-                            Review active sessions
-                        </x-dynamic-component>
+                        <span class="authkit-settings-links__text">
+                            Status:
+                            {{ $twoFactorEnabled ? 'enabled' : 'disabled' }}.
+                            @if (!empty($twoFactorMethods))
+                                Active method{{ count($twoFactorMethods) > 1 ? 's' : '' }}:
+                                {{ implode(', ', $twoFactorMethods) }}.
+                            @else
+                                Configure your authenticator settings and recovery options.
+                            @endif
+                        </span>
+                    </a>
+                </div>
+            </article>
+
+            <article class="authkit-dashboard-card">
+                <div class="authkit-dashboard-card__header">
+                    <div>
+                        <h3 class="authkit-dashboard-card__title">Sessions</h3>
+                        <p class="authkit-dashboard-card__text">
+                            Review where your account is signed in and monitor active devices.
+                        </p>
                     </div>
                 </div>
-            </x-dynamic-component>
 
+                <div class="authkit-settings-links">
+                    <a href="{{ route($sessionsPage) }}" class="authkit-settings-links__item">
+                        <span class="authkit-settings-links__title">Review active sessions</span>
+                        <span class="authkit-settings-links__text">
+                            Open the sessions page to inspect recent activity across browsers and devices.
+                        </span>
+                    </a>
+                </div>
+            </article>
+        </section>
+
+        @if ($showPasswordUpdate)
             <x-dynamic-component
                     :component="$settingsSectionComponent"
-                    title="Security overview"
-                    description="A quick summary of your current account protection state."
+                    title="Update password"
+                    description="Change your current password to keep your account secure."
             >
-                <div class="authkit-security-grid">
-                    <x-dynamic-component :component="$cardComponent" class="authkit-security-summary-card">
-                        <div class="authkit-security-summary-card__eyebrow">Password</div>
-                        <h3 class="authkit-security-summary-card__title">Password protection</h3>
-                        <p class="authkit-security-summary-card__text">
-                            Your password is the first layer protecting access to your account and sensitive settings.
-                        </p>
-
-                        <div class="authkit-security-summary-card__actions">
-                            <x-dynamic-component
-                                    :component="$linkComponent"
-                                    :href="$settingsUrl"
-                                    variant="primary"
-                            >
-                                Go to settings
-                            </x-dynamic-component>
-                        </div>
+                @if ($status !== '')
+                    <x-dynamic-component :component="data_get($c, 'alert')" variant="success">
+                        {{ $status }}
                     </x-dynamic-component>
+                @endif
 
-                    <x-dynamic-component :component="$cardComponent" class="authkit-security-summary-card">
-                        <div class="authkit-security-summary-card__eyebrow">Two-factor</div>
-                        <h3 class="authkit-security-summary-card__title">Two-factor authentication</h3>
-                        <p class="authkit-security-summary-card__text">
-                            Current status: {{ $twoFactorStatus }}.
-                        </p>
-
-                        <div class="authkit-security-summary-card__actions">
-                            <x-dynamic-component
-                                    :component="$linkComponent"
-                                    :href="$twoFactorUrl"
-                                    variant="primary"
-                            >
-                                Manage 2FA
-                            </x-dynamic-component>
-                        </div>
+                @if ($error !== '')
+                    <x-dynamic-component :component="data_get($c, 'alert')" variant="error">
+                        {{ $error }}
                     </x-dynamic-component>
+                @endif
 
-                    <x-dynamic-component :component="$cardComponent" class="authkit-security-summary-card">
-                        <div class="authkit-security-summary-card__eyebrow">Sessions</div>
-                        <h3 class="authkit-security-summary-card__title">Session activity</h3>
-                        <p class="authkit-security-summary-card__text">
-                            Review active sessions and remove access you do not recognize.
-                        </p>
+                <x-dynamic-component :component="data_get($c, 'errors')" />
 
-                        <div class="authkit-security-summary-card__actions">
-                            <x-dynamic-component
-                                    :component="$linkComponent"
-                                    :href="$sessionsUrl"
-                                    variant="primary"
-                            >
-                                View sessions
-                            </x-dynamic-component>
-                        </div>
+                <form method="post" action="{{ route($passwordUpdateAction) }}" @if($isAjax) {{ $ajaxAttr }}="1" @endif>
+                @csrf
+
+                <x-dynamic-component
+                        :component="$fieldsComponent"
+                        :fields="$fields"
+                />
+
+                <div class="authkit-form-actions">
+                    <x-dynamic-component :component="data_get($c, 'button')">
+                        {{ $submitLabel }}
                     </x-dynamic-component>
                 </div>
+                </form>
             </x-dynamic-component>
-
-        </div>
-    </x-dynamic-component>
-</x-dynamic-component>
+        @endif
+    </div>
+</x-authkit::app.layout>

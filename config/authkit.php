@@ -1285,6 +1285,15 @@ return [
                         'class' => 'authkit-field',
                     ],
                 ],
+                'logout_other_devices' => [
+                    'label' => 'Logout Other loggedin Devices',
+                    'type' => 'checkbox',
+                    'checked' => true,
+                    'attributes' => [],
+                    'wrapper' => [
+                        'class' => 'authkit-field authkit-field--checkbox',
+                    ],
+                ],
             ],
         ],
         /**
@@ -2927,7 +2936,7 @@ return [
                 'sections' => [
                     'password_update' => true,
                     'two_factor' => true,
-                    'recovery_codes' => true,
+                    'sessions_summary' => true,
                 ],
             ],
 
@@ -3045,87 +3054,6 @@ return [
                     'page' => 'two_factor_settings',
                     'route' => 'authkit.web.settings.two_factor',
                     'icon' => 'key',
-                ],
-
-                [
-                    'page' => 'settings',
-                    'route' => '#',
-                    'icon' => 'user',
-                    'label' => 'Profile',
-                    'children' => [
-                        [
-                            'page' => 'settings',
-                            'route' => '#',
-                            'icon' => 'user',
-                            'label' => 'Personal details',
-                        ],
-                        [
-                            'page' => 'settings',
-                            'route' => '#',
-                            'icon' => 'lock',
-                            'label' => 'Login preferences',
-                        ],
-                        [
-                            'page' => 'settings',
-                            'route' => '#',
-                            'icon' => 'settings',
-                            'label' => 'Notifications',
-                        ],
-                    ],
-                ],
-
-                [
-                    'page' => 'settings',
-                    'route' => '#',
-                    'icon' => 'devices',
-                    'label' => 'Workspace',
-                    'children' => [
-                        [
-                            'page' => 'settings',
-                            'route' => '#',
-                            'icon' => 'settings',
-                            'label' => 'General workspace',
-                        ],
-                        [
-                            'page' => 'settings',
-                            'route' => '#',
-                            'icon' => 'user',
-                            'label' => 'Members',
-                        ],
-                        [
-                            'page' => 'settings',
-                            'route' => '#',
-                            'icon' => 'shield',
-                            'label' => 'Permissions',
-                        ],
-                    ],
-                ],
-
-                [
-                    'page' => 'settings',
-                    'route' => '#',
-                    'icon' => 'help',
-                    'label' => 'Resources',
-                    'children' => [
-                        [
-                            'page' => 'settings',
-                            'route' => '#',
-                            'icon' => 'help',
-                            'label' => 'Help center',
-                        ],
-                        [
-                            'page' => 'settings',
-                            'route' => '#',
-                            'icon' => 'book',
-                            'label' => 'Documentation',
-                        ],
-                        [
-                            'page' => 'settings',
-                            'route' => '#',
-                            'icon' => 'mail',
-                            'label' => 'Support',
-                        ],
-                    ],
                 ],
             ],
         ],
