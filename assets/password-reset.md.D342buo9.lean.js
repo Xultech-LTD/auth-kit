@@ -1,1 +1,0 @@
-import{_ as e,o as t,c as s}from"./chunks/framework.deupg0Vv.js";const m=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"password-reset.md","filePath":"password-reset.md"}'),r={name:"password-reset.md"};function a(o,c,n,p,d,_){return t(),s("div")}const f=e(r,[["render",a]]);export{m as __pageData,f as default};

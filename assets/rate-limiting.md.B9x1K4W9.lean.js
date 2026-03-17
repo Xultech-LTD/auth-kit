@@ -1,0 +1,1 @@
+import{_ as t,o as e,c as a}from"./chunks/framework.DCmHoTxM.js";const d=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"rate-limiting.md","filePath":"rate-limiting.md"}'),i={name:"rate-limiting.md"};function r(n,o,s,c,m,p){return e(),a("div")}const l=t(i,[["render",r]]);export{d as __pageData,l as default};
