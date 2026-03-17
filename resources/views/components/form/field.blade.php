@@ -85,6 +85,7 @@
     $accept = $field['accept'] ?? null;
     $options = is_array($field['options'] ?? null) ? $field['options'] : [];
     $wrapper = is_array($field['wrapper'] ?? null) ? $field['wrapper'] : [];
+    $fieldAttributes = is_array($field['attributes'] ?? null) ? $field['attributes'] : [];
 
     /**
      * Resolved primitive/component aliases.
@@ -158,6 +159,7 @@
             type="hidden"
             :value="$value"
             :unstyled="$unstyled"
+            :extra-attributes="$fieldAttributes"
     />
     @php return; @endphp
 @endif
@@ -174,6 +176,7 @@
                 :id="$id"
                 :checked="$checked"
                 :unstyled="$unstyled"
+                :extra-attributes="$fieldAttributes"
         >
             {{ $label }}
         </x-dynamic-component>
@@ -205,6 +208,7 @@
                     :autocomplete="$autocomplete"
                     :required="$required"
                     :unstyled="$unstyled"
+                    :extra-attributes="$fieldAttributes"
             />
         @elseif ($isSelectLike)
             <x-dynamic-component
@@ -215,6 +219,7 @@
                     :multiple="$multiple"
                     :required="$required"
                     :unstyled="$unstyled"
+                    :extra-attributes="$fieldAttributes"
             >
                 @if (! $multiple && is_string($placeholder) && trim($placeholder) !== '')
                     <option value="">{{ $placeholder }}</option>
@@ -237,6 +242,7 @@
                     :inputmode="$inputmode"
                     :required="$required"
                     :unstyled="$unstyled"
+                    :extra-attributes="$fieldAttributes"
             />
         @else
             <x-dynamic-component
@@ -251,6 +257,7 @@
                     :accept="$accept"
                     :required="$required"
                     :unstyled="$unstyled"
+                    :extra-attributes="$fieldAttributes"
             />
         @endif
 

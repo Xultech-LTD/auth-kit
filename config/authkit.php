@@ -3150,6 +3150,7 @@ return [
 
                 'two_factor_settings' => [
                     \Xul\AuthKit\Http\Middleware\Authenticate::class,
+                    \Xul\AuthKit\Http\Middleware\RequirePasswordConfirmationMiddleware::class,
                 ],
 
                 /**
@@ -3285,14 +3286,6 @@ return [
              * Whether two-factor confirmations are enabled.
              */
             'enabled' => true,
-
-            /**
-             * Whether the confirmation UI may expose a recovery-code fallback.
-             *
-             * This controls product behavior only; the actual page/controller implementation
-             * may still decide how recovery fallback is rendered.
-             */
-            'allow_recovery' => true,
         ],
     ],
 
@@ -3471,7 +3464,7 @@ return [
          * - tailwind + forest => tailwind-forest.css
          * - bootstrap + red-beige => bootstrap-red-beige.css
          */
-        'theme' => 'aurora',
+        'theme' => 'slate-gold',
 
         /**
          * Default appearance mode.

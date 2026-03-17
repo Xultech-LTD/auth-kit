@@ -47,6 +47,7 @@
     'required' => false,
     'variant' => 'default',
     'unstyled' => false,
+    'extraAttributes' => [],
 ])
 
 @php
@@ -55,6 +56,9 @@
     $baseClass = 'authkit-otp';
     $variantClass = $variant !== '' ? "authkit-otp--{$variant}" : '';
     $class = $unstyled ? '' : trim($baseClass . ' ' . $variantClass);
+    $extraAttributeBag = new \Illuminate\View\ComponentAttributeBag(
+        is_array($extraAttributes) ? $extraAttributes : []
+    );
 @endphp
 
 {{-- OTP Input Element --}}
@@ -67,5 +71,5 @@
         @if($inputmode) inputmode="{{ $inputmode }}" @endif
         @if($placeholder) placeholder="{{ $placeholder }}" @endif
         @if($required) required @endif
-        {{ $attributes->merge(['class' => $class]) }}
+        {{ $extraAttributeBag->merge($attributes->getAttributes())->merge(['class' => $class]) }}
 >

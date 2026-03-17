@@ -1,0 +1,50 @@
+/**
+ * AuthKit
+ * -----------------------------------------------------------------------------
+ * File: resources/css/authkit/base/components/app-two-factor.css
+ * Author: Michael Erastus
+ *
+ * Description:
+ * -----------------------------------------------------------------------------
+ * Styles for two-factor authentication setup and management UI.
+ *
+ * Responsibilities:
+ * - Layout for QR setup block
+ * - QR container styling
+ * - Responsive QR sizing
+ */
+
+.authkit-two-factor-setup {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--authkit-space-4);
+    margin-top: var(--authkit-space-4);
+}
+
+.authkit-two-factor-setup__qr {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    padding: var(--authkit-space-3);
+    border: var(--authkit-border-width) solid color-mix(in srgb, var(--authkit-color-border) 88%, transparent);
+    border-radius: var(--authkit-radius-xl);
+    background-color: #ffffff;
+    box-shadow: var(--authkit-shadow-sm);
+}
+
+.authkit-two-factor-setup__qr svg {
+    display: block;
+    width: 13.75rem;
+    height: 13.75rem;
+    max-width: 100%;
+}
+
+@media (max-width: 640px) {
+    .authkit-two-factor-setup__qr svg {
+        width: 11.5rem;
+        height: 11.5rem;
+    }
+}

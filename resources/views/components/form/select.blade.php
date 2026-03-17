@@ -38,6 +38,7 @@
     'required' => false,
     'variant' => 'default',
     'unstyled' => false,
+    'extraAttributes' => [],
 ])
 
 @php
@@ -47,15 +48,18 @@
     $baseClass = 'authkit-select';
     $variantClass = $variant !== '' ? "authkit-select--{$variant}" : '';
     $class = $unstyled ? '' : trim($baseClass . ' ' . $variantClass);
+
+    $extraAttributeBag = new \Illuminate\View\ComponentAttributeBag(
+        is_array($extraAttributes) ? $extraAttributes : []
+    );
 @endphp
 
-{{-- Select Element --}}
 <select
         id="{{ $selectId }}"
         name="{{ $selectName }}"
         @if($multiple) multiple @endif
         @if($required) required @endif
-        {{ $attributes->merge(['class' => $class]) }}
+        {{ $extraAttributeBag->merge($attributes->getAttributes())->merge(['class' => $class]) }}
 >
     {{ $slot }}
 </select>

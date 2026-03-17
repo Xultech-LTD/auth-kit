@@ -35,6 +35,7 @@
     'checked' => false,
     'value' => '1',
     'unstyled' => false,
+    'extraAttributes' => [],
 ])
 
 @php
@@ -44,24 +45,23 @@
     $wrapperClass = $unstyled ? '' : 'authkit-checkbox';
     $inputClass = $unstyled ? '' : 'authkit-checkbox__input';
     $labelClass = $unstyled ? '' : 'authkit-checkbox__label';
+
+    $extraAttributeBag = new \Illuminate\View\ComponentAttributeBag(
+        is_array($extraAttributes) ? $extraAttributes : []
+    );
 @endphp
 
-{{-- Checkbox Wrapper --}}
 <label class="{{ $wrapperClass }}">
-
-    {{-- Checkbox Input --}}
     <input
             id="{{ $checkboxId }}"
             name="{{ $name }}"
             type="checkbox"
             value="{{ $value }}"
             @if($isChecked) checked @endif
-            {{ $attributes->merge(['class' => $inputClass]) }}
+            {{ $extraAttributeBag->merge($attributes->getAttributes())->merge(['class' => $inputClass]) }}
     >
 
-    {{-- Label Text --}}
     <span class="{{ $labelClass }}">
         {{ $slot }}
     </span>
-
 </label>

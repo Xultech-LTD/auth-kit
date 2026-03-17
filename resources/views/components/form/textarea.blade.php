@@ -39,6 +39,7 @@
     'required' => false,
     'variant' => 'default',
     'unstyled' => false,
+    'extraAttributes' => [],
 ])
 
 @php
@@ -47,9 +48,12 @@
     $baseClass = 'authkit-textarea';
     $variantClass = $variant !== '' ? "authkit-textarea--{$variant}" : '';
     $class = $unstyled ? '' : trim($baseClass . ' ' . $variantClass);
+
+    $extraAttributeBag = new \Illuminate\View\ComponentAttributeBag(
+        is_array($extraAttributes) ? $extraAttributes : []
+    );
 @endphp
 
-{{-- Textarea Element --}}
 <textarea
         id="{{ $textareaId }}"
         name="{{ $name }}"
@@ -57,5 +61,5 @@
         @if($placeholder) placeholder="{{ $placeholder }}" @endif
         @if($autocomplete) autocomplete="{{ $autocomplete }}" @endif
         @if($required) required @endif
-        {{ $attributes->merge(['class' => $class]) }}
+        {{ $extraAttributeBag->merge($attributes->getAttributes())->merge(['class' => $class]) }}
 >{{ old($name, $value) }}</textarea>

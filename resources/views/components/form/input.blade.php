@@ -43,6 +43,7 @@
     'required' => false,
     'variant' => 'default',
     'unstyled' => false,
+    'extraAttributes' => [],
 ])
 
 @php
@@ -51,6 +52,10 @@
     $baseClass = 'authkit-input';
     $variantClass = $variant !== '' ? "authkit-input--{$variant}" : '';
     $class = $unstyled ? '' : trim($baseClass . ' ' . $variantClass);
+
+    $extraAttributeBag = new \Illuminate\View\ComponentAttributeBag(
+        is_array($extraAttributes) ? $extraAttributes : []
+    );
 @endphp
 
 {{-- Input Element --}}
@@ -64,5 +69,5 @@
         @if($inputmode) inputmode="{{ $inputmode }}" @endif
         @if($accept) accept="{{ $accept }}" @endif
         @if($required) required @endif
-        {{ $attributes->merge(['class' => $class]) }}
+        {{ $extraAttributeBag->merge($attributes->getAttributes())->merge(['class' => $class]) }}
 >
