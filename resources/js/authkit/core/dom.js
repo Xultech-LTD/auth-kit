@@ -205,7 +205,7 @@ export function hasDataAttribute(element, name) {
  * @returns {HTMLElement|null}
  */
 export function getPageElement() {
-    const page = queryOne('.authkit-page');
+    const page = queryOne('[data-authkit-page-root], .authkit-page, body[data-authkit-page]');
 
     return page instanceof HTMLElement ? page : null;
 }

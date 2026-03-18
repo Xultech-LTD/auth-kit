@@ -32,6 +32,7 @@ import * as login from './login.js';
 import * as register from './register.js';
 import * as twoFactorChallenge from './two-factor-challenge.js';
 import * as twoFactorRecovery from './two-factor-recovery.js';
+import * as twoFactorSettings from './two-factor-settings.js';
 import * as emailVerificationNotice from './email-verification-notice.js';
 import * as emailVerificationToken from './email-verification-token.js';
 import * as emailVerificationSuccess from './email-verification-success.js';
@@ -56,6 +57,7 @@ export function getBuiltInPageModules() {
         register,
         two_factor_challenge: twoFactorChallenge,
         two_factor_recovery: twoFactorRecovery,
+        two_factor_settings: twoFactorSettings,
         email_verification_notice: emailVerificationNotice,
         email_verification_token: emailVerificationToken,
         email_verification_success: emailVerificationSuccess,
@@ -72,6 +74,7 @@ export {
     register,
     twoFactorChallenge,
     twoFactorRecovery,
+    twoFactorSettings,
     emailVerificationNotice,
     emailVerificationToken,
     emailVerificationSuccess,

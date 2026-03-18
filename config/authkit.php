@@ -380,7 +380,6 @@ return [
              */
             'password_update' => 'authkit.api.settings.password.update',
 
-            'two_factor_enable' => 'authkit.api.settings.two_factor.enable',
             'two_factor_confirm' => 'authkit.api.settings.two_factor.confirm',
             'two_factor_disable' => 'authkit.api.settings.two_factor.disable',
             'two_factor_recovery_regenerate' => 'authkit.api.settings.two_factor.recovery.regenerate',
@@ -498,7 +497,6 @@ return [
              */
             'password_update' => \Xul\AuthKit\Http\Controllers\Api\App\Settings\UpdatePasswordController::class,
 
-            'two_factor_enable' => \Xul\AuthKit\Http\Controllers\Api\App\Settings\EnableTwoFactorController::class,
             'two_factor_confirm' => \Xul\AuthKit\Http\Controllers\Api\App\Settings\ConfirmTwoFactorSetupController::class,
             'two_factor_disable' => \Xul\AuthKit\Http\Controllers\Api\App\Settings\DisableTwoFactorController::class,
             'two_factor_recovery_regenerate' => \Xul\AuthKit\Http\Controllers\Api\App\Settings\RegenerateTwoFactorRecoveryCodesController::class,
@@ -1296,6 +1294,7 @@ return [
                 ],
             ],
         ],
+
         /**
          * Two-factor setup confirmation form schema.
          *
@@ -1338,6 +1337,138 @@ return [
                     ],
                 ],
 
+            ],
+        ],
+
+        /**
+         * Two-factor disable form schema.
+         *
+         * Purpose:
+         * - Used when an authenticated user wants to disable two-factor authentication
+         *   and still has access to their authenticator application.
+         *
+         * Verification method:
+         * - Authenticator-generated one-time code (OTP/TOTP)
+         *
+         * Typical usage:
+         * - Rendered as the default disable form on the two-factor settings page.
+         * - Submitted to the shared two-factor disable action endpoint.
+         *
+         * Notes:
+         * - This schema represents the primary and preferred disable path.
+         * - Business validation and actual disable logic remain the responsibility of
+         *   the request/action layer.
+         * - Consumers may customize labels, attributes, and presentation without
+         *   changing the underlying action endpoint.
+         */
+        'two_factor_disable' => [
+            'submit' => [
+                'label' => 'Disable two-factor authentication',
+            ],
+            'fields' => [
+                'code' => [
+                    'label' => 'Authentication code',
+                    'type' => 'otp',
+                    'required' => true,
+                    'placeholder' => 'Enter your authentication code',
+                    'autocomplete' => 'one-time-code',
+                    'inputmode' => 'numeric',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'class' => 'authkit-field',
+                    ],
+                ],
+            ],
+        ],
+
+        /**
+         * Two-factor disable recovery form schema.
+         *
+         * Purpose:
+         * - Used when an authenticated user wants to disable two-factor authentication
+         *   but no longer has access to their authenticator application.
+         *
+         * Verification method:
+         * - Saved recovery code
+         *
+         * Typical usage:
+         * - Rendered only after the user explicitly chooses the fallback recovery-code
+         *   path from the two-factor settings page.
+         * - Submitted to the same shared two-factor disable action endpoint as the
+         *   OTP-based disable form.
+         *
+         * UI expectation:
+         * - This schema is usually hidden initially in the page UI.
+         * - It is revealed only when the user clicks something like:
+         *   "Use a recovery code instead".
+         *
+         * Notes:
+         * - This schema exists separately from `two_factor_disable` so schema
+         *   resolution stays unambiguous and the field renderer only receives the
+         *   exact fields intended for the active form.
+         * - Keeping this as a separate schema avoids hidden-field hacks and keeps page
+         *   composition cleaner.
+         */
+        'two_factor_disable_recovery' => [
+            'submit' => [
+                'label' => 'Disable two-factor authentication',
+            ],
+            'fields' => [
+                'recovery_code' => [
+                    'label' => 'Recovery code',
+                    'type' => 'text',
+                    'required' => true,
+                    'placeholder' => 'Enter one of your saved recovery codes',
+                    'autocomplete' => 'one-time-code',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'class' => 'authkit-field',
+                    ],
+                ],
+            ],
+        ],
+
+        /**
+         * Recovery code regeneration form schema.
+         *
+         * Purpose:
+         * - Used from the authenticated two-factor settings page when a user wants
+         *   to replace their existing recovery codes with a newly generated set.
+         *
+         * Security rationale:
+         * - Regenerating recovery codes is a highly sensitive action because it
+         *   replaces the account's backup access credentials.
+         * - For that reason, this form requires a fresh authenticator code.
+         * - Recovery-code-based regeneration is intentionally not the default,
+         *   because a fallback credential should not be used to mint a fresh
+         *   long-term fallback credential set.
+         *
+         * Recommended flow:
+         * - User enters a valid OTP from their authenticator app.
+         * - AuthKit verifies the code using the active driver resolved through
+         *   the TwoFactorManager.
+         * - Existing recovery codes are replaced with a newly generated set.
+         * - Newly generated plaintext recovery codes are shown once via:
+         *   - session flash for SSR flows
+         *   - JSON payload for AJAX flows
+         */
+        'two_factor_recovery_regenerate' => [
+            'submit' => [
+                'label' => 'Regenerate recovery codes',
+            ],
+            'fields' => [
+                'code' => [
+                    'label' => 'Authentication code',
+                    'type' => 'otp',
+                    'required' => true,
+                    'placeholder' => 'Enter your authentication code',
+                    'autocomplete' => 'one-time-code',
+                    'inputmode' => 'numeric',
+                    'attributes' => [],
+                    'wrapper' => [
+                        'class' => 'authkit-field',
+                    ],
+                ],
             ],
         ],
     ],
@@ -2328,6 +2459,87 @@ return [
              * Allowed: bcrypt, argon2id, argon2i
              */
             'recovery_hash_driver' => 'bcrypt',
+        ],
+
+        /**
+         * Recovery code display and transport configuration.
+         *
+         * This section defines the canonical keys used when AuthKit needs to expose
+         * freshly generated plaintext recovery codes to the user immediately after:
+         * - confirming two-factor setup
+         * - regenerating recovery codes
+         *
+         * Why this exists:
+         * - Recovery codes are intentionally shown only once in plaintext.
+         * - Redirect-based web flows need a session flash key so the destination page
+         *   can render the codes server-side on the next request.
+         * - AJAX flows need a stable response payload key so client-side page modules
+         *   can discover and render the codes without hard-coding response field names.
+         *
+         * Important distinction:
+         * - This section controls temporary plaintext presentation only.
+         * - It does not control how recovery codes are stored on the user model.
+         * - Persistent storage and hashing behavior remain controlled by:
+         *   authkit.two_factor.security.hash_recovery_codes
+         *   authkit.two_factor.security.recovery_hash_driver
+         *
+         * Design goals:
+         * - Keep Blade templates free from hard-coded flash session keys.
+         * - Keep page JavaScript free from hard-coded payload keys.
+         * - Allow consumers to rename these keys if needed without editing package code.
+         */
+        'recovery_codes' => [
+
+            /**
+             * Session flash key used for redirect-based web flows.
+             *
+             * Expected usage:
+             * - Actions flash newly generated plaintext recovery codes to this key.
+             * - The next rendered page reads this same key from session and displays
+             *   the codes once for secure download or storage.
+             *
+             * Example flashed value:
+             * [
+             *     'ABCD-EFGH',
+             *     'IJKL-MNOP',
+             * ]
+             */
+            'flash_key' => 'authkit.two_factor.recovery_codes',
+
+            /**
+             * Public response payload key used for JSON/AJAX success responses.
+             *
+             * Expected usage:
+             * - Actions return newly generated plaintext recovery codes in the public
+             *   payload using this key.
+             * - Client-side page modules read this key from successful AJAX responses
+             *   and render the recovery-code section dynamically.
+             *
+             * Example response payload:
+             * [
+             *     'confirmed' => true,
+             *     'methods' => ['totp'],
+             *     'recovery_codes' => ['ABCD-EFGH', 'IJKL-MNOP'],
+             * ]
+             */
+            'response_key' => 'recovery_codes',
+
+            /**
+             * Whether the recovery-code presentation section should remain hidden by
+             * default until codes are actually available.
+             *
+             * Intended behavior:
+             * - Redirect/SSR flow:
+             *   The section becomes visible only when the configured flash key contains
+             *   codes for the current request.
+             * - AJAX flow:
+             *   The section starts hidden and is revealed by page JavaScript when a
+             *   successful response contains recovery codes under the configured
+             *   response_key.
+             *
+             * This keeps the page clean when no new recovery codes are being shown.
+             */
+            'hide_when_empty' => true,
         ],
     ],
 

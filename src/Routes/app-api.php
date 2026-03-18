@@ -6,7 +6,6 @@ use Xul\AuthKit\Http\Controllers\Api\App\Confirmations\ConfirmPasswordController
 use Xul\AuthKit\Http\Controllers\Api\App\Confirmations\ConfirmTwoFactorController;
 use Xul\AuthKit\Http\Controllers\Api\App\Settings\ConfirmTwoFactorSetupController;
 use Xul\AuthKit\Http\Controllers\Api\App\Settings\DisableTwoFactorController;
-use Xul\AuthKit\Http\Controllers\Api\App\Settings\EnableTwoFactorController;
 use Xul\AuthKit\Http\Controllers\Api\App\Settings\LogoutOtherSessionsController;
 use Xul\AuthKit\Http\Controllers\Api\App\Settings\RegenerateTwoFactorRecoveryCodesController;
 use Xul\AuthKit\Http\Controllers\Api\App\Settings\UpdatePasswordController;
@@ -72,20 +71,6 @@ Route::middleware(array_values(array_filter(array_merge(
                     $throttle->middlewareFor('password_update'),
                 ])))
                 ->name((string) ($apiNames['password_update'] ?? 'authkit.api.settings.password.update'));
-
-            /**
-             * Enable two-factor authentication action.
-             *
-             * Begins or initializes two-factor setup for the authenticated user.
-             */
-            Route::post(
-                '/settings/two-factor/enable/process',
-                ControllerResolver::resolve('api', 'two_factor_enable', EnableTwoFactorController::class)
-            )
-                ->middleware(array_values(array_filter([
-                    $throttle->middlewareFor('two_factor_enable'),
-                ])))
-                ->name((string) ($apiNames['two_factor_enable'] ?? 'authkit.api.settings.two_factor.enable'));
 
             /**
              * Confirm two-factor setup action.

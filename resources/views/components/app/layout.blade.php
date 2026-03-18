@@ -305,7 +305,11 @@
         @if(is_string($pageKey) && $pageKey !== '') data-authkit-page="{{ $pageKey }}" @endif
         @if(is_string($currentPage) && $currentPage !== '') data-authkit-app-current-page="{{ $currentPage }}" @endif
 >
-<div class="authkit-app-layout">
+<div
+        class="authkit-app-layout"
+        data-authkit-page-root="1"
+        @if(is_string($pageKey) && $pageKey !== '') data-authkit-page="{{ $pageKey }}" @endif
+>
     <x-authkit::app.shell
             :current-page="$currentPage"
             :page-title="$pageTitle"
