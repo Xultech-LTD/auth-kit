@@ -25,6 +25,10 @@ use Xul\AuthKit\Events\AuthKitLoggedOut;
  * - Perform logout on the configured guard.
  * - Dispatch AuthKitLoggedOut after successful logout.
  * - Return a standardized AuthKitActionResult for all outcomes.
+ *
+ * Notes:
+ * - Session invalidation and CSRF token regeneration are intentionally not handled
+ *   here because they are HTTP transport concerns and should remain in the controller.
  */
 final class LogoutAction
 {
@@ -72,9 +76,6 @@ final class LogoutAction
         }
 
         $guard->logout();
-
-        session()->invalidate();
-        session()->regenerateToken();
 
         event(new AuthKitLoggedOut(
             user: $user,

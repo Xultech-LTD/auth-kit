@@ -9,6 +9,7 @@ use Xul\AuthKit\Concerns\Http\ApiRespondsJson;
 use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\Auth\TwoFactorChallengeRequest;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
 /**
@@ -18,14 +19,10 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Responsibilities:
  * - Validate the incoming request through TwoFactorChallengeRequest.
- * - Delegate two-factor challenge orchestration to TwoFactorChallengeAction.
+ * - Build the normalized mapped payload for the two-factor challenge context.
+ * - Delegate challenge orchestration to TwoFactorChallengeAction.
  * - Return JSON responses for API or AJAX consumers.
- * - Return redirect responses with flash messages for standard web consumers.
- *
- * Design notes:
- * - TwoFactorChallengeAction is the source of truth for outcome, flow,
- *   redirect, payload, and error semantics.
- * - Public JSON responses are generated from the standardized action result DTO.
+ * - Return redirect responses for standard web consumers.
  */
 final class TwoFactorChallengeController
 {
@@ -44,7 +41,9 @@ final class TwoFactorChallengeController
         TwoFactorChallengeRequest $request,
         TwoFactorChallengeAction $action
     ): JsonResponse|RedirectResponse {
-        $result = $action->handle($request->validated());
+        $payload = MappedPayloadBuilder::build('two_factor_challenge', $request->validated());
+
+        $result = $action->handle($payload);
 
         if (ResponseResolver::expectsJson($request)) {
             return $this->ok($result->toArray(), $result->status);

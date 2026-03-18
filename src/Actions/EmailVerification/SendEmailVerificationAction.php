@@ -6,6 +6,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Support\Facades\URL;
+use Xul\AuthKit\Concerns\Actions\InteractsWithMappedPayload;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitFlowStep;
@@ -20,9 +21,11 @@ use Xul\AuthKit\Support\PendingEmailVerification;
  * Resends an email verification message to a user.
  *
  * Responsibilities:
- * - Normalize the email input.
+ * - Consume normalized mapped email input.
  * - Resolve the user by email using the configured guard provider.
  * - Prevent resending to a different email than the authenticated user's email.
+ * - Persist mapper-approved attributes when the resolved model supports
+ *   AuthKit mapped persistence.
  * - Skip sending if the user is already verified.
  * - Create a verification token context through PendingEmailVerification.
  * - Build a signed URL when the active driver is link-based.
@@ -35,6 +38,8 @@ use Xul\AuthKit\Support\PendingEmailVerification;
  */
 final class SendEmailVerificationAction
 {
+    use InteractsWithMappedPayload;
+
     /**
      * Create a new instance.
      *
@@ -49,12 +54,14 @@ final class SendEmailVerificationAction
     /**
      * Resend the email verification message.
      *
-     * @param string $email
+     * @param array<string, mixed> $input
      * @return AuthKitActionResult
      */
-    public function handle(string $email): AuthKitActionResult
+    public function handle(array $input): AuthKitActionResult
     {
-        $email = mb_strtolower(trim($email));
+        $attributes = $this->payloadAttributes($input);
+
+        $email = mb_strtolower(trim((string) ($attributes['email'] ?? '')));
 
         if ($email === '') {
             return AuthKitActionResult::failure(
@@ -81,7 +88,10 @@ final class SendEmailVerificationAction
                     status: 403,
                     flow: AuthKitFlowStep::failed(),
                     errors: [
-                        AuthKitError::make('invalid_email_verification_context', 'Invalid email verification context.'),
+                        AuthKitError::make(
+                            'invalid_email_verification_context',
+                            'Invalid email verification context.'
+                        ),
                     ],
                     redirect: $this->noticeRedirect($email)
                 );
@@ -96,11 +106,25 @@ final class SendEmailVerificationAction
                 status: 404,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::make('email_verification_user_not_found', 'We could not find a user with that email address.'),
+                    AuthKitError::make(
+                        'email_verification_user_not_found',
+                        'We could not find a user with that email address.'
+                    ),
                 ],
                 redirect: $this->noticeRedirect($email)
             );
         }
+
+        /**
+         * Intentionally persistence-aware.
+         *
+         * The packaged resend-email-verification mapper does not persist fields
+         * by default. This call keeps the action forward-compatible so consumer
+         * mapper extensions can mark additional resend attributes as persistable
+         * and have them written automatically when the resolved user model
+         * supports AuthKit mapped persistence.
+         */
+        $this->persistMappedAttributesIfSupported($user, 'email_verification_send', $input);
 
         if ($this->userHasVerifiedEmail($user)) {
             return AuthKitActionResult::success(
@@ -129,7 +153,10 @@ final class SendEmailVerificationAction
                 status: 500,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::make('email_verification_token_creation_failed', 'Unable to create verification token.'),
+                    AuthKitError::make(
+                        'email_verification_token_creation_failed',
+                        'Unable to create verification token.'
+                    ),
                 ],
                 redirect: $this->noticeRedirect($email)
             );
@@ -194,7 +221,8 @@ final class SendEmailVerificationAction
             return (bool) $user->hasVerifiedEmail();
         }
 
-        $verifiedAt = $user->email_verified_at ?? null;
+        $verifiedAtColumn = (string) config('authkit.email_verification.columns.verified_at', 'email_verified_at');
+        $verifiedAt = $user->{$verifiedAtColumn} ?? null;
 
         return $verifiedAt !== null && $verifiedAt !== '';
     }

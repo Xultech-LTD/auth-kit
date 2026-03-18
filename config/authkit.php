@@ -593,6 +593,111 @@ return [
         ],
     ],
 
+        /**
+     * Payload mapper configuration.
+     *
+     * AuthKit payload mappers translate validated request input into the
+     * normalized payload structure consumed by package actions.
+     *
+     * How it works:
+     * - Each mapper context maps to a schema context.
+     * - If no custom mapper class is configured, AuthKit uses its internal default mapper.
+     * - If a custom mapper class is configured, AuthKit resolves it via the container.
+     *
+     * Notes:
+     * - Mapper keys intentionally mirror AuthKit's schema and validation contexts.
+     * - Custom mapper classes must implement the AuthKit payload mapper contract.
+     * - Mappers work with validated data and schema field keys.
+     */
+    'mappers' => [
+
+        /**
+         * Mapper definitions keyed by action/form context.
+         *
+         * Supported values:
+         * - class  : custom mapper class-string or null to use package default
+         * - schema : schema context key used by the mapper
+         */
+        'contexts' => [
+            'login' => [
+                'class' => null,
+                'schema' => 'login',
+            ],
+            'register' => [
+                'class' => null,
+                'schema' => 'register',
+            ],
+            'two_factor_challenge' => [
+                'class' => null,
+                'schema' => 'two_factor_challenge',
+            ],
+            'two_factor_recovery' => [
+                'class' => null,
+                'schema' => 'two_factor_recovery',
+            ],
+            'two_factor_resend' => [
+                'class' => null,
+                'schema' => 'two_factor_resend',
+            ],
+            'email_verification_token' => [
+                'class' => null,
+                'schema' => 'email_verification_token',
+            ],
+            'email_verification_send' => [
+                'class' => null,
+                'schema' => 'email_verification_send',
+            ],
+            'password_forgot' => [
+                'class' => null,
+                'schema' => 'password_forgot',
+            ],
+            'password_reset' => [
+                'class' => null,
+                'schema' => 'password_reset',
+            ],
+            'password_reset_token' => [
+                'class' => null,
+                'schema' => 'password_reset_token',
+            ],
+            'confirm_password' => [
+                'class' => null,
+                'schema' => 'confirm_password',
+            ],
+            'confirm_two_factor' => [
+                'class' => null,
+                'schema' => 'confirm_two_factor',
+            ],
+            'password_update' => [
+                'class' => null,
+                'schema' => 'password_update',
+            ],
+            'two_factor_enable' => [
+                'class' => null,
+                'schema' => null,
+            ],
+            'two_factor_confirm' => [
+                'class' => null,
+                'schema' => 'two_factor_confirm',
+            ],
+            'two_factor_disable' => [
+                'class' => null,
+                'schema' => 'two_factor_disable',
+            ],
+            'two_factor_disable_recovery' => [
+                'class' => null,
+                'schema' => 'two_factor_disable_recovery',
+            ],
+            'two_factor_recovery_regenerate' => [
+                'class' => null,
+                'schema' => 'two_factor_recovery_regenerate',
+            ],
+            'sessions_logout_other' => [
+                'class' => null,
+                'schema' => null,
+            ],
+        ],
+    ],
+
     /**
      * Form schema configuration.
      *

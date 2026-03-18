@@ -7,6 +7,7 @@ use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Session\Session;
 use Throwable;
+use Xul\AuthKit\Concerns\Actions\InteractsWithMappedPayload;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitFlowStep;
@@ -24,31 +25,29 @@ use Xul\AuthKit\Support\TwoFactor\TwoFactorManager;
  * Completes a pending login challenge by verifying a submitted two-factor code
  * and establishing the authenticated session for the configured guard.
  *
- * Strategy:
- * - When authkit.two_factor.challenge_strategy = 'peek':
- *   - Challenge is checked without consuming, and invalidated only after success.
- * - When authkit.two_factor.challenge_strategy = 'consume':
- *   - Challenge is consumed immediately, and invalid codes require a new login attempt.
+ * Responsibilities:
+ * - Resolve the configured auth guard and provider.
+ * - Consume normalized mapped challenge payload data.
+ * - Resolve the pending login challenge using the configured challenge strategy.
+ * - Verify the submitted authentication code using the active two-factor driver.
+ * - Persist mapper-approved attributes when the resolved user model supports it.
+ * - Log the user in after successful verification.
+ * - Clear pending two-factor challenge session state when appropriate.
+ * - Dispatch standardized AuthKit login-related events.
+ * - Return a standardized AuthKitActionResult for all outcomes.
  *
- * Session handling:
- * - On success: forgets AuthKitSessionKeys::TWO_FACTOR_CHALLENGE.
- * - On invalid code:
- *   - consume strategy: forgets AuthKitSessionKeys::TWO_FACTOR_CHALLENGE.
- *   - peek strategy: keeps AuthKitSessionKeys::TWO_FACTOR_CHALLENGE.
- * - On expired or invalid challenge: forgets AuthKitSessionKeys::TWO_FACTOR_CHALLENGE.
+ * Expected normalized payload shape:
+ * - attributes.challenge
+ * - attributes.code
  *
- * Events:
- * - AuthKitTwoFactorLoggedIn is dispatched on successful two-factor completion.
- * - AuthKitLoggedIn is dispatched after the session is established.
- *
- * Design notes:
- * - This action returns a standardized AuthKitActionResult for all outcomes.
- * - Public payload contains safe client-visible metadata only.
- * - Session coordination remains in this action because challenge lifecycle is
- *   part of the application flow contract for this operation.
+ * Notes:
+ * - This action is for login-time two-factor completion.
+ * - This is distinct from authenticated step-up confirmation flows.
  */
 final class TwoFactorChallengeAction
 {
+    use InteractsWithMappedPayload;
+
     /**
      * Create a new instance.
      *
@@ -100,8 +99,10 @@ final class TwoFactorChallengeAction
             );
         }
 
-        $challenge = (string) ($data['challenge'] ?? '');
-        $code = (string) ($data['code'] ?? '');
+        $attributes = $this->payloadAttributes($data);
+
+        $challenge = (string) ($attributes['challenge'] ?? '');
+        $code = (string) ($attributes['code'] ?? '');
 
         if (trim($challenge) === '' || trim($code) === '') {
             return AuthKitActionResult::failure(
@@ -129,7 +130,10 @@ final class TwoFactorChallengeAction
                 status: 410,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::make('invalid_or_expired_two_factor_challenge', 'Expired or invalid two-factor challenge.'),
+                    AuthKitError::make(
+                        'invalid_or_expired_two_factor_challenge',
+                        'Expired or invalid two-factor challenge.'
+                    ),
                 ],
             );
         }
@@ -148,7 +152,10 @@ final class TwoFactorChallengeAction
                 status: 500,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::make('invalid_two_factor_challenge_payload', 'Two-factor challenge payload is invalid.'),
+                    AuthKitError::make(
+                        'invalid_two_factor_challenge_payload',
+                        'Two-factor challenge payload is invalid.'
+                    ),
                 ],
             );
         }
@@ -234,6 +241,7 @@ final class TwoFactorChallengeAction
         }
 
         $remember = (bool) data_get($payload, 'remember', false);
+
         $methods = array_values(array_filter(
             (array) data_get($payload, 'methods', []),
             static fn ($value): bool => is_string($value) && $value !== ''
@@ -242,6 +250,15 @@ final class TwoFactorChallengeAction
         if ($strategy !== 'consume') {
             $this->pending->forget($challenge);
         }
+
+        /**
+         * Intentionally persistence-aware.
+         *
+         * Two-factor challenge fields are non-persistable by default, but this call
+         * ensures the action automatically respects consumer mapper extensions that
+         * mark one or more challenge attributes as persistable.
+         */
+        $this->persistMappedAttributesIfSupported($user, 'two_factor_challenge', $data);
 
         $this->session->forget(AuthKitSessionKeys::TWO_FACTOR_CHALLENGE);
 
@@ -261,13 +278,11 @@ final class TwoFactorChallengeAction
             remember: $remember
         ));
 
-        $redirect = $this->resolveSuccessRedirect();
-
         return AuthKitActionResult::success(
             message: 'Two-factor verified.',
             status: 200,
             flow: AuthKitFlowStep::completed(),
-            redirect: $redirect,
+            redirect: $this->resolveSuccessRedirect(),
             payload: AuthKitPublicPayload::make([
                 'user_id' => (string) $user->getAuthIdentifier(),
                 'remember' => $remember,

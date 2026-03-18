@@ -11,6 +11,7 @@ use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\Auth\TwoFactorResendRequest;
 use Xul\AuthKit\Support\AuthKitSessionKeys;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
 /**
@@ -20,6 +21,7 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Responsibilities:
  * - Validate the incoming request through TwoFactorResendRequest.
+ * - Build the normalized mapped payload for the resend context.
  * - Delegate resend orchestration to TwoFactorResendAction.
  * - Return JSON responses for API or AJAX consumers.
  * - Return redirect responses with flash messages for standard web consumers.
@@ -41,7 +43,9 @@ final class TwoFactorResendController
         TwoFactorResendRequest $request,
         TwoFactorResendAction $action
     ): JsonResponse|RedirectResponse {
-        $result = $action->handle($request->validated());
+        $payload = MappedPayloadBuilder::build('two_factor_resend', $request->validated());
+
+        $result = $action->handle($payload);
 
         if (ResponseResolver::expectsJson($request)) {
             return $this->ok($result->toArray(), $result->status);

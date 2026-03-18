@@ -3,6 +3,7 @@
 namespace Xul\AuthKit\Actions\PasswordReset;
 
 use Illuminate\Support\Facades\Event;
+use Xul\AuthKit\Concerns\Actions\InteractsWithMappedPayload;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetPolicyContract;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetUrlGeneratorContract;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetUserResolverContract;
@@ -23,6 +24,8 @@ use Xul\AuthKit\Support\PendingPasswordReset;
  * - Support privacy mode that does not reveal whether a user exists.
  * - Generate reset tokens using PendingPasswordReset as the source of truth.
  * - Dispatch AuthKitPasswordResetRequested only when a real user exists.
+ * - Persist mapper-approved attributes when the resolved model supports
+ *   AuthKit mapped persistence.
  * - Return a standardized AuthKitActionResult for all outcomes.
  *
  * Token lifecycle:
@@ -32,6 +35,8 @@ use Xul\AuthKit\Support\PendingPasswordReset;
  */
 final class RequestPasswordResetAction
 {
+    use InteractsWithMappedPayload;
+
     /**
      * Create a new instance.
      *
@@ -50,12 +55,14 @@ final class RequestPasswordResetAction
     /**
      * Execute the password reset request flow.
      *
-     * @param string $email
+     * @param array<string, mixed> $input
      * @return AuthKitActionResult
      */
-    public function handle(string $email): AuthKitActionResult
+    public function handle(array $input): AuthKitActionResult
     {
-        $email = mb_strtolower(trim($email));
+        $attributes = $this->payloadAttributes($input);
+
+        $email = mb_strtolower(trim((string) ($attributes['email'] ?? '')));
 
         $driver = (string) config('authkit.password_reset.driver', 'link');
         $ttlMinutes = (int) config('authkit.password_reset.ttl_minutes', 30);
@@ -89,7 +96,10 @@ final class RequestPasswordResetAction
                     status: 403,
                     flow: AuthKitFlowStep::failed(),
                     errors: [
-                        AuthKitError::make('password_reset_not_available', 'Password reset is not available for this account.'),
+                        AuthKitError::make(
+                            'password_reset_not_available',
+                            'Password reset is not available for this account.'
+                        ),
                     ],
                     redirect: $this->forgotRedirect()
                 );
@@ -105,11 +115,24 @@ final class RequestPasswordResetAction
                     status: 404,
                     flow: AuthKitFlowStep::failed(),
                     errors: [
-                        AuthKitError::make('password_reset_user_not_found', 'We could not find an account with that email address.'),
+                        AuthKitError::make(
+                            'password_reset_user_not_found',
+                            'We could not find an account with that email address.'
+                        ),
                     ],
                     redirect: $this->forgotRedirect()
                 );
         }
+
+        /**
+         * Intentionally persistence-aware.
+         *
+         * Forgot-password does not persist fields by default because the packaged
+         * mapper marks the default field set as non-persistable. This call keeps
+         * the action forward-compatible so a consumer may extend the mapper and
+         * persist additional mapped attributes onto the resolved user model.
+         */
+        $this->persistMappedAttributesIfSupported($user, 'password_forgot', $input);
 
         $token = $this->pending->createForEmail(
             email: $email,

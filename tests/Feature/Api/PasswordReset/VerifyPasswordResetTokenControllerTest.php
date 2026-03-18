@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Xul\AuthKit\Actions\PasswordReset\VerifyPasswordResetTokenAction;
+use Xul\AuthKit\Concerns\Model\HasAuthKitMappedPersistence;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetPolicyContract;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetUserResolverContract;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordUpdaterContract;
@@ -18,24 +19,24 @@ use Xul\AuthKit\Contracts\TokenRepositoryContract;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Controllers\Api\PasswordReset\VerifyPasswordResetTokenController;
 use Xul\AuthKit\Support\CacheTokenRepository;
+use Xul\AuthKit\Support\Mappers\AbstractPayloadMapper;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\PendingPasswordReset;
 
 uses(RefreshDatabase::class);
 
 final class VerifyPasswordResetTokenTestUser extends BaseUser
 {
-    /**
-     * @var string
-     */
+    use HasAuthKitMappedPersistence;
+
     protected $table = 'users';
 
-    /**
-     * @var array<int, string>
-     */
     protected $fillable = [
         'email',
         'password',
         'remember_token',
+        'last_verified_reset_email',
+        'last_verified_reset_token',
     ];
 }
 
@@ -54,6 +55,8 @@ beforeEach(function () {
         $table->string('email')->unique();
         $table->string('password');
         $table->string('remember_token')->nullable();
+        $table->string('last_verified_reset_email')->nullable();
+        $table->string('last_verified_reset_token')->nullable();
         $table->timestamps();
     });
 
@@ -261,7 +264,14 @@ it('returns a standardized action result for valid token reset flow', function (
     /** @var VerifyPasswordResetTokenAction $action */
     $action = app(VerifyPasswordResetTokenAction::class);
 
-    $result = $action->handle('michael@example.com', $token, 'new-password-123');
+    $result = $action->handle(
+        MappedPayloadBuilder::build('password_reset_token', [
+            'email' => 'michael@example.com',
+            'token' => $token,
+            'password' => 'new-password-123',
+            'password_confirmation' => 'new-password-123',
+        ])
+    );
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
         ->and($result->ok)->toBeTrue()
@@ -273,6 +283,42 @@ it('returns a standardized action result for valid token reset flow', function (
     $user->refresh();
 
     expect(Hash::check('new-password-123', (string) $user->password))->toBeTrue();
+});
+
+it('persists mapper-approved verify-token attributes when the model supports mapped persistence', function () {
+    config()->set('authkit.mappers.contexts.password_reset_token.class', PersistingVerifyPasswordResetTokenMapper::class);
+
+    $user = VerifyPasswordResetTokenTestUser::query()->create([
+        'email' => 'michael@example.com',
+        'password' => Hash::make('old-password'),
+    ]);
+
+    $pending = app(PendingPasswordReset::class);
+
+    $token = $pending->createForEmail(
+        email: 'michael@example.com',
+        ttlMinutes: 5
+    );
+
+    /** @var VerifyPasswordResetTokenAction $action */
+    $action = app(VerifyPasswordResetTokenAction::class);
+
+    $result = $action->handle(
+        MappedPayloadBuilder::build('password_reset_token', [
+            'email' => '  MICHAEL@EXAMPLE.COM  ',
+            'token' => '  ' . $token . '  ',
+            'password' => 'new-password-123',
+            'password_confirmation' => 'new-password-123',
+        ])
+    );
+
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeTrue();
+
+    $user->refresh();
+
+    expect($user->last_verified_reset_email)->toBe('michael@example.com')
+        ->and($user->last_verified_reset_token)->toBe($token);
 });
 
 it('returns standardized DTO validation response for JSON verify password reset token requests', function () {
@@ -339,3 +385,45 @@ it('normalizes email before validation for JSON verify password reset token requ
     expect(collect($response->json('errors'))->pluck('field')->all())
         ->toContain('email', 'token', 'password', 'password_confirmation');
 });
+
+/**
+ * PersistingVerifyPasswordResetTokenMapper
+ *
+ * Test-only mapper that preserves the packaged defaults while adding
+ * persistable mapped targets sourced from the same validated input.
+ */
+final class PersistingVerifyPasswordResetTokenMapper extends AbstractPayloadMapper
+{
+    public function context(): string
+    {
+        return 'password_reset_token';
+    }
+
+    public function mode(): string
+    {
+        return self::MODE_MERGE;
+    }
+
+    public function definitions(): array
+    {
+        return [
+            'email_persist' => [
+                'source' => 'email',
+                'target' => 'last_verified_reset_email',
+                'bucket' => 'attributes',
+                'include' => true,
+                'persist' => true,
+                'transform' => 'lower_trim',
+            ],
+
+            'token_persist' => [
+                'source' => 'token',
+                'target' => 'last_verified_reset_token',
+                'bucket' => 'attributes',
+                'include' => true,
+                'persist' => true,
+                'transform' => 'trim',
+            ],
+        ];
+    }
+}

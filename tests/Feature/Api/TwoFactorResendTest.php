@@ -1,4 +1,5 @@
 <?php
+// file: tests/Feature/Api/TwoFactorResendTest.php
 
 namespace Xul\AuthKit\Tests\Feature\Api;
 
@@ -18,7 +19,10 @@ use Xul\AuthKit\Contracts\TwoFactorResendableContract;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Events\AuthKitTwoFactorResent;
 use Xul\AuthKit\Http\Controllers\Api\Auth\TwoFactorResendController;
+use Xul\AuthKit\Concerns\Model\HasAuthKitMappedPersistence;
 use Xul\AuthKit\Support\AuthKitSessionKeys;
+use Xul\AuthKit\Support\Mappers\AbstractPayloadMapper;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\PendingLogin;
 use Xul\AuthKit\Tests\Support\ArrayTokenRepository;
 
@@ -42,6 +46,7 @@ beforeEach(function () {
         $table->text('two_factor_secret')->nullable();
         $table->json('two_factor_recovery_codes')->nullable();
         $table->json('two_factor_methods')->nullable();
+        $table->string('last_resend_email')->nullable();
         $table->timestamps();
     });
 
@@ -53,7 +58,7 @@ beforeEach(function () {
 
     Config::set('auth.providers.users', [
         'driver' => 'eloquent',
-        'model' => TestUser::class,
+        'model' => TwoFactorResendTestUser::class,
     ]);
 
     Config::set('authkit.auth.guard', 'web');
@@ -178,15 +183,53 @@ it('returns a standardized action result for supported resend flow', function ()
 
     $action = app(\Xul\AuthKit\Actions\Auth\TwoFactorResendAction::class);
 
-    $result = $action->handle([
-        'email' => $user->email,
-    ]);
+    $result = $action->handle(
+        MappedPayloadBuilder::build('two_factor_resend', [
+            'email' => $user->email,
+        ])
+    );
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
         ->and($result->ok)->toBeTrue()
         ->and($result->status)->toBe(200)
         ->and($result->flow?->is('two_factor_required'))->toBeTrue()
         ->and($result->payload?->get('driver'))->toBe('fake_resend');
+});
+
+it('persists mapper-approved resend attributes when the model supports mapped persistence', function () {
+    Event::fake();
+
+    config()->set('authkit.two_factor.driver', 'fake_resend');
+    config()->set('authkit.two_factor.drivers.fake_resend', FakeResendTwoFactorDriver::class);
+    config()->set('authkit.two_factor.methods', ['fake']);
+    config()->set('authkit.mappers.contexts.two_factor_resend.class', PersistingTwoFactorResendMapper::class);
+
+    $user = createTwoFactorEnabledUser();
+
+    $pending = app(PendingLogin::class);
+
+    $challenge = $pending->create(
+        userId: (string) $user->getAuthIdentifier(),
+        remember: true,
+        ttlMinutes: 5,
+        methods: ['fake']
+    );
+
+    session()->put(AuthKitSessionKeys::TWO_FACTOR_CHALLENGE, $challenge);
+
+    $action = app(\Xul\AuthKit\Actions\Auth\TwoFactorResendAction::class);
+
+    $result = $action->handle(
+        MappedPayloadBuilder::build('two_factor_resend', [
+            'email' => '  ' . strtoupper($user->email) . '  ',
+        ])
+    );
+
+    expect($result->ok)->toBeTrue();
+
+    $user->refresh();
+
+    expect($user->last_resend_email)->toBe(mb_strtolower($user->email));
 });
 
 it('returns standardized DTO validation response for JSON two-factor resend requests', function () {
@@ -254,14 +297,14 @@ it('redirects to login when resend is requested without a pending challenge for 
 /**
  * Create a minimal user record with two-factor enabled.
  *
- * @return TestUser
+ * @return TwoFactorResendTestUser
  */
-function createTwoFactorEnabledUser(): TestUser
+function createTwoFactorEnabledUser(): TwoFactorResendTestUser
 {
     $enabledColumn = (string) config('authkit.two_factor.columns.enabled', 'two_factor_enabled');
 
-    /** @var TestUser $user */
-    $user = TestUser::query()->create([
+    /** @var TwoFactorResendTestUser $user */
+    $user = TwoFactorResendTestUser::query()->create([
         'name' => 'Test User',
         'email' => 'user' . uniqid() . '@example.com',
         'password' => Hash::make('password'),
@@ -272,12 +315,14 @@ function createTwoFactorEnabledUser(): TestUser
 }
 
 /**
- * TestUser
+ * TwoFactorResendTestUser
  *
  * Minimal user model for this test file.
  */
-final class TestUser extends BaseUser
+final class TwoFactorResendTestUser extends BaseUser
 {
+    use HasAuthKitMappedPersistence;
+
     /**
      * @var string
      */
@@ -403,5 +448,37 @@ final class FakeResendTwoFactorDriver implements TwoFactorDriverContract, TwoFac
         }
 
         return $codes;
+    }
+}
+
+/**
+ * PersistingTwoFactorResendMapper
+ *
+ * Test-only mapper that marks resend flow attributes as persistable.
+ */
+final class PersistingTwoFactorResendMapper extends AbstractPayloadMapper
+{
+    public function context(): string
+    {
+        return 'two_factor_resend';
+    }
+
+    public function mode(): string
+    {
+        return self::MODE_MERGE;
+    }
+
+    public function definitions(): array
+    {
+        return [
+            'email_persist' => [
+                'source' => 'email',
+                'target' => 'last_resend_email',
+                'bucket' => 'attributes',
+                'include' => true,
+                'persist' => true,
+                'transform' => 'lower_trim',
+            ],
+        ];
     }
 }

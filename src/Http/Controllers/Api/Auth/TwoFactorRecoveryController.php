@@ -10,6 +10,7 @@ use Xul\AuthKit\Concerns\Http\ApiRespondsJson;
 use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\Auth\TwoFactorRecoveryRequest;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
 /**
@@ -19,6 +20,7 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Responsibilities:
  * - Validate the incoming request through TwoFactorRecoveryRequest.
+ * - Build the normalized mapped payload for the recovery context.
  * - Delegate recovery-code authentication flow to TwoFactorRecoveryAction.
  * - Return JSON responses for API or AJAX consumers.
  * - Return redirect responses with flash messages for standard web consumers.
@@ -45,13 +47,17 @@ final class TwoFactorRecoveryController
         TwoFactorRecoveryRequest $request,
         TwoFactorRecoveryAction $action
     ): JsonResponse|RedirectResponse {
-        $result = $action->handle($request->validated());
+        $payload = MappedPayloadBuilder::build('two_factor_recovery', $request->validated());
+
+        $result = $action->handle($payload);
 
         if (ResponseResolver::expectsJson($request)) {
             return $this->ok($result->toArray(), $result->status);
         }
 
-        return $this->toWebResponse($result, (string) $request->input('challenge', ''));
+        $challenge = (string) data_get($payload, 'attributes.challenge', '');
+
+        return $this->toWebResponse($result, $challenge);
     }
 
     /**

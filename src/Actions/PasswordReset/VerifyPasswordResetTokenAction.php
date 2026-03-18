@@ -6,6 +6,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Support\Facades\RateLimiter;
 use Psr\SimpleCache\InvalidArgumentException;
+use Xul\AuthKit\Concerns\Actions\InteractsWithMappedPayload;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetPolicyContract;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetUserResolverContract;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordUpdaterContract;
@@ -24,15 +25,20 @@ use Xul\AuthKit\Support\PendingPasswordReset;
  * the password reset in the same request for token-driver flows.
  *
  * Behavior:
+ * - Reads normalized input from the mapped attributes bucket.
  * - Requires a pending reset context to exist.
  * - Validates and consumes the reset token.
  * - Resolves the target user and updates the password.
+ * - Persists mapper-approved mapped attributes when the resolved user model
+ *   supports AuthKit mapped persistence.
  * - Applies throttling to reduce brute-force attempts against short reset codes.
  * - Optionally logs the user in after successful reset.
  * - Returns a standardized AuthKitActionResult for all outcomes.
  */
 final class VerifyPasswordResetTokenAction
 {
+    use InteractsWithMappedPayload;
+
     /**
      * Create a new instance.
      *
@@ -53,17 +59,17 @@ final class VerifyPasswordResetTokenAction
     /**
      * Execute the token verification and reset flow.
      *
-     * @param string $email
-     * @param string $token
-     * @param string $password
+     * @param array<string, mixed> $input
      * @return AuthKitActionResult
      * @throws InvalidArgumentException
      */
-    public function handle(string $email, string $token, string $password): AuthKitActionResult
+    public function handle(array $input): AuthKitActionResult
     {
-        $emailKey = mb_strtolower(trim($email));
-        $tokenKey = trim($token);
-        $password = (string) $password;
+        $attributes = $this->payloadAttributes($input);
+
+        $emailKey = mb_strtolower(trim((string) ($attributes['email'] ?? '')));
+        $tokenKey = trim((string) ($attributes['token'] ?? ''));
+        $password = (string) ($attributes['password'] ?? '');
 
         if ($emailKey === '' || $tokenKey === '' || $password === '') {
             return AuthKitActionResult::failure(
@@ -164,6 +170,16 @@ final class VerifyPasswordResetTokenAction
                 redirect: $this->tokenPageRedirect($emailKey)
             );
         }
+
+        /**
+         * Intentionally persistence-aware.
+         *
+         * The packaged password-reset-token mapper marks all default fields as
+         * non-persistable. This keeps the action forward-compatible so consumers
+         * may extend the mapper and persist additional mapped attributes onto
+         * the resolved user model before the password updater runs.
+         */
+        $this->persistMappedAttributesIfSupported($user, 'password_reset_token', $input);
 
         $refreshRememberToken = (bool) data_get(
             config('authkit.password_reset.password_updater', []),

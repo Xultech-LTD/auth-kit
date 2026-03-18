@@ -11,6 +11,7 @@ use Illuminate\Contracts\Session\Session;
 use Illuminate\Support\Facades\Event;
 use Psr\SimpleCache\InvalidArgumentException;
 use RuntimeException;
+use Xul\AuthKit\Concerns\Actions\InteractsWithMappedPayload;
 use Xul\AuthKit\Contracts\TwoFactorResendableContract;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
@@ -29,16 +30,22 @@ use Xul\AuthKit\Support\TwoFactor\TwoFactorManager;
  * when the active driver supports resending.
  *
  * Responsibilities:
- * - Validate resend input context.
+ * - Consume normalized mapped resend payload data.
  * - Resolve the current pending challenge from session.
  * - Resolve the pending user from the configured guard provider.
  * - Validate that the provided identity matches the pending login user.
+ * - Persist mapper-approved attributes when the resolved user model supports it.
  * - Delegate resend work to drivers that support TwoFactorResendableContract.
  * - Dispatch AuthKitTwoFactorResent on successful resend.
  * - Return a standardized AuthKitActionResult for all outcomes.
+ *
+ * Expected normalized payload shape:
+ * - attributes.email
  */
 final class TwoFactorResendAction
 {
+    use InteractsWithMappedPayload;
+
     /**
      * Create a new instance.
      *
@@ -64,7 +71,9 @@ final class TwoFactorResendAction
      */
     public function handle(array $input): AuthKitActionResult
     {
-        $email = (string) ($input['email'] ?? '');
+        $attributes = $this->payloadAttributes($input);
+
+        $email = (string) ($attributes['email'] ?? '');
 
         if (trim($email) === '') {
             return AuthKitActionResult::failure(
@@ -101,7 +110,10 @@ final class TwoFactorResendAction
                 status: 410,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::make('invalid_or_expired_two_factor_challenge', 'Expired or invalid two-factor challenge.'),
+                    AuthKitError::make(
+                        'invalid_or_expired_two_factor_challenge',
+                        'Expired or invalid two-factor challenge.'
+                    ),
                 ],
                 redirect: $this->loginRedirect()
             );
@@ -123,6 +135,14 @@ final class TwoFactorResendAction
                 redirect: $this->loginRedirect()
             );
         }
+
+        /**
+         * Intentionally persistence-aware.
+         *
+         * Resend fields are non-persistable by default, but this call ensures
+         * consumer-defined persistable resend mappings are respected automatically.
+         */
+        $this->persistMappedAttributesIfSupported($user, 'two_factor_resend', $input);
 
         $identityField = (string) data_get(config('authkit.identity.login', []), 'field', 'email');
         $userEmail = (string) data_get($user, $identityField, '');
@@ -150,7 +170,10 @@ final class TwoFactorResendAction
                 status: 409,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::make('two_factor_not_enabled', 'Two-factor authentication is not enabled for this account.'),
+                    AuthKitError::make(
+                        'two_factor_not_enabled',
+                        'Two-factor authentication is not enabled for this account.'
+                    ),
                 ],
                 redirect: $this->twoFactorRedirect(),
                 payload: AuthKitPublicPayload::make([
@@ -165,7 +188,10 @@ final class TwoFactorResendAction
                 status: 409,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::make('two_factor_resend_not_supported', 'Two-factor resend is not supported for the active driver.'),
+                    AuthKitError::make(
+                        'two_factor_resend_not_supported',
+                        'Two-factor resend is not supported for the active driver.'
+                    ),
                 ],
                 redirect: $this->twoFactorRedirect(),
                 payload: AuthKitPublicPayload::make([
@@ -189,7 +215,10 @@ final class TwoFactorResendAction
                 status: $status,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::make('two_factor_resend_failed', (string) ($result['message'] ?? 'Resend failed.')),
+                    AuthKitError::make(
+                        'two_factor_resend_failed',
+                        (string) ($result['message'] ?? 'Resend failed.')
+                    ),
                 ],
                 redirect: $this->twoFactorRedirect(),
                 payload: AuthKitPublicPayload::make([

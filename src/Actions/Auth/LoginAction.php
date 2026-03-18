@@ -7,6 +7,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Support\Facades\URL;
+use Xul\AuthKit\Concerns\Actions\InteractsWithMappedPayload;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitFlowStep;
@@ -27,6 +28,7 @@ use Xul\AuthKit\Support\TwoFactor\TwoFactorManager;
  *
  * Responsibilities:
  * - Resolve the configured guard and provider.
+ * - Consume normalized mapped login payload data.
  * - Validate incoming credentials against the configured provider.
  * - Require email verification when configured and the user is unverified.
  * - Require two-factor authentication when enabled for the user.
@@ -42,6 +44,8 @@ use Xul\AuthKit\Support\TwoFactor\TwoFactorManager;
  */
 final class LoginAction
 {
+    use InteractsWithMappedPayload;
+
     /**
      * Create a new instance.
      *
@@ -93,11 +97,14 @@ final class LoginAction
             );
         }
 
+        $attributes = $this->payloadAttributes($data);
+        $options = $this->payloadOptions($data);
+
         $identityField = (string) data_get(config('authkit.identity.login', []), 'field', 'email');
 
-        $identity = (string) ($data[$identityField] ?? '');
-        $password = (string) ($data['password'] ?? '');
-        $remember = (bool) ($data['remember'] ?? false);
+        $identity = (string) ($attributes[$identityField] ?? '');
+        $password = (string) ($attributes['password'] ?? '');
+        $remember = (bool) ($options['remember'] ?? false);
 
         if (trim($identity) === '' || $password === '') {
             return AuthKitActionResult::failure(
@@ -126,6 +133,16 @@ final class LoginAction
                 ],
             );
         }
+
+        /**
+         * Intentionally persistence-aware.
+         *
+         * Login does not persist fields by default because the packaged mapper
+         * marks all login fields as non-persistable. This call remains here so
+         * the action continues to work correctly if a consumer extends the mapper
+         * and marks additional login attributes as persistable.
+         */
+        $this->persistMappedAttributesIfSupported($user, 'login', $data);
 
         if ($this->shouldRequireEmailVerification($user)) {
             return $this->emailVerificationRequiredResult($user, $identityField, $identity);
@@ -324,15 +341,6 @@ final class LoginAction
     /**
      * Determine whether the user must complete email verification before login.
      *
-     * Behavior:
-     * - Returns false when email verification is disabled in configuration.
-     * - If the user implements MustVerifyEmail, defers to hasVerifiedEmail().
-     * - Otherwise falls back to checking the configured verification timestamp column.
-     *
-     * Fallback column logic:
-     * - The column defaults to "email_verified_at".
-     * - A null or empty value means the user is not verified.
-     *
      * @param object $user
      * @return bool
      */
@@ -347,7 +355,6 @@ final class LoginAction
         }
 
         $column = (string) config('authkit.email_verification.columns.verified_at', 'email_verified_at');
-
         $verifiedAt = $user->{$column} ?? null;
 
         return $verifiedAt === null || $verifiedAt === '';
@@ -355,12 +362,6 @@ final class LoginAction
 
     /**
      * Resolve the email address associated with the authenticated identity.
-     *
-     * Resolution order:
-     * - Prefer the identity field on the user model.
-     * - Fall back to the raw identity value used during login.
-     *
-     * The returned value is normalized to lowercase and trimmed.
      *
      * @param object $user
      * @param string $identityField
@@ -378,13 +379,6 @@ final class LoginAction
 
     /**
      * Build the signed verification URL for the link driver.
-     *
-     * Route parameters:
-     * - id: user identifier
-     * - hash: raw verification token
-     * - email: verification email context
-     *
-     * The URL is temporary and expires according to the configured TTL.
      *
      * @param object $user
      * @param string $email

@@ -9,6 +9,7 @@ use Xul\AuthKit\Concerns\Http\ApiRespondsJson;
 use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\PasswordReset\VerifyPasswordResetTokenRequest;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
 /**
@@ -19,6 +20,7 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Responsibilities:
  * - Validate the incoming request through VerifyPasswordResetTokenRequest.
+ * - Build the normalized mapped payload for the password-reset-token context.
  * - Delegate token verification and password reset orchestration to VerifyPasswordResetTokenAction.
  * - Return JSON responses for API or AJAX consumers.
  * - Return redirect responses with flash messages for standard web consumers.
@@ -40,15 +42,15 @@ final class VerifyPasswordResetTokenController
         VerifyPasswordResetTokenRequest $request,
         VerifyPasswordResetTokenAction $action
     ): JsonResponse|RedirectResponse {
-        $email = (string) data_get($request->validated(), 'email', '');
-        $token = (string) data_get($request->validated(), 'token', '');
-        $password = (string) data_get($request->validated(), 'password', '');
+        $payload = MappedPayloadBuilder::build('password_reset_token', $request->validated());
 
-        $result = $action->handle($email, $token, $password);
+        $result = $action->handle($payload);
 
         if (ResponseResolver::expectsJson($request)) {
             return $this->ok($result->toArray(), $result->status);
         }
+
+        $email = (string) data_get($payload, 'attributes.email', '');
 
         return $this->toWebResponse($result, $email);
     }

@@ -9,6 +9,7 @@ use Xul\AuthKit\Concerns\Http\ApiRespondsJson;
 use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\PasswordReset\ResetPasswordRequest;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
 /**
@@ -18,6 +19,7 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Responsibilities:
  * - Validate the incoming request through ResetPasswordRequest.
+ * - Build the normalized mapped payload for the reset-password context.
  * - Delegate reset orchestration to ResetPasswordAction.
  * - Return JSON responses for API or AJAX consumers.
  * - Return redirect responses with flash messages for standard web consumers.
@@ -38,19 +40,16 @@ final class ResetPasswordController
         ResetPasswordRequest $request,
         ResetPasswordAction $action
     ): JsonResponse|RedirectResponse {
-        $email = (string) data_get($request->validated(), 'email', '');
-        $token = (string) data_get($request->validated(), 'token', '');
-        $password = (string) data_get($request->validated(), 'password', '');
+        $payload = MappedPayloadBuilder::build('password_reset', $request->validated());
 
-        $result = $action->handle(
-            email: $email,
-            token: $token,
-            newPasswordRaw: $password
-        );
+        $result = $action->handle($payload);
 
         if (ResponseResolver::expectsJson($request)) {
             return $this->ok($result->toArray(), $result->status);
         }
+
+        $email = (string) data_get($payload, 'attributes.email', '');
+        $token = (string) data_get($payload, 'attributes.token', '');
 
         return $this->toWebResponse($result, $email, $token);
     }

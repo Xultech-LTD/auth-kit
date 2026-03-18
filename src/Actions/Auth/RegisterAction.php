@@ -5,8 +5,8 @@ namespace Xul\AuthKit\Actions\Auth;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Contracts\Auth\UserProvider;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\URL;
+use Xul\AuthKit\Concerns\Actions\InteractsWithMappedPayload;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitFlowStep;
@@ -23,6 +23,8 @@ use Xul\AuthKit\Support\PendingEmailVerification;
  *
  * Responsibilities:
  * - Create a new user using the configured auth provider when possible.
+ * - Consume normalized mapped registration payload data.
+ * - Persist only fields explicitly marked as persistable by the mapper layer.
  * - Dispatch AuthKitRegistered after successful account creation.
  * - Initialize email verification when an email address is available.
  * - Dispatch AuthKitEmailVerificationRequired for external delivery handling.
@@ -38,9 +40,16 @@ use Xul\AuthKit\Support\PendingEmailVerification;
  * - This action never returns the raw verification token to the caller.
  * - This action never returns the signed verification URL to the caller.
  * - Verification delivery remains event-driven and package-extensible.
+ *
+ * Expected mapped payload shape:
+ * - attributes: persisted/business attributes such as name, email, password
+ * - options: behavioral flags when applicable
+ * - meta: non-persisted supporting context
  */
 final class RegisterAction
 {
+    use InteractsWithMappedPayload;
+
     /**
      * Create a new instance.
      *
@@ -60,6 +69,8 @@ final class RegisterAction
      */
     public function handle(array $data): AuthKitActionResult
     {
+        $attributes = $this->payloadAttributes($data);
+
         $user = $this->createUser($data);
 
         if (! $user) {
@@ -75,7 +86,7 @@ final class RegisterAction
 
         event(new AuthKitRegistered($user));
 
-        $email = mb_strtolower(trim((string) ($data['email'] ?? '')));
+        $email = trim((string) ($attributes['email'] ?? ''));
 
         if ($email === '') {
             return AuthKitActionResult::success(
@@ -173,6 +184,10 @@ final class RegisterAction
     /**
      * Create a user using the configured auth provider when possible.
      *
+     * Persistence behavior:
+     * - Only mapper-approved persistable attributes are written.
+     * - The model must support AuthKit mapped persistence.
+     *
      * @param array<string, mixed> $data
      * @return Authenticatable|null
      */
@@ -191,11 +206,7 @@ final class RegisterAction
             return null;
         }
 
-        $payload = $this->userPayload($data);
-
-        foreach ($payload as $key => $value) {
-            $model->{$key} = $value;
-        }
+        $this->persistMappedAttributesIfSupported($model, 'register', $data);
 
         if (! method_exists($model, 'save')) {
             return null;
@@ -221,30 +232,5 @@ final class RegisterAction
         }
 
         return null;
-    }
-
-    /**
-     * Prepare the user payload from request data.
-     *
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>
-     */
-    protected function userPayload(array $data): array
-    {
-        $payload = [];
-
-        if (array_key_exists('name', $data) && is_string($data['name'])) {
-            $payload['name'] = trim($data['name']);
-        }
-
-        if (array_key_exists('email', $data) && is_string($data['email'])) {
-            $payload['email'] = mb_strtolower(trim($data['email']));
-        }
-
-        if (array_key_exists('password', $data) && is_string($data['password'])) {
-            $payload['password'] = Hash::make($data['password']);
-        }
-
-        return $payload;
     }
 }

@@ -9,6 +9,7 @@ use Xul\AuthKit\Concerns\Http\ApiRespondsJson;
 use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\EmailVerification\SendEmailVerificationRequest;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
 /**
@@ -18,6 +19,7 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Responsibilities:
  * - Validate the incoming request through SendEmailVerificationRequest.
+ * - Build the normalized mapped payload for the email verification resend context.
  * - Delegate resend orchestration to SendEmailVerificationAction.
  * - Return JSON responses for API or AJAX consumers.
  * - Return redirect responses with flash messages for standard web consumers.
@@ -42,15 +44,17 @@ final class SendEmailVerificationController
         SendEmailVerificationRequest $request,
         SendEmailVerificationAction $action
     ): JsonResponse|RedirectResponse {
-        $data = (array) $request->validated();
+        $payload = MappedPayloadBuilder::build('email_verification_send', $request->validated());
 
-        $result = $action->handle((string) ($data['email'] ?? ''));
+        $result = $action->handle($payload);
 
         if (ResponseResolver::expectsJson($request)) {
             return $this->ok($result->toArray(), $result->status);
         }
 
-        return $this->toWebResponse($result, (string) ($data['email'] ?? ''));
+        $email = (string) data_get($payload, 'attributes.email', '');
+
+        return $this->toWebResponse($result, $email);
     }
 
     /**

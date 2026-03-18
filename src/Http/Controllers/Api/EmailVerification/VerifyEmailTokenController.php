@@ -9,6 +9,7 @@ use Xul\AuthKit\Concerns\Http\ApiRespondsJson;
 use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\EmailVerification\EmailVerificationTokenRequest;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
 /**
@@ -18,6 +19,7 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Responsibilities:
  * - Validate the incoming request through EmailVerificationTokenRequest.
+ * - Build the normalized mapped payload for the token verification context.
  * - Delegate token verification orchestration to VerifyEmailTokenAction.
  * - Return JSON responses for API or AJAX consumers.
  * - Return redirect responses with flash messages for standard web consumers.
@@ -38,18 +40,15 @@ final class VerifyEmailTokenController
         EmailVerificationTokenRequest $request,
         VerifyEmailTokenAction $action
     ): JsonResponse|RedirectResponse {
-        $validated = (array) $request->validated();
+        $payload = MappedPayloadBuilder::build('email_verification_token', $request->validated());
 
-        $result = $action->handle(
-            email: (string) data_get($validated, 'email', ''),
-            token: (string) data_get($validated, 'token', '')
-        );
+        $result = $action->handle($payload);
 
         if (ResponseResolver::expectsJson($request)) {
             return $this->ok($result->toArray(), $result->status);
         }
 
-        return $this->toWebResponse($result, (string) $request->input('email', ''));
+        return $this->toWebResponse($result, (string) data_get($payload, 'attributes.email', ''));
     }
 
     /**

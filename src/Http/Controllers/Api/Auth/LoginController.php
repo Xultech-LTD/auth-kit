@@ -10,6 +10,7 @@ use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\Auth\LoginRequest;
 use Xul\AuthKit\Support\AuthKitSessionKeys;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
 /**
@@ -19,6 +20,7 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Responsibilities:
  * - Validate the incoming request through LoginRequest.
+ * - Build the normalized mapped payload for the login context.
  * - Delegate login flow orchestration to LoginAction.
  * - Persist internal two-factor challenge state to session when required.
  * - Return JSON responses for API or AJAX consumers.
@@ -45,7 +47,9 @@ final class LoginController
      */
     public function __invoke(LoginRequest $request, LoginAction $action): JsonResponse|RedirectResponse
     {
-        $result = $action->handle($request->validated());
+        $payload = MappedPayloadBuilder::build('login', $request->validated());
+
+        $result = $action->handle($payload);
 
         $this->persistInternalState($request, $result);
 

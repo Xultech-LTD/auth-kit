@@ -9,6 +9,7 @@ use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Session\Session;
 use RuntimeException;
 use Throwable;
+use Xul\AuthKit\Concerns\Actions\InteractsWithMappedPayload;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitFlowStep;
@@ -31,16 +32,23 @@ use Xul\AuthKit\Support\TwoFactor\TwoFactorManager;
  * - On invalid recovery code: forgets AuthKitSessionKeys::TWO_FACTOR_CHALLENGE.
  *
  * Responsibilities:
- * - Validate recovery request input.
+ * - Consume normalized mapped recovery payload data.
  * - Resolve the pending login challenge payload.
  * - Resolve the intended user from the configured guard provider.
  * - Verify and consume the submitted recovery code.
+ * - Persist mapper-approved attributes when the resolved user model supports it.
  * - Establish the authenticated session after successful recovery.
  * - Dispatch recovery and login events.
  * - Return a standardized AuthKitActionResult for all outcomes.
+ *
+ * Expected normalized payload shape:
+ * - attributes.challenge
+ * - attributes.recovery_code
  */
 final class TwoFactorRecoveryAction
 {
+    use InteractsWithMappedPayload;
+
     /**
      * Create a new instance.
      *
@@ -65,10 +73,12 @@ final class TwoFactorRecoveryAction
      */
     public function handle(array $input): AuthKitActionResult
     {
-        $challenge = (string) ($input['challenge'] ?? '');
-        $recoveryCode = (string) ($input['recovery_code'] ?? '');
+        $attributes = $this->payloadAttributes($input);
 
-        if ($challenge === '' || $recoveryCode === '') {
+        $challenge = (string) ($attributes['challenge'] ?? '');
+        $recoveryCode = (string) ($attributes['recovery_code'] ?? '');
+
+        if (trim($challenge) === '' || trim($recoveryCode) === '') {
             return AuthKitActionResult::failure(
                 message: 'Invalid recovery request.',
                 status: 422,
@@ -90,7 +100,10 @@ final class TwoFactorRecoveryAction
                 status: 410,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::make('invalid_or_expired_two_factor_challenge', 'Expired or invalid two-factor challenge.'),
+                    AuthKitError::make(
+                        'invalid_or_expired_two_factor_challenge',
+                        'Expired or invalid two-factor challenge.'
+                    ),
                 ],
                 redirect: $this->loginRedirect()
             );
@@ -109,11 +122,23 @@ final class TwoFactorRecoveryAction
                 status: 404,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::make('two_factor_recovery_user_not_found', 'User not found for this challenge.'),
+                    AuthKitError::make(
+                        'two_factor_recovery_user_not_found',
+                        'User not found for this challenge.'
+                    ),
                 ],
                 redirect: $this->twoFactorRedirect($challenge)
             );
         }
+
+        /**
+         * Intentionally persistence-aware.
+         *
+         * Recovery fields are non-persistable by default, but this call ensures
+         * the action remains forward-compatible if a consumer marks one or more
+         * recovery attributes as persistable through a custom mapper.
+         */
+        $this->persistMappedAttributesIfSupported($user, 'two_factor_recovery', $input);
 
         $driver = $this->twoFactor->driver();
 
@@ -125,7 +150,10 @@ final class TwoFactorRecoveryAction
                 status: 409,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::make('two_factor_not_enabled', 'Two-factor authentication is not enabled for this account.'),
+                    AuthKitError::make(
+                        'two_factor_not_enabled',
+                        'Two-factor authentication is not enabled for this account.'
+                    ),
                 ],
                 redirect: $this->twoFactorRedirect($challenge)
             );
@@ -156,7 +184,10 @@ final class TwoFactorRecoveryAction
                 status: 409,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::make('recovery_code_not_consumed', 'Recovery code could not be consumed.'),
+                    AuthKitError::make(
+                        'recovery_code_not_consumed',
+                        'Recovery code could not be consumed.'
+                    ),
                 ],
                 redirect: $this->twoFactorRedirect($challenge),
                 payload: AuthKitPublicPayload::make([
@@ -171,8 +202,18 @@ final class TwoFactorRecoveryAction
 
         $driverKey = $driver->key();
 
-        event(new AuthKitTwoFactorRecovered($user, $guardName, $remember, $driverKey));
-        event(new AuthKitLoggedIn($user, $guardName, $remember));
+        event(new AuthKitTwoFactorRecovered(
+            user: $user,
+            guard: $guardName,
+            remember: $remember,
+            driver: $driverKey
+        ));
+
+        event(new AuthKitLoggedIn(
+            user: $user,
+            guard: $guardName,
+            remember: $remember
+        ));
 
         return AuthKitActionResult::success(
             message: 'Recovered and logged in.',
@@ -188,13 +229,6 @@ final class TwoFactorRecoveryAction
         );
     }
 
-    /**
-     * Resolve an Authenticatable user from the pending payload using the configured guard provider.
-     *
-     * @param string $guardName
-     * @param array<string, mixed> $payload
-     * @return Authenticatable|null
-     */
     protected function resolveUserFromPayload(string $guardName, array $payload): ?Authenticatable
     {
         $userId = (string) ($payload['user_id'] ?? '');
@@ -220,15 +254,6 @@ final class TwoFactorRecoveryAction
         return $user instanceof Authenticatable ? $user : null;
     }
 
-    /**
-     * Consume the pending challenge and perform a session login.
-     *
-     * @param string $guardName
-     * @param string $challenge
-     * @param Authenticatable $user
-     * @param bool $remember
-     * @return void
-     */
     protected function consumePendingAndLogin(
         string $guardName,
         string $challenge,
@@ -252,11 +277,6 @@ final class TwoFactorRecoveryAction
         $guard->login($user, $remember);
     }
 
-    /**
-     * Resolve the success redirect after recovery login.
-     *
-     * @return AuthKitRedirect
-     */
     protected function successRedirect(): AuthKitRedirect
     {
         $redirectRoute = data_get(config('authkit.login', []), 'redirect_route');
@@ -278,11 +298,6 @@ final class TwoFactorRecoveryAction
         );
     }
 
-    /**
-     * Resolve the login redirect.
-     *
-     * @return AuthKitRedirect
-     */
     protected function loginRedirect(): AuthKitRedirect
     {
         $loginRoute = (string) data_get(
@@ -298,12 +313,6 @@ final class TwoFactorRecoveryAction
         );
     }
 
-    /**
-     * Resolve the two-factor challenge redirect.
-     *
-     * @param string $challenge
-     * @return AuthKitRedirect
-     */
     protected function twoFactorRedirect(string $challenge): AuthKitRedirect
     {
         $twoFactorRoute = (string) data_get(

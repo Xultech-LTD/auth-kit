@@ -10,12 +10,13 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Xul\AuthKit\Actions\Auth\RegisterAction;
+use Xul\AuthKit\Concerns\Model\HasAuthKitMappedPersistence;
 use Xul\AuthKit\Contracts\TokenRepositoryContract;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Events\AuthKitEmailVerificationRequired;
 use Xul\AuthKit\Events\AuthKitRegistered;
 use Xul\AuthKit\Http\Controllers\Api\Auth\RegisterController;
-use Xul\AuthKit\Tests\Support\ArrayTokenRepository;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -71,6 +72,7 @@ beforeEach(function (): void {
  * - Event dispatch
  * - Token persistence
  * - Security guarantees for API response payload
+ * - Persistable mapped attribute handling
  */
 it('registers successfully using token driver (API JSON)', function (): void {
     Event::fake([
@@ -131,6 +133,13 @@ it('registers successfully using token driver (API JSON)', function (): void {
     );
 
     expect($peek)->toBeArray();
+
+    $user = RegisterValidationTestUser::query()
+        ->where('email', mb_strtolower($email))
+        ->first();
+
+    expect($user)->not->toBeNull()
+        ->and($user?->name)->toBe('Michael API');
 });
 
 it('registers successfully using link driver (API JSON)', function (): void {
@@ -203,6 +212,13 @@ it('registers successfully using link driver (API JSON)', function (): void {
     );
 
     expect($peek)->toBeArray();
+
+    $user = RegisterValidationTestUser::query()
+        ->where('email', mb_strtolower($email))
+        ->first();
+
+    expect($user)->not->toBeNull()
+        ->and($user?->name)->toBe('Michael API Link');
 });
 
 it('returns a standardized action result from register action', function (): void {
@@ -217,9 +233,13 @@ it('returns a standardized action result from register action', function (): voi
     $action = app(RegisterAction::class);
 
     $result = $action->handle([
-        'name' => 'Michael DTO',
-        'email' => 'michael@examples.com',
-        'password' => 'Password1234!',
+        'attributes' => [
+            'name' => 'Michael DTO',
+            'email' => 'michael@examples.com',
+            'password' => '$2y$12$already.mapped.password.hash.example',
+        ],
+        'options' => [],
+        'meta' => [],
     ]);
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
@@ -229,6 +249,53 @@ it('returns a standardized action result from register action', function (): voi
         ->and($result->payload?->get('email'))->toBe('michael@examples.com')
         ->and($result->payload?->get('driver'))->toBe('token')
         ->and($result->redirect?->target)->toBe('authkit.web.email.verify.notice');
+
+    $user = RegisterValidationTestUser::query()
+        ->where('email', 'michael@examples.com')
+        ->first();
+
+    expect($user)->not->toBeNull()
+        ->and($user?->name)->toBe('Michael DTO')
+        ->and($user?->password)->toBe('$2y$12$already.mapped.password.hash.example');
+});
+
+it('builds the register mapped payload and persists only mapper-approved attributes', function (): void {
+    Event::fake([
+        AuthKitRegistered::class,
+        AuthKitEmailVerificationRequired::class,
+    ]);
+
+    config()->set('authkit.email_verification.driver', 'token');
+
+    $payload = MappedPayloadBuilder::build('register', [
+        'name' => '  Michael Builder  ',
+        'email' => '  MICHAEL@EXAMPLES.COM ',
+        'password' => 'Password1234!',
+        'password_confirmation' => 'Password1234!',
+    ]);
+
+    expect($payload['attributes'])->toHaveKeys(['name', 'email', 'password'])
+        ->and($payload['attributes'])->not->toHaveKey('password_confirmation')
+        ->and($payload['attributes']['name'])->toBe('Michael Builder')
+        ->and($payload['attributes']['email'])->toBe('michael@examples.com')
+        ->and($payload['attributes']['password'])->not->toBe('Password1234!')
+        ->and(password_verify('Password1234!', $payload['attributes']['password']))->toBeTrue();
+
+    /** @var RegisterAction $action */
+    $action = app(RegisterAction::class);
+
+    $result = $action->handle($payload);
+
+    expect($result->ok)->toBeTrue()
+        ->and($result->status)->toBe(201);
+
+    $user = RegisterValidationTestUser::query()
+        ->where('email', 'michael@examples.com')
+        ->first();
+
+    expect($user)->not->toBeNull()
+        ->and($user?->name)->toBe('Michael Builder')
+        ->and(password_verify('Password1234!', (string) $user?->password))->toBeTrue();
 });
 
 it('returns standardized DTO validation response for JSON register requests', function (): void {
@@ -300,6 +367,8 @@ it('returns grouped field errors for invalid register JSON payload', function ()
  */
 final class RegisterValidationTestUser extends BaseUser
 {
+    use HasAuthKitMappedPersistence;
+
     /**
      * @var string
      */

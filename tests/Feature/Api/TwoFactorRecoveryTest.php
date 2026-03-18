@@ -1,4 +1,7 @@
 <?php
+// file: tests/Feature/Api/TwoFactorRecoveryTest.php
+
+namespace Xul\AuthKit\Tests\Feature\Api;
 
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Database\Schema\Blueprint;
@@ -9,12 +12,16 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Xul\AuthKit\Actions\Auth\TwoFactorRecoveryAction;
+use Xul\AuthKit\Concerns\Model\HasAuthKitMappedPersistence;
 use Xul\AuthKit\Concerns\Model\HasAuthKitTwoFactor;
 use Xul\AuthKit\Contracts\TokenRepositoryContract;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Events\AuthKitLoggedIn;
 use Xul\AuthKit\Events\AuthKitTwoFactorRecovered;
 use Xul\AuthKit\Http\Controllers\Api\Auth\TwoFactorRecoveryController;
+use Xul\AuthKit\Support\AuthKitSessionKeys;
+use Xul\AuthKit\Support\Mappers\AbstractPayloadMapper;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\PendingLogin;
 use Xul\AuthKit\Tests\Support\ArrayTokenRepository;
 
@@ -37,6 +44,8 @@ beforeEach(function () {
         $table->text('two_factor_secret')->nullable();
         $table->json('two_factor_recovery_codes')->nullable();
         $table->json('two_factor_methods')->nullable();
+        $table->string('last_recovery_challenge')->nullable();
+        $table->string('last_recovery_code')->nullable();
         $table->timestamps();
     });
 
@@ -47,7 +56,7 @@ beforeEach(function () {
     ]);
     Config::set('auth.providers.users', [
         'driver' => 'eloquent',
-        'model' => TestUser::class,
+        'model' => TwoFactorRecoveryTestUser::class,
     ]);
 
     Config::set('authkit.auth.guard', 'web');
@@ -94,7 +103,7 @@ beforeEach(function () {
 it('action recovers and logs in, dispatching AuthKitTwoFactorRecovered and AuthKitLoggedIn', function () {
     Event::fake();
 
-    $user = TestUser::query()->create([
+    $user = TwoFactorRecoveryTestUser::query()->create([
         'email' => 'michael@example.com',
         'password' => Hash::make('secret123'),
     ]);
@@ -119,10 +128,12 @@ it('action recovers and logs in, dispatching AuthKitTwoFactorRecovered and AuthK
     /** @var TwoFactorRecoveryAction $action */
     $action = app()->make(TwoFactorRecoveryAction::class);
 
-    $result = $action->handle([
-        'challenge' => $challenge,
-        'recovery_code' => $rawCodes[0],
-    ]);
+    $result = $action->handle(
+        MappedPayloadBuilder::build('two_factor_recovery', [
+            'challenge' => $challenge,
+            'recovery_code' => $rawCodes[0],
+        ])
+    );
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
         ->and($result->ok)->toBeTrue()
@@ -149,7 +160,7 @@ it('action recovers and logs in, dispatching AuthKitTwoFactorRecovered and AuthK
 it('action returns 422 for invalid recovery code and does not log in', function () {
     Event::fake();
 
-    $user = TestUser::query()->create([
+    $user = TwoFactorRecoveryTestUser::query()->create([
         'email' => 'michael@example.com',
         'password' => Hash::make('secret123'),
     ]);
@@ -172,10 +183,12 @@ it('action returns 422 for invalid recovery code and does not log in', function 
     /** @var TwoFactorRecoveryAction $action */
     $action = app()->make(TwoFactorRecoveryAction::class);
 
-    $result = $action->handle([
-        'challenge' => $challenge,
-        'recovery_code' => 'WRONG-CODE',
-    ]);
+    $result = $action->handle(
+        MappedPayloadBuilder::build('two_factor_recovery', [
+            'challenge' => $challenge,
+            'recovery_code' => 'WRONG-CODE',
+        ])
+    );
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
         ->and($result->ok)->toBeFalse()
@@ -197,10 +210,12 @@ it('action returns 410 for expired or invalid challenge', function () {
     /** @var TwoFactorRecoveryAction $action */
     $action = app()->make(TwoFactorRecoveryAction::class);
 
-    $result = $action->handle([
-        'challenge' => 'invalid-challenge-token',
-        'recovery_code' => 'AAAAA-BBBBB',
-    ]);
+    $result = $action->handle(
+        MappedPayloadBuilder::build('two_factor_recovery', [
+            'challenge' => 'invalid-challenge-token',
+            'recovery_code' => 'AAAAA-BBBBB',
+        ])
+    );
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
         ->and($result->ok)->toBeFalse()
@@ -219,7 +234,7 @@ it('action returns 410 for expired or invalid challenge', function () {
 it('controller returns JSON 200 on successful recovery', function () {
     Event::fake();
 
-    $user = TestUser::query()->create([
+    $user = TwoFactorRecoveryTestUser::query()->create([
         'email' => 'michael@example.com',
         'password' => Hash::make('secret123'),
     ]);
@@ -261,7 +276,7 @@ it('controller returns JSON 200 on successful recovery', function () {
 it('controller redirects to dashboard on successful SSR recovery', function () {
     Event::fake();
 
-    $user = TestUser::query()->create([
+    $user = TwoFactorRecoveryTestUser::query()->create([
         'email' => 'michael@example.com',
         'password' => Hash::make('secret123'),
     ]);
@@ -292,6 +307,51 @@ it('controller redirects to dashboard on successful SSR recovery', function () {
     ])
         ->assertRedirect(route('dashboard'))
         ->assertSessionHas('status', 'Recovered and logged in.');
+});
+
+it('persists mapper-approved recovery attributes when the model supports mapped persistence', function () {
+    Event::fake();
+
+    Config::set('authkit.mappers.contexts.two_factor_recovery.class', PersistingTwoFactorRecoveryMapper::class);
+
+    $user = TwoFactorRecoveryTestUser::query()->create([
+        'email' => 'michael@example.com',
+        'password' => Hash::make('secret123'),
+    ]);
+
+    $user->enableTwoFactor();
+    $user->setTwoFactorSecret('JBSWY3DPEHPK3PXP');
+    $user->setTwoFactorMethods(['totp']);
+
+    $rawCodes = ['AAAAA-BBBBB', 'CCCCC-DDDDD'];
+    $user->setTwoFactorRecoveryCodes($rawCodes);
+    $user->save();
+
+    $pending = app(PendingLogin::class);
+
+    $challenge = $pending->create(
+        userId: (string) $user->getAuthIdentifier(),
+        remember: true,
+        ttlMinutes: 5,
+        methods: ['totp']
+    );
+
+    /** @var TwoFactorRecoveryAction $action */
+    $action = app()->make(TwoFactorRecoveryAction::class);
+
+    $result = $action->handle(
+        MappedPayloadBuilder::build('two_factor_recovery', [
+            'challenge' => $challenge,
+            'recovery_code' => $rawCodes[0],
+        ])
+    );
+
+    expect($result->ok)->toBeTrue();
+
+    $user->refresh();
+
+    expect($user->last_recovery_challenge)->toBe($challenge)
+        ->and($user->last_recovery_code)->toBe($rawCodes[0]);
 });
 
 it('returns standardized DTO validation response for JSON two-factor recovery requests', function () {
@@ -330,7 +390,7 @@ it('hydrates challenge from session before validation for JSON two-factor recove
     $routeName = (string) ($apiNames['two_factor_recovery'] ?? 'authkit.api.twofactor.recovery');
 
     $response = $this
-        ->withSession([\Xul\AuthKit\Support\AuthKitSessionKeys::TWO_FACTOR_CHALLENGE => 'session-recovery-challenge'])
+        ->withSession([AuthKitSessionKeys::TWO_FACTOR_CHALLENGE => 'session-recovery-challenge'])
         ->postJson(route($routeName), []);
 
     $response
@@ -353,7 +413,7 @@ it('hydrates challenge from session before validation for JSON two-factor recove
 it('controller redirects back to two-factor challenge on invalid SSR recovery code', function () {
     Event::fake();
 
-    $user = TestUser::query()->create([
+    $user = TwoFactorRecoveryTestUser::query()->create([
         'email' => 'michael@example.com',
         'password' => Hash::make('secret123'),
     ]);
@@ -385,13 +445,14 @@ it('controller redirects back to two-factor challenge on invalid SSR recovery co
 });
 
 /**
- * TestUser
+ * TwoFactorRecoveryTestUser
  *
  * Minimal user model for package tests.
  */
-final class TestUser extends BaseUser
+final class TwoFactorRecoveryTestUser extends BaseUser
 {
     use HasAuthKitTwoFactor;
+    use HasAuthKitMappedPersistence;
 
     /**
      * @var string
@@ -416,4 +477,45 @@ final class TestUser extends BaseUser
         'two_factor_recovery_codes' => 'array',
         'two_factor_methods' => 'array',
     ];
+}
+
+/**
+ * PersistingTwoFactorRecoveryMapper
+ *
+ * Test-only mapper that marks recovery flow attributes as persistable.
+ */
+final class PersistingTwoFactorRecoveryMapper extends AbstractPayloadMapper
+{
+    public function context(): string
+    {
+        return 'two_factor_recovery';
+    }
+
+    public function mode(): string
+    {
+        return self::MODE_MERGE;
+    }
+
+    public function definitions(): array
+    {
+        return [
+            'challenge_persist' => [
+                'source' => 'challenge',
+                'target' => 'last_recovery_challenge',
+                'bucket' => 'attributes',
+                'include' => true,
+                'persist' => true,
+                'transform' => 'trim',
+            ],
+
+            'recovery_code_persist' => [
+                'source' => 'recovery_code',
+                'target' => 'last_recovery_code',
+                'bucket' => 'attributes',
+                'include' => true,
+                'persist' => true,
+                'transform' => 'trim',
+            ],
+        ];
+    }
 }

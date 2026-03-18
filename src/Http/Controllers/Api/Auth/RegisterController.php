@@ -9,6 +9,7 @@ use Xul\AuthKit\Concerns\Http\ApiRespondsJson;
 use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\Auth\RegisterRequest;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
 /**
@@ -18,6 +19,7 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Responsibilities:
  * - Validate the incoming request through RegisterRequest.
+ * - Build the normalized mapped payload for the registration context.
  * - Delegate registration flow orchestration to RegisterAction.
  * - Return JSON responses for API or AJAX consumers.
  * - Return redirect responses with flash messages for standard web consumers.
@@ -25,6 +27,16 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  * Design notes:
  * - RegisterAction is the source of truth for outcome, flow, redirect, and payload.
  * - Public JSON responses are generated from the standardized action result DTO.
+ * - The mapped payload builder ensures registration actions consume normalized,
+ *   action-ready data instead of raw validated request input.
+ *
+ * Expected mapped payload structure:
+ * - attributes
+ * - options
+ * - meta
+ *
+ * Persistable field resolution is derived at action-time from mapper
+ * definitions through the mapped payload support layer.
  */
 final class RegisterController
 {
@@ -40,7 +52,9 @@ final class RegisterController
      */
     public function __invoke(RegisterRequest $request, RegisterAction $action): JsonResponse|RedirectResponse
     {
-        $result = $action->handle($request->validated());
+        $payload = MappedPayloadBuilder::build('register', $request->validated());
+
+        $result = $action->handle($payload);
 
         if (ResponseResolver::expectsJson($request)) {
             return $this->ok($result->toArray(), $result->status);

@@ -8,6 +8,7 @@ use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Support\Carbon;
+use Xul\AuthKit\Concerns\Actions\InteractsWithMappedPayload;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitFlowStep;
@@ -25,6 +26,8 @@ use Xul\AuthKit\Support\PendingEmailVerification;
  * Responsibilities:
  * - Validate and consume the verification token using PendingEmailVerification.
  * - Resolve the user referenced by the token payload via the configured provider.
+ * - Persist mapper-approved attributes when the resolved model supports
+ *   AuthKit mapped persistence.
  * - Mark the user as verified when supported by the user model.
  * - Dispatch Laravel's Verified event when applicable.
  * - Dispatch AuthKitEmailVerified after successful verification.
@@ -33,6 +36,8 @@ use Xul\AuthKit\Support\PendingEmailVerification;
  */
 final class VerifyEmailTokenAction
 {
+    use InteractsWithMappedPayload;
+
     /**
      * Create a new instance.
      *
@@ -47,14 +52,15 @@ final class VerifyEmailTokenAction
     /**
      * Execute token verification.
      *
-     * @param string $email
-     * @param string $token
+     * @param array<string, mixed> $input
      * @return AuthKitActionResult
      */
-    public function handle(string $email, string $token): AuthKitActionResult
+    public function handle(array $input): AuthKitActionResult
     {
-        $email = mb_strtolower(trim($email));
-        $token = trim($token);
+        $attributes = $this->payloadAttributes($input);
+
+        $email = mb_strtolower(trim((string) ($attributes['email'] ?? '')));
+        $token = trim((string) ($attributes['token'] ?? ''));
 
         if ($email === '' || $token === '') {
             return AuthKitActionResult::failure(
@@ -77,7 +83,10 @@ final class VerifyEmailTokenAction
                 status: 422,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::make('invalid_or_expired_verification_code', 'Invalid or expired verification code.'),
+                    AuthKitError::make(
+                        'invalid_or_expired_verification_code',
+                        'Invalid or expired verification code.'
+                    ),
                 ],
                 redirect: $this->noticeRedirect($email)
             );
@@ -125,6 +134,16 @@ final class VerifyEmailTokenAction
             );
         }
 
+        /**
+         * Intentionally persistence-aware.
+         *
+         * Token verification does not persist fields by default because the
+         * packaged mapper marks them as non-persistable. This call keeps the
+         * action forward-compatible so a consumer may extend the mapper and
+         * persist additional mapped attributes onto the resolved user model.
+         */
+        $this->persistMappedAttributesIfSupported($user, 'email_verification_token', $input);
+
         if ($this->userHasVerifiedEmail($user)) {
             return AuthKitActionResult::success(
                 message: 'Your email is already verified.',
@@ -144,7 +163,10 @@ final class VerifyEmailTokenAction
                 status: 500,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::make('email_verification_not_supported', 'Email verification is not supported by this user model.'),
+                    AuthKitError::make(
+                        'email_verification_not_supported',
+                        'Email verification is not supported by this user model.'
+                    ),
                 ],
                 redirect: $this->noticeRedirect($email)
             );

@@ -135,9 +135,14 @@ it('logs in and dispatches AuthKitLoggedIn when two-factor is globally disabled'
     $action = app()->make(LoginAction::class);
 
     $result = $action->handle([
-        'email' => 'michael@example.com',
-        'password' => 'secret123',
-        'remember' => true,
+        'attributes' => [
+            'email' => 'michael@example.com',
+            'password' => 'secret123',
+        ],
+        'options' => [
+            'remember' => true,
+        ],
+        'meta' => [],
     ]);
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
@@ -184,9 +189,14 @@ it('creates a pending login challenge and dispatches AuthKitTwoFactorRequired wh
     $action = app()->make(LoginAction::class);
 
     $result = $action->handle([
-        'email' => 'michael@example.com',
-        'password' => 'secret123',
-        'remember' => false,
+        'attributes' => [
+            'email' => 'michael@example.com',
+            'password' => 'secret123',
+        ],
+        'options' => [
+            'remember' => false,
+        ],
+        'meta' => [],
     ]);
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
@@ -237,8 +247,12 @@ it('returns 401 when credentials are invalid', function () {
     $action = app()->make(LoginAction::class);
 
     $result = $action->handle([
-        'email' => 'michael@example.com',
-        'password' => 'wrong-password',
+        'attributes' => [
+            'email' => 'michael@example.com',
+            'password' => 'wrong-password',
+        ],
+        'options' => [],
+        'meta' => [],
     ]);
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
@@ -284,11 +298,15 @@ it('returns 201 and dispatches AuthKitEmailVerificationRequired when email verif
     $action = app()->make(LoginAction::class);
 
     $result = $action->handle([
-        'email' => 'michael@example.com',
-        'password' => 'secret123',
-        'remember' => true,
+        'attributes' => [
+            'email' => 'michael@example.com',
+            'password' => 'secret123',
+        ],
+        'options' => [
+            'remember' => true,
+        ],
+        'meta' => [],
     ]);
-
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
         ->and($result->ok)->toBeFalse()
         ->and($result->status)->toBe(201)
@@ -363,6 +381,43 @@ it('normalizes email before validation in JSON login requests', function () {
         ->assertJsonMissingPath('payload.fields.email');
 });
 
+it('remains successful when the login model supports mapped persistence even though default login fields are non-persistable', function () {
+    Event::fake();
+
+    Config::set('authkit.two_factor.enabled', false);
+
+    $user = \Xul\AuthKit\Tests\Feature\Api\LoginActionTest::query()->create([
+        'email' => 'michael@example.com',
+        'password' => Hash::make('secret123'),
+        'email_verified_at' => now(),
+    ]);
+
+    /** @var LoginAction $action */
+    $action = app()->make(LoginAction::class);
+
+    $result = $action->handle([
+        'attributes' => [
+            'email' => 'michael@example.com',
+            'password' => 'secret123',
+        ],
+        'options' => [
+            'remember' => false,
+        ],
+        'meta' => [],
+    ]);
+
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeTrue()
+        ->and($result->status)->toBe(200)
+        ->and($result->flow?->is('completed'))->toBeTrue();
+
+    $user->refresh();
+
+    expect($user->email)->toBe('michael@example.com');
+
+    Event::assertDispatched(AuthKitLoggedIn::class);
+});
+
 /**
  * TestUser
  *
@@ -370,6 +425,7 @@ it('normalizes email before validation in JSON login requests', function () {
  */
 final class LoginActionTest extends BaseUser
 {
+    use \Xul\AuthKit\Concerns\Model\HasAuthKitMappedPersistence;
     /**
      * @var string
      */

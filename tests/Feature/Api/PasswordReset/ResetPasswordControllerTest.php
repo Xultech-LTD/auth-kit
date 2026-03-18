@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Xul\AuthKit\Actions\PasswordReset\ResetPasswordAction;
+use Xul\AuthKit\Concerns\Model\HasAuthKitMappedPersistence;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetPolicyContract;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetUserResolverContract;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordUpdaterContract;
@@ -21,6 +22,8 @@ use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Events\AuthKitLoggedIn;
 use Xul\AuthKit\Http\Controllers\Api\PasswordReset\ResetPasswordController;
 use Xul\AuthKit\Support\CacheTokenRepository;
+use Xul\AuthKit\Support\Mappers\AbstractPayloadMapper;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\PendingPasswordReset;
 
 uses(RefreshDatabase::class);
@@ -28,19 +31,16 @@ uses(RefreshDatabase::class);
 final class ResetPasswordControllerTest extends BaseUser
 {
     use Notifiable;
+    use HasAuthKitMappedPersistence;
 
-    /**
-     * @var string
-     */
     protected $table = 'users';
 
-    /**
-     * @var array<int, string>
-     */
     protected $fillable = [
         'email',
         'password',
         'remember_token',
+        'last_reset_email',
+        'last_reset_token',
     ];
 }
 
@@ -59,6 +59,8 @@ beforeEach(function () {
         $table->string('email')->unique();
         $table->string('password');
         $table->string('remember_token')->nullable();
+        $table->string('last_reset_email')->nullable();
+        $table->string('last_reset_token')->nullable();
         $table->timestamps();
     });
 
@@ -109,19 +111,11 @@ beforeEach(function () {
     });
 
     app()->instance(PasswordResetPolicyContract::class, new class implements PasswordResetPolicyContract {
-        /**
-         * @param string $email
-         * @return bool
-         */
         public function canRequest(string $email): bool
         {
             return true;
         }
 
-        /**
-         * @param string $email
-         * @return bool
-         */
         public function canReset(string $email): bool
         {
             return true;
@@ -129,10 +123,6 @@ beforeEach(function () {
     });
 
     app()->instance(PasswordResetUserResolverContract::class, new class implements PasswordResetUserResolverContract {
-        /**
-         * @param string $identityValue
-         * @return Authenticatable|null
-         */
         public function resolve(string $identityValue): ?Authenticatable
         {
             return ResetPasswordControllerTest::query()->where('email', $identityValue)->first();
@@ -140,12 +130,6 @@ beforeEach(function () {
     });
 
     app()->instance(PasswordUpdaterContract::class, new class implements PasswordUpdaterContract {
-        /**
-         * @param Authenticatable $user
-         * @param string $newPasswordRaw
-         * @param bool $refreshRememberToken
-         * @return void
-         */
         public function update(Authenticatable $user, string $newPasswordRaw, bool $refreshRememberToken = true): void
         {
             $user->forceFill([
@@ -252,9 +236,12 @@ it('returns a standardized action result from reset password action', function (
     $action = app(ResetPasswordAction::class);
 
     $result = $action->handle(
-        email: 'jane@example.com',
-        token: $token,
-        newPasswordRaw: 'new-password-123'
+        MappedPayloadBuilder::build('password_reset', [
+            'email' => 'jane@example.com',
+            'token' => $token,
+            'password' => 'new-password-123',
+            'password_confirmation' => 'new-password-123',
+        ])
     );
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
@@ -302,6 +289,43 @@ it('logs the user in after reset when configured', function () {
             && $event->guard === 'web'
             && $event->remember === true;
     });
+});
+
+it('persists mapper-approved reset-password attributes when the model supports mapped persistence', function () {
+    config()->set('authkit.mappers.contexts.password_reset.class', PersistingResetPasswordMapper::class);
+
+    $user = ResetPasswordControllerTest::query()->create([
+        'email' => 'jane@example.com',
+        'password' => Hash::make('old-password'),
+    ]);
+
+    $pending = app(PendingPasswordReset::class);
+
+    $token = $pending->createForEmail(
+        email: 'jane@example.com',
+        ttlMinutes: 30,
+        payload: ['user_id' => $user->getAuthIdentifier()]
+    );
+
+    /** @var ResetPasswordAction $action */
+    $action = app(ResetPasswordAction::class);
+
+    $result = $action->handle(
+        MappedPayloadBuilder::build('password_reset', [
+            'email' => '  JANE@EXAMPLE.COM  ',
+            'token' => '  ' . $token . '  ',
+            'password' => 'New-password-123',
+            'password_confirmation' => 'New-password-123',
+        ])
+    );
+
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeTrue();
+
+    $user->refresh();
+
+    expect($user->last_reset_email)->toBe('jane@example.com')
+        ->and($user->last_reset_token)->toBe($token);
 });
 
 it('returns standardized DTO validation response for JSON reset password requests', function () {
@@ -356,3 +380,45 @@ it('normalizes email before validation for JSON reset password requests', functi
     expect(collect($response->json('errors'))->pluck('field')->all())
         ->toContain('email', 'token', 'password', 'password_confirmation');
 });
+
+/**
+ * PersistingResetPasswordMapper
+ *
+ * Test-only mapper that preserves the package defaults while adding persistable
+ * mapped targets sourced from the same validated reset input.
+ */
+final class PersistingResetPasswordMapper extends AbstractPayloadMapper
+{
+    public function context(): string
+    {
+        return 'password_reset';
+    }
+
+    public function mode(): string
+    {
+        return self::MODE_MERGE;
+    }
+
+    public function definitions(): array
+    {
+        return [
+            'email_persist' => [
+                'source' => 'email',
+                'target' => 'last_reset_email',
+                'bucket' => 'attributes',
+                'include' => true,
+                'persist' => true,
+                'transform' => 'lower_trim',
+            ],
+
+            'token_persist' => [
+                'source' => 'token',
+                'target' => 'last_reset_token',
+                'bucket' => 'attributes',
+                'include' => true,
+                'persist' => true,
+                'transform' => 'trim',
+            ],
+        ];
+    }
+}

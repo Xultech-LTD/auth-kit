@@ -9,6 +9,7 @@ use Xul\AuthKit\Concerns\Http\ApiRespondsJson;
 use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\PasswordReset\ForgotPasswordRequest;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
 /**
@@ -18,6 +19,7 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Responsibilities:
  * - Validate the incoming request through ForgotPasswordRequest.
+ * - Build the normalized mapped payload for the forgot-password context.
  * - Delegate reset request orchestration to RequestPasswordResetAction.
  * - Return JSON responses for API or AJAX consumers.
  * - Return redirect responses with flash messages for standard web consumers.
@@ -38,9 +40,9 @@ final class ForgotPasswordController
         ForgotPasswordRequest $request,
         RequestPasswordResetAction $action
     ): JsonResponse|RedirectResponse {
-        $email = (string) data_get($request->validated(), 'email', '');
+        $payload = MappedPayloadBuilder::build('password_forgot', $request->validated());
 
-        $result = $action->handle($email);
+        $result = $action->handle($payload);
 
         if (ResponseResolver::expectsJson($request)) {
             return $this->ok($result->toArray(), $result->status);

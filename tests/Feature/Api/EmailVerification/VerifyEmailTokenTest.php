@@ -12,11 +12,14 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Xul\AuthKit\Actions\EmailVerification\VerifyEmailTokenAction;
+use Xul\AuthKit\Concerns\Model\HasAuthKitMappedPersistence;
 use Xul\AuthKit\Contracts\TokenRepositoryContract;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Events\AuthKitEmailVerified;
 use Xul\AuthKit\Events\AuthKitLoggedIn;
 use Xul\AuthKit\Http\Controllers\Api\EmailVerification\VerifyEmailTokenController;
+use Xul\AuthKit\Support\Mappers\AbstractPayloadMapper;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\PendingEmailVerification;
 use Xul\AuthKit\Tests\Support\ArrayTokenRepository;
 
@@ -26,6 +29,7 @@ final class TestUser extends BaseUser implements MustVerifyEmailContract
 {
     use Notifiable;
     use MustVerifyEmail;
+    use HasAuthKitMappedPersistence;
 
     protected $table = 'users';
 
@@ -35,6 +39,8 @@ final class TestUser extends BaseUser implements MustVerifyEmailContract
         'password',
         'email_verified_at',
         'remember_token',
+        'last_verified_email',
+        'last_verified_token',
     ];
 }
 
@@ -56,6 +62,8 @@ beforeEach(function () {
         $table->string('password')->nullable();
         $table->timestamp('email_verified_at')->nullable();
         $table->rememberToken();
+        $table->string('last_verified_email')->nullable();
+        $table->string('last_verified_token')->nullable();
         $table->timestamps();
     });
 
@@ -65,7 +73,6 @@ beforeEach(function () {
     config()->set('authkit.route_names.web.login', 'authkit.web.login');
     config()->set('authkit.route_names.web.verify_notice', 'authkit.web.email.verify.notice');
     config()->set('authkit.route_names.web.verify_success', 'authkit.web.email.verify.success');
-    config()->set('authkit.route_names.web.dashboard_web', 'authkit.web.dashboard');
     config()->set('authkit.route_names.api.verify_token', 'authkit.api.email.verification.verify.token');
     config()->set('authkit.email_verification.columns.verified_at', 'email_verified_at');
 
@@ -220,7 +227,12 @@ it('returns a standardized action result from verify email token action', functi
     /** @var VerifyEmailTokenAction $action */
     $action = app(VerifyEmailTokenAction::class);
 
-    $result = $action->handle($user->email, $token);
+    $result = $action->handle(
+        MappedPayloadBuilder::build('email_verification_token', [
+            'email' => $user->email,
+            'token' => $token,
+        ])
+    );
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
         ->and($result->ok)->toBeTrue()
@@ -354,6 +366,50 @@ it('redirects to dashboard for web flow when login after verify is enabled', fun
     $this->assertAuthenticatedAs($user, 'web');
 });
 
+it('persists mapper-approved verification attributes when the model supports mapped persistence', function () {
+    Event::fake([Verified::class, AuthKitEmailVerified::class, AuthKitLoggedIn::class]);
+
+    config()->set(
+        'authkit.mappers.contexts.email_verification_token.class',
+        PersistingVerifyEmailTokenMapper::class
+    );
+    config()->set('authkit.email_verification.driver', 'token');
+    config()->set('authkit.email_verification.post_verify.login_after_verify', false);
+
+    $user = TestUser::query()->create([
+        'name' => 'Persist Verify',
+        'email' => 'persist-verify@example.com',
+        'password' => bcrypt('password'),
+        'email_verified_at' => null,
+    ]);
+
+    /** @var PendingEmailVerification $pending */
+    $pending = app(PendingEmailVerification::class);
+
+    $token = $pending->createForEmail($user->email, 10, [
+        'user_id' => (string) $user->getAuthIdentifier(),
+        'driver' => 'token',
+    ]);
+
+    /** @var VerifyEmailTokenAction $action */
+    $action = app(VerifyEmailTokenAction::class);
+
+    $result = $action->handle(
+        MappedPayloadBuilder::build('email_verification_token', [
+            'email' => '  ' . strtoupper($user->email) . '  ',
+            'token' => '  ' . $token . '  ',
+        ])
+    );
+
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeTrue();
+
+    $user->refresh();
+
+    expect($user->last_verified_email)->toBe('persist-verify@example.com')
+        ->and($user->last_verified_token)->toBe($token);
+});
+
 it('returns standardized DTO validation response for JSON verify email token requests', function () {
     $route = (string) data_get(
         config('authkit.route_names.api', []),
@@ -425,3 +481,45 @@ it('redirects back with validation errors for invalid SSR verify email token req
     $response->assertStatus(302);
     $response->assertSessionHasErrors(['email', 'token']);
 });
+
+/**
+ * PersistingVerifyEmailTokenMapper
+ *
+ * Test-only mapper that keeps the package default verification fields while
+ * adding persistable targets sourced from the same validated input.
+ */
+final class PersistingVerifyEmailTokenMapper extends AbstractPayloadMapper
+{
+    public function context(): string
+    {
+        return 'email_verification_token';
+    }
+
+    public function mode(): string
+    {
+        return self::MODE_MERGE;
+    }
+
+    public function definitions(): array
+    {
+        return [
+            'email_persist' => [
+                'source' => 'email',
+                'target' => 'last_verified_email',
+                'bucket' => 'attributes',
+                'include' => true,
+                'persist' => true,
+                'transform' => 'lower_trim',
+            ],
+
+            'token_persist' => [
+                'source' => 'token',
+                'target' => 'last_verified_token',
+                'bucket' => 'attributes',
+                'include' => true,
+                'persist' => true,
+                'transform' => 'trim',
+            ],
+        ];
+    }
+}

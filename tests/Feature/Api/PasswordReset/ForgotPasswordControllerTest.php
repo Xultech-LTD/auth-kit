@@ -12,13 +12,17 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Xul\AuthKit\Actions\PasswordReset\RequestPasswordResetAction;
+use Xul\AuthKit\Concerns\Model\HasAuthKitMappedPersistence;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetPolicyContract;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetUrlGeneratorContract;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordResetUserResolverContract;
 use Xul\AuthKit\Contracts\TokenRepositoryContract;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Events\AuthKitPasswordResetRequested;
+use Xul\AuthKit\Http\Controllers\Api\PasswordReset\ForgotPasswordController;
 use Xul\AuthKit\Support\CacheTokenRepository;
+use Xul\AuthKit\Support\Mappers\AbstractPayloadMapper;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\PendingPasswordReset;
 
 uses(RefreshDatabase::class);
@@ -26,6 +30,7 @@ uses(RefreshDatabase::class);
 final class ForgotPasswordControllerTest extends BaseUser
 {
     use Notifiable;
+    use HasAuthKitMappedPersistence;
 
     /**
      * @var string
@@ -38,6 +43,7 @@ final class ForgotPasswordControllerTest extends BaseUser
     protected $fillable = [
         'email',
         'password',
+        'last_reset_request_email',
     ];
 }
 
@@ -55,12 +61,17 @@ beforeEach(function () {
         $table->id();
         $table->string('email')->unique();
         $table->string('password');
+        $table->string('last_reset_request_email')->nullable();
         $table->timestamps();
     });
 
     Route::get('/forgot-password', fn () => 'forgot')->name('authkit.web.password.forgot');
     Route::get('/forgot-password/sent', fn () => 'sent')->name('authkit.web.password.forgot.sent');
     Route::get('/reset-password/token', fn () => 'token')->name('authkit.web.password.reset.token');
+
+    Route::post('/forgot-password', ForgotPasswordController::class)
+        ->middleware(['web'])
+        ->name('authkit.api.password.forgot');
 
     config()->set('authkit.password_reset.driver', 'link');
     config()->set('authkit.password_reset.ttl_minutes', 30);
@@ -71,6 +82,7 @@ beforeEach(function () {
     );
     config()->set('authkit.route_names.web.password_forgot', 'authkit.web.password.forgot');
     config()->set('authkit.route_names.web.password_forgot_sent', 'authkit.web.password.forgot.sent');
+    config()->set('authkit.route_names.api.password_send_reset', 'authkit.api.password.forgot');
 
     app()->singleton(TokenRepositoryContract::class, function ($app) {
         return new CacheTokenRepository($app['cache']->store());
@@ -84,19 +96,11 @@ beforeEach(function () {
     });
 
     app()->instance(PasswordResetPolicyContract::class, new class implements PasswordResetPolicyContract {
-        /**
-         * @param string $email
-         * @return bool
-         */
         public function canRequest(string $email): bool
         {
             return true;
         }
 
-        /**
-         * @param string $email
-         * @return bool
-         */
         public function canReset(string $email): bool
         {
             return true;
@@ -104,11 +108,6 @@ beforeEach(function () {
     });
 
     app()->instance(PasswordResetUrlGeneratorContract::class, new class implements PasswordResetUrlGeneratorContract {
-        /**
-         * @param string $email
-         * @param string $token
-         * @return string
-         */
         public function make(string $email, string $token): string
         {
             return 'https://example.test/reset?email=' . urlencode($email) . '&token=' . urlencode($token);
@@ -120,10 +119,6 @@ it('privacy mode returns generic success when user does not exist and does not d
     Event::fake();
 
     app()->instance(PasswordResetUserResolverContract::class, new class implements PasswordResetUserResolverContract {
-        /**
-         * @param string $identityValue
-         * @return Authenticatable|null
-         */
         public function resolve(string $identityValue): ?Authenticatable
         {
             return null;
@@ -133,7 +128,11 @@ it('privacy mode returns generic success when user does not exist and does not d
     /** @var RequestPasswordResetAction $action */
     $action = app(RequestPasswordResetAction::class);
 
-    $result = $action->handle('missing@example.com');
+    $result = $action->handle(
+        MappedPayloadBuilder::build('password_forgot', [
+            'email' => 'missing@example.com',
+        ])
+    );
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
         ->and($result->ok)->toBeTrue()
@@ -156,15 +155,8 @@ it('privacy mode returns generic success when user exists creates pending presen
     ]);
 
     app()->instance(PasswordResetUserResolverContract::class, new class($user) implements PasswordResetUserResolverContract {
-        /**
-         * @param Authenticatable $user
-         */
         public function __construct(private Authenticatable $user) {}
 
-        /**
-         * @param string $identityValue
-         * @return Authenticatable|null
-         */
         public function resolve(string $identityValue): ?Authenticatable
         {
             return $this->user;
@@ -174,7 +166,11 @@ it('privacy mode returns generic success when user exists creates pending presen
     /** @var RequestPasswordResetAction $action */
     $action = app(RequestPasswordResetAction::class);
 
-    $result = $action->handle('jane@example.com');
+    $result = $action->handle(
+        MappedPayloadBuilder::build('password_forgot', [
+            'email' => 'jane@example.com',
+        ])
+    );
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
         ->and($result->ok)->toBeTrue()
@@ -204,10 +200,6 @@ it('non privacy mode returns explicit failure when user does not exist', functio
     config()->set('authkit.password_reset.privacy.hide_user_existence', false);
 
     app()->instance(PasswordResetUserResolverContract::class, new class implements PasswordResetUserResolverContract {
-        /**
-         * @param string $identityValue
-         * @return Authenticatable|null
-         */
         public function resolve(string $identityValue): ?Authenticatable
         {
             return null;
@@ -217,7 +209,11 @@ it('non privacy mode returns explicit failure when user does not exist', functio
     /** @var RequestPasswordResetAction $action */
     $action = app(RequestPasswordResetAction::class);
 
-    $result = $action->handle('missing@example.com');
+    $result = $action->handle(
+        MappedPayloadBuilder::build('password_forgot', [
+            'email' => 'missing@example.com',
+        ])
+    );
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
         ->and($result->ok)->toBeFalse()
@@ -243,15 +239,8 @@ it('non privacy mode returns explicit success and token page redirect when confi
     ]);
 
     app()->instance(PasswordResetUserResolverContract::class, new class($user) implements PasswordResetUserResolverContract {
-        /**
-         * @param Authenticatable $user
-         */
         public function __construct(private Authenticatable $user) {}
 
-        /**
-         * @param string $identityValue
-         * @return Authenticatable|null
-         */
         public function resolve(string $identityValue): ?Authenticatable
         {
             return $this->user;
@@ -261,7 +250,11 @@ it('non privacy mode returns explicit success and token page redirect when confi
     /** @var RequestPasswordResetAction $action */
     $action = app(RequestPasswordResetAction::class);
 
-    $result = $action->handle('jane@example.com');
+    $result = $action->handle(
+        MappedPayloadBuilder::build('password_forgot', [
+            'email' => 'jane@example.com',
+        ])
+    );
 
     expect($result)->toBeInstanceOf(AuthKitActionResult::class)
         ->and($result->ok)->toBeTrue()
@@ -275,11 +268,43 @@ it('non privacy mode returns explicit success and token page redirect when confi
     Event::assertDispatched(AuthKitPasswordResetRequested::class);
 });
 
-it('returns standardized DTO validation response for JSON forgot password requests', function () {
-    Route::post('/forgot-password', \Xul\AuthKit\Http\Controllers\Api\PasswordReset\ForgotPasswordController::class)
-        ->middleware(['web'])
-        ->name('authkit.api.password.forgot');
+it('persists mapper-approved forgot-password attributes when the resolved model supports mapped persistence', function () {
+    Event::fake();
 
+    config()->set('authkit.mappers.contexts.password_forgot.class', PersistingForgotPasswordMapper::class);
+
+    $user = ForgotPasswordControllerTest::query()->create([
+        'email' => 'persist-reset@example.com',
+        'password' => bcrypt('secret'),
+    ]);
+
+    app()->instance(PasswordResetUserResolverContract::class, new class($user) implements PasswordResetUserResolverContract {
+        public function __construct(private Authenticatable $user) {}
+
+        public function resolve(string $identityValue): ?Authenticatable
+        {
+            return $this->user;
+        }
+    });
+
+    /** @var RequestPasswordResetAction $action */
+    $action = app(RequestPasswordResetAction::class);
+
+    $result = $action->handle(
+        MappedPayloadBuilder::build('password_forgot', [
+            'email' => '  PERSIST-RESET@EXAMPLE.COM  ',
+        ])
+    );
+
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeTrue();
+
+    $user->refresh();
+
+    expect($user->last_reset_request_email)->toBe('persist-reset@example.com');
+});
+
+it('returns standardized DTO validation response for JSON forgot password requests', function () {
     $response = $this->postJson(route('authkit.api.password.forgot'), []);
 
     $response->assertStatus(422)
@@ -301,10 +326,6 @@ it('returns standardized DTO validation response for JSON forgot password reques
 });
 
 it('normalizes email before validation for JSON forgot password requests', function () {
-    Route::post('/forgot-password', \Xul\AuthKit\Http\Controllers\Api\PasswordReset\ForgotPasswordController::class)
-        ->middleware(['web'])
-        ->name('authkit.api.password.forgot');
-
     $response = $this->postJson(route('authkit.api.password.forgot'), [
         'email' => '  NOT-AN-EMAIL  ',
     ]);
@@ -321,3 +342,36 @@ it('normalizes email before validation for JSON forgot password requests', funct
     expect(collect($response->json('errors'))->pluck('field')->all())
         ->toBe(['email']);
 });
+
+/**
+ * PersistingForgotPasswordMapper
+ *
+ * Test-only mapper that keeps the package default forgot-password field while
+ * adding a persistable target sourced from the same validated input.
+ */
+final class PersistingForgotPasswordMapper extends AbstractPayloadMapper
+{
+    public function context(): string
+    {
+        return 'password_forgot';
+    }
+
+    public function mode(): string
+    {
+        return self::MODE_MERGE;
+    }
+
+    public function definitions(): array
+    {
+        return [
+            'email_persist' => [
+                'source' => 'email',
+                'target' => 'last_reset_request_email',
+                'bucket' => 'attributes',
+                'include' => true,
+                'persist' => true,
+                'transform' => 'lower_trim',
+            ],
+        ];
+    }
+}
