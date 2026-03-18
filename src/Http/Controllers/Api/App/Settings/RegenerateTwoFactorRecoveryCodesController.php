@@ -9,6 +9,7 @@ use Xul\AuthKit\Concerns\Http\ApiRespondsJson;
 use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\App\Settings\RegenerateTwoFactorRecoveryCodesRequest;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
 /**
@@ -19,6 +20,7 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Responsibilities:
  * - Validate the incoming request through RegenerateTwoFactorRecoveryCodesRequest.
+ * - Build the normalized mapped payload for the recovery-regeneration context.
  * - Delegate recovery-code regeneration business logic to
  *   RegenerateTwoFactorRecoveryCodesAction.
  * - Return JSON responses for API or AJAX consumers.
@@ -48,9 +50,14 @@ final class RegenerateTwoFactorRecoveryCodesController
         $guard = (string) config('authkit.auth.guard', 'web');
         $user = $request->user($guard);
 
+        $payload = MappedPayloadBuilder::build(
+            'two_factor_recovery_regenerate',
+            $request->validated()
+        );
+
         $result = $action->handle(
             user: $user,
-            data: $request->validated()
+            data: $payload
         );
 
         if (ResponseResolver::expectsJson($request)) {

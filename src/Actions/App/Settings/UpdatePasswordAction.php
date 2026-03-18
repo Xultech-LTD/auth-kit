@@ -6,6 +6,8 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Support\Facades\Hash;
+use Throwable;
+use Xul\AuthKit\Concerns\Actions\InteractsWithMappedPayload;
 use Xul\AuthKit\Contracts\PasswordReset\PasswordUpdaterContract;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
@@ -21,9 +23,12 @@ use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitRedirect;
  *
  * Responsibilities:
  * - Validate that the provided authenticated user is usable.
+ * - Read normalized password-update input from the mapped payload.
  * - Verify the submitted current password against the authenticated user.
- * - Persist the new password through the configured PasswordUpdaterContract.
  * - Optionally log out other devices when requested by the user.
+ * - Persist the new password through the configured PasswordUpdaterContract.
+ * - Persist mapper-approved attributes when the user model supports
+ *   AuthKit mapped persistence.
  * - Return a standardized AuthKitActionResult for both success and failure.
  *
  * Design notes:
@@ -37,6 +42,8 @@ use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitRedirect;
  */
 final class UpdatePasswordAction
 {
+    use InteractsWithMappedPayload;
+
     /**
      * Create a new instance.
      *
@@ -54,6 +61,7 @@ final class UpdatePasswordAction
      * @param  mixed  $user
      * @param  array<string, mixed>  $data
      * @return AuthKitActionResult
+     * @throws Throwable
      */
     public function handle(mixed $user, array $data): AuthKitActionResult
     {
@@ -69,9 +77,12 @@ final class UpdatePasswordAction
             );
         }
 
-        $currentPassword = (string) ($data['current_password'] ?? '');
-        $newPassword = (string) ($data['password'] ?? '');
-        $logoutOtherDevices = (bool) ($data['logout_other_devices'] ?? false);
+        $attributes = $this->payloadAttributes($data);
+        $options = $this->payloadOptions($data);
+
+        $currentPassword = (string) ($attributes['current_password'] ?? '');
+        $newPassword = (string) ($attributes['password'] ?? '');
+        $logoutOtherDevices = (bool) ($options['logout_other_devices'] ?? false);
 
         $existingHash = (string) $user->getAuthPassword();
 
@@ -94,6 +105,13 @@ final class UpdatePasswordAction
             );
         }
 
+        /**
+         * Important ordering:
+         *
+         * Laravel's logoutOtherDevices() expects the currently valid password
+         * for the authenticated session. This must happen before the password
+         * hash is changed, otherwise the guard may reject the old password.
+         */
         if ($logoutOtherDevices) {
             $this->logoutOtherDevices($currentPassword);
         }
@@ -105,6 +123,15 @@ final class UpdatePasswordAction
         );
 
         $this->updater->update($user, $newPassword, $refreshRememberToken);
+
+        /**
+         * Intentionally persistence-aware.
+         *
+         * Password-update fields are non-persistable by default, but this call
+         * remains so consumers may extend the mapper and opt specific fields into
+         * persistence on models that support AuthKit mapped persistence.
+         */
+        $this->persistMappedAttributesIfSupported($user, 'password_update', $data);
 
         return AuthKitActionResult::success(
             message: $logoutOtherDevices

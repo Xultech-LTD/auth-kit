@@ -116,21 +116,6 @@ Route::middleware(array_values(array_filter(array_merge(
                 ->name((string) ($apiNames['two_factor_recovery_regenerate'] ?? 'authkit.api.settings.two_factor.recovery.regenerate'));
 
             /**
-             * Logout other sessions action.
-             *
-             * Invalidates the user's other active sessions while preserving the
-             * current authenticated session.
-             */
-            Route::post(
-                '/settings/sessions/logout-other/process',
-                ControllerResolver::resolve('api', 'sessions_logout_other', LogoutOtherSessionsController::class)
-            )
-                ->middleware(array_values(array_filter([
-                    $throttle->middlewareFor('sessions_logout_other'),
-                ])))
-                ->name((string) ($apiNames['sessions_logout_other'] ?? 'authkit.api.settings.sessions.logout_other'));
-
-            /**
              * Password confirmation action.
              *
              * Confirms the current authenticated user's password as part of a

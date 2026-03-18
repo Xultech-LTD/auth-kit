@@ -5,6 +5,7 @@ namespace Xul\AuthKit\Actions\App\Settings;
 use Illuminate\Support\Carbon;
 use RuntimeException;
 use Throwable;
+use Xul\AuthKit\Concerns\Actions\InteractsWithMappedPayload;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitFlowStep;
@@ -20,10 +21,13 @@ use Xul\AuthKit\Support\TwoFactor\TwoFactorManager;
  *
  * Responsibilities:
  * - Resolve the active two-factor driver through TwoFactorManager.
+ * - Read normalized setup-confirmation input from the mapped attributes bucket.
  * - Verify the submitted code against the active driver.
  * - Generate a fresh set of recovery codes after successful confirmation.
  * - Persist enabled state, confirmed timestamp, configured methods, and
  *   recovery codes onto the user model.
+ * - Persist mapper-approved attributes when the user model supports
+ *   AuthKit mapped persistence.
  * - Flash recovery codes for standard web flows so the next page can display
  *   them for download or safe storage.
  * - Return a standardized AuthKitActionResult for both success and failure.
@@ -38,6 +42,8 @@ use Xul\AuthKit\Support\TwoFactor\TwoFactorManager;
  */
 final class ConfirmTwoFactorSetupAction
 {
+    use InteractsWithMappedPayload;
+
     /**
      * Create a new instance.
      *
@@ -68,7 +74,8 @@ final class ConfirmTwoFactorSetupAction
             );
         }
 
-        $code = trim((string) ($data['code'] ?? ''));
+        $attributes = $this->payloadAttributes($data);
+        $code = trim((string) ($attributes['code'] ?? ''));
 
         if ($code === '') {
             return AuthKitActionResult::validationFailure(
@@ -85,7 +92,7 @@ final class ConfirmTwoFactorSetupAction
 
         try {
             $driver = $this->twoFactor->driver();
-        } catch (Throwable $e) {
+        } catch (Throwable) {
             return AuthKitActionResult::failure(
                 message: 'Two-factor driver could not be resolved.',
                 status: 500,
@@ -103,7 +110,11 @@ final class ConfirmTwoFactorSetupAction
                 status: 422,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::validation('code', 'The provided authentication code is invalid.', 'invalid_two_factor_code'),
+                    AuthKitError::validation(
+                        'code',
+                        'The provided authentication code is invalid.',
+                        'invalid_two_factor_code'
+                    ),
                 ],
                 redirect: $this->settingsRedirect(),
                 payload: AuthKitPublicPayload::withFields([
@@ -122,12 +133,22 @@ final class ConfirmTwoFactorSetupAction
         );
 
         /**
-         * Flash the newly generated plaintext recovery codes for redirect-based
-         * web flows. This allows the destination page to present them once for
-         * download or safe storage without pushing that responsibility into the
-         * controller layer.
+         * Intentionally persistence-aware.
+         *
+         * Confirm-two-factor-setup does not persist mapped fields by default
+         * because the packaged mapper marks them as non-persistable. This call
+         * remains here so consumer-supplied mapper extensions can persist extra
+         * attributes without replacing the action.
          */
-        session()->flash('authkit.two_factor.recovery_codes', $recoveryCodes);
+        $this->persistMappedAttributesIfSupported($user, 'two_factor_confirm', $data);
+
+        $flashKey = (string) data_get(
+            config('authkit.two_factor.recovery_codes', []),
+            'flash_key',
+            'authkit.two_factor.recovery_codes'
+        );
+
+        session()->flash($flashKey, $recoveryCodes);
 
         $responseKey = (string) data_get(
             config('authkit.two_factor.recovery_codes', []),
@@ -249,9 +270,6 @@ final class ConfirmTwoFactorSetupAction
         $recoveryColumn = (string) config('authkit.two_factor.columns.recovery_codes', 'two_factor_recovery_codes');
         $confirmedAtColumn = (string) config('authkit.two_factor.columns.confirmed_at', 'two_factor_confirmed_at');
 
-        /**
-         * Enable two-factor using the model's preferred API when available.
-         */
         if (method_exists($user, 'enableTwoFactor')) {
             $user->enableTwoFactor();
         } elseif (method_exists($user, 'setAttribute')) {
@@ -260,9 +278,6 @@ final class ConfirmTwoFactorSetupAction
             data_set($user, $enabledColumn, true);
         }
 
-        /**
-         * Persist methods using the model's preferred API when available.
-         */
         if (method_exists($user, 'setTwoFactorMethods')) {
             $user->setTwoFactorMethods($methods);
         } elseif (method_exists($user, 'setAttribute')) {
@@ -271,12 +286,6 @@ final class ConfirmTwoFactorSetupAction
             data_set($user, $methodsColumn, $methods);
         }
 
-        /**
-         * Persist recovery codes using the model's preferred API when available.
-         *
-         * When the HasAuthKitTwoFactor trait is present, this will automatically
-         * honor the configured hashing behavior.
-         */
         if (method_exists($user, 'setTwoFactorRecoveryCodes')) {
             $user->setTwoFactorRecoveryCodes($recoveryCodes);
         } elseif (method_exists($user, 'setAttribute')) {
@@ -285,9 +294,6 @@ final class ConfirmTwoFactorSetupAction
             data_set($user, $recoveryColumn, $recoveryCodes);
         }
 
-        /**
-         * Persist the confirmation timestamp.
-         */
         if ($confirmedAtColumn !== '') {
             $value = Carbon::now();
 

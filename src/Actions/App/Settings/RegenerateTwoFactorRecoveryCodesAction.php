@@ -4,6 +4,7 @@ namespace Xul\AuthKit\Actions\App\Settings;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 use Throwable;
+use Xul\AuthKit\Concerns\Actions\InteractsWithMappedPayload;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitFlowStep;
@@ -22,9 +23,12 @@ use Xul\AuthKit\Support\TwoFactor\TwoFactorManager;
  * - Resolve the active two-factor driver through TwoFactorManager so consumer
  *   driver overrides remain respected.
  * - Confirm that two-factor authentication is enabled for the current user.
+ * - Read the submitted authenticator code from the normalized mapped payload.
  * - Verify the submitted authenticator code before allowing regeneration.
  * - Generate a fresh set of recovery codes through the active driver.
  * - Persist the new recovery codes through the user model's AuthKit trait API.
+ * - Persist mapper-approved attributes when the user model supports mapped persistence.
+ * - Flash newly generated plaintext recovery codes for redirect-based flows.
  * - Return a standardized AuthKitActionResult for both success and failure.
  *
  * Design notes:
@@ -38,6 +42,8 @@ use Xul\AuthKit\Support\TwoFactor\TwoFactorManager;
  */
 final class RegenerateTwoFactorRecoveryCodesAction
 {
+    use InteractsWithMappedPayload;
+
     /**
      * Create a new instance.
      *
@@ -68,7 +74,8 @@ final class RegenerateTwoFactorRecoveryCodesAction
             );
         }
 
-        $code = trim((string) ($data['code'] ?? ''));
+        $attributes = $this->payloadAttributes($data);
+        $code = trim((string) ($attributes['code'] ?? ''));
 
         try {
             $driver = $this->manager->driver();
@@ -130,12 +137,26 @@ final class RegenerateTwoFactorRecoveryCodesAction
                 data_set($user, $column, $recoveryCodes);
             }
 
+            /**
+             * Persistence-aware hook for consumer-extended mappers.
+             *
+             * The packaged mapper does not persist any fields by default, but this
+             * call allows consumers to mark mapped attributes as persistable
+             * without modifying the packaged action.
+             */
+            $this->persistMappedAttributesIfSupported($user, 'two_factor_recovery_regenerate', $data);
+
             if (method_exists($user, 'save')) {
                 $user->save();
             }
 
-            session()->flash('authkit.two_factor.recovery_codes', $recoveryCodes);
+            $flashKey = (string) data_get(
+                config('authkit.two_factor.recovery_codes', []),
+                'flash_key',
+                'authkit.two_factor.recovery_codes'
+            );
 
+            session()->flash($flashKey, $recoveryCodes);
         } catch (Throwable $e) {
             report($e);
 

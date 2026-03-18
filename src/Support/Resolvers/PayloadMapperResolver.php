@@ -6,6 +6,9 @@ use InvalidArgumentException;
 use Xul\AuthKit\Contracts\Mappers\PayloadMapperContract;
 use Xul\AuthKit\Support\Mappers\App\Confirmations\ConfirmPasswordPayloadMapper;
 use Xul\AuthKit\Support\Mappers\App\Confirmations\ConfirmTwoFactorPayloadMapper;
+use Xul\AuthKit\Support\Mappers\App\Settings\ConfirmTwoFactorSetupPayloadMapper;
+use Xul\AuthKit\Support\Mappers\App\Settings\DisableTwoFactorPayloadMapper;
+use Xul\AuthKit\Support\Mappers\App\Settings\RegenerateTwoFactorRecoveryCodesPayloadMapper;
 use Xul\AuthKit\Support\Mappers\Auth\LoginPayloadMapper;
 use Xul\AuthKit\Support\Mappers\Auth\RegisterPayloadMapper;
 use Xul\AuthKit\Support\Mappers\Auth\TwoFactorChallengePayloadMapper;
@@ -16,6 +19,7 @@ use Xul\AuthKit\Support\Mappers\EmailVerification\VerifyEmailTokenPayloadMapper;
 use Xul\AuthKit\Support\Mappers\PasswordReset\ForgotPasswordPayloadMapper;
 use Xul\AuthKit\Support\Mappers\PasswordReset\ResetPasswordPayloadMapper;
 use Xul\AuthKit\Support\Mappers\PasswordReset\VerifyPasswordResetTokenPayloadMapper;
+use Xul\AuthKit\Support\Mappers\App\Settings\UpdatePasswordPayloadMapper;
 
 /**
  * PayloadMapperResolver
@@ -201,6 +205,10 @@ final class PayloadMapperResolver
             'password_reset_token' => VerifyPasswordResetTokenPayloadMapper::class,
             'confirm_password' => ConfirmPasswordPayloadMapper::class,
             'confirm_two_factor' => ConfirmTwoFactorPayloadMapper::class,
+            'password_update' => UpdatePasswordPayloadMapper::class,
+            'two_factor_recovery_regenerate' => RegenerateTwoFactorRecoveryCodesPayloadMapper::class,
+            'two_factor_disable' => DisableTwoFactorPayloadMapper::class,
+            'two_factor_confirm' => ConfirmTwoFactorSetupPayloadMapper::class,
             default => null,
         };
     }

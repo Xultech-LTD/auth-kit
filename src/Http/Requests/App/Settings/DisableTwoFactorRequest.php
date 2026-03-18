@@ -12,8 +12,9 @@ use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
  * Validates the authenticated two-factor disable form.
  *
  * Responsibilities:
- * - Resolve the canonical AuthKit schema for the disable context.
- * - Support both authenticator-code and recovery-code disable flows.
+ * - Resolve the canonical AuthKit schema for the disable-two-factor context.
+ * - Support both authenticator-code and recovery-code disable flows on the
+ *   same endpoint.
  * - Build default rules from the configured schema.
  * - Allow consumer-defined validation providers to override or extend the
  *   packaged defaults without editing package source.
@@ -21,8 +22,11 @@ use Xul\AuthKit\Support\Resolvers\RulesProviderResolver;
  * Notes:
  * - This request is schema-driven so consumer schema customization remains
  *   aligned with request validation.
- * - Business rules such as actual driver verification, recovery-code
- *   consumption, and state persistence are handled by the action, not here.
+ * - Transport validation intentionally keeps both credential fields optional.
+ * - The business rule that at least one credential must be supplied is handled
+ *   by the action, not by this request.
+ * - Actual driver verification, recovery-code consumption, and state
+ *   persistence are also handled by the action layer.
  */
 final class DisableTwoFactorRequest extends AuthKitFormRequest
 {
@@ -125,19 +129,16 @@ final class DisableTwoFactorRequest extends AuthKitFormRequest
     }
 
     /**
-     * Resolve the schema/validation context for the submitted disable flow.
+     * Resolve the schema/validation context for the disable flow.
+     *
+     * This endpoint supports both authenticator-code and recovery-code disable
+     * submissions through the same action, so the request always resolves the
+     * same canonical context.
      *
      * @return string
      */
     protected function context(): string
     {
-        $recoveryCode = trim((string) $this->input('recovery_code', ''));
-        $mode = trim((string) $this->input('mode', ''));
-
-        if ($recoveryCode !== '' || $mode === 'recovery') {
-            return 'two_factor_disable_recovery';
-        }
-
         return 'two_factor_disable';
     }
 
@@ -168,7 +169,12 @@ final class DisableTwoFactorRequest extends AuthKitFormRequest
     }
 
     /**
-     * Build the packaged default rules for the active disable form.
+     * Build the packaged default rules for the disable-two-factor flow.
+     *
+     * Important behavior:
+     * - code is optional at request-validation level
+     * - recovery_code is optional at request-validation level
+     * - the action enforces that at least one credential is provided
      *
      * @param  array<int, string>  $fields
      * @return array<string, mixed>
@@ -178,11 +184,11 @@ final class DisableTwoFactorRequest extends AuthKitFormRequest
         $rules = [];
 
         if (in_array('code', $fields, true)) {
-            $rules['code'] = ['required', 'string'];
+            $rules['code'] = ['nullable', 'string'];
         }
 
         if (in_array('recovery_code', $fields, true)) {
-            $rules['recovery_code'] = ['required', 'string'];
+            $rules['recovery_code'] = ['nullable', 'string'];
         }
 
         return $rules;

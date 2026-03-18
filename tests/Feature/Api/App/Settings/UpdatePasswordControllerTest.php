@@ -32,6 +32,7 @@ beforeEach(function (): void {
         $table->json('two_factor_recovery_codes')->nullable();
         $table->json('two_factor_methods')->nullable();
         $table->timestamp('email_verified_at')->nullable();
+        $table->string('last_password_update_current_password')->nullable();
         $table->timestamps();
     });
 
@@ -282,6 +283,31 @@ it('does not update the password when the current password is incorrect', functi
         ->and(Hash::check('new-password-123', $user->password))->toBeFalse();
 });
 
+it('persists mapper-approved password update attributes when the model supports mapped persistence', function (): void {
+    Config::set('authkit.mappers.contexts.password_update.class', PersistingUpdatePasswordMapper::class);
+
+    $user = UpdatePasswordControllerTestUser::query()->create([
+        'name' => 'Michael',
+        'email' => 'michael@example.com',
+        'password' => Hash::make('old-password'),
+        'email_verified_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($user, 'web')
+        ->postJson(route('authkit.api.settings.password.update'), [
+            'current_password' => '  old-password  ',
+            'password' => 'new-password-123Me!',
+            'password_confirmation' => 'new-password-123Me!',
+            'logout_other_devices' => true,
+        ]);
+
+    $response->assertOk();
+
+    $user->refresh();
+
+    expect($user->last_password_update_current_password)->toBe('old-password');
+});
 /**
  * UpdatePasswordControllerTestUser
  *
@@ -290,6 +316,7 @@ it('does not update the password when the current password is incorrect', functi
 final class UpdatePasswordControllerTestUser extends BaseUser
 {
     use HasAuthKitTwoFactor;
+    use \Xul\AuthKit\Concerns\Model\HasAuthKitMappedPersistence;
 
     /**
      * @var string
@@ -315,4 +342,55 @@ final class UpdatePasswordControllerTestUser extends BaseUser
         'two_factor_recovery_codes' => 'array',
         'two_factor_methods' => 'array',
     ];
+}
+
+use Xul\AuthKit\Support\Mappers\AbstractPayloadMapper;
+/**
+ * PersistingUpdatePasswordMapper
+ *
+ * Test-only mapper that marks password-update attributes as persistable.
+ */
+final class PersistingUpdatePasswordMapper extends AbstractPayloadMapper
+{
+    /**
+     * Return the logical mapper context.
+     *
+     * @return string
+     */
+    public function context(): string
+    {
+        return 'password_update';
+    }
+
+    /**
+     * Merge this mapper with the package default password-update mapper.
+     *
+     * This allows the packaged default fields to remain intact while adding
+     * a persistence-aware mapping for test verification.
+     *
+     * @return string
+     */
+    public function mode(): string
+    {
+        return self::MODE_MERGE;
+    }
+
+    /**
+     * Return mapper definitions added on top of the package default mapper.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function definitions(): array
+    {
+        return [
+            'current_password_persist' => [
+                'source' => 'current_password',
+                'target' => 'last_password_update_current_password',
+                'bucket' => 'attributes',
+                'include' => true,
+                'persist' => true,
+                'transform' => 'trim',
+            ],
+        ];
+    }
 }

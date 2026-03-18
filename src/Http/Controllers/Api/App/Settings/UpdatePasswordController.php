@@ -9,6 +9,7 @@ use Xul\AuthKit\Concerns\Http\ApiRespondsJson;
 use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\App\Settings\UpdatePasswordRequest;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
 /**
@@ -19,6 +20,7 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Responsibilities:
  * - Validate the incoming request through UpdatePasswordRequest.
+ * - Build the normalized mapped payload for the password-update context.
  * - Delegate password-update business logic to UpdatePasswordAction.
  * - Return JSON responses for API or AJAX consumers.
  * - Return redirect responses with flash messages for standard web consumers.
@@ -49,9 +51,11 @@ final class UpdatePasswordController
         $guard = (string) config('authkit.auth.guard', 'web');
         $user = $request->user($guard);
 
+        $payload = MappedPayloadBuilder::build('password_update', $request->validated());
+
         $result = $action->handle(
             user: $user,
-            data: $request->validated()
+            data: $payload
         );
 
         if (ResponseResolver::expectsJson($request)) {

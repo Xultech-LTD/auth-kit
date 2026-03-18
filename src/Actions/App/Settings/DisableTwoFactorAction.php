@@ -4,6 +4,7 @@ namespace Xul\AuthKit\Actions\App\Settings;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 use Throwable;
+use Xul\AuthKit\Concerns\Actions\InteractsWithMappedPayload;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitFlowStep;
@@ -22,10 +23,12 @@ use Xul\AuthKit\Support\TwoFactor\TwoFactorManager;
  * - Resolve the active two-factor driver through TwoFactorManager so consumer
  *   driver overrides remain respected.
  * - Confirm that two-factor authentication is enabled for the current user.
+ * - Read disable credentials from the normalized mapped payload.
  * - Accept either an authenticator code or recovery code as the confirmation
  *   credential for disabling two-factor.
  * - Verify the submitted credential through the active driver.
  * - Consume the submitted recovery code when that path is used.
+ * - Persist mapper-approved attributes when the user model supports mapped persistence.
  * - Disable two-factor and clear related user state.
  * - Return a standardized AuthKitActionResult for both success and failure.
  *
@@ -40,6 +43,8 @@ use Xul\AuthKit\Support\TwoFactor\TwoFactorManager;
  */
 final class DisableTwoFactorAction
 {
+    use InteractsWithMappedPayload;
+
     /**
      * Create a new instance.
      *
@@ -70,8 +75,10 @@ final class DisableTwoFactorAction
             );
         }
 
-        $code = trim((string) ($data['code'] ?? ''));
-        $recoveryCode = trim((string) ($data['recovery_code'] ?? ''));
+        $attributes = $this->payloadAttributes($data);
+
+        $code = trim((string) ($attributes['code'] ?? ''));
+        $recoveryCode = trim((string) ($attributes['recovery_code'] ?? ''));
 
         try {
             $driver = $this->manager->driver();
@@ -170,6 +177,15 @@ final class DisableTwoFactorAction
         }
 
         try {
+            /**
+             * Intentionally persistence-aware.
+             *
+             * The packaged disable-two-factor mapper does not persist fields by default.
+             * This hook remains so consumer-defined mappers may mark one or more
+             * disable-flow attributes as persistable for audit or analytics purposes.
+             */
+            $this->persistMappedAttributesIfSupported($user, 'two_factor_disable', $data);
+
             $this->disableTwoFactorState($user);
         } catch (Throwable $e) {
             report($e);

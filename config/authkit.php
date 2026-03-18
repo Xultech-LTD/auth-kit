@@ -384,8 +384,6 @@ return [
             'two_factor_disable' => 'authkit.api.settings.two_factor.disable',
             'two_factor_recovery_regenerate' => 'authkit.api.settings.two_factor.recovery.regenerate',
 
-            'sessions_logout_other' => 'authkit.api.settings.sessions.logout_other',
-
             /**
              * Authenticated confirmation actions.
              *
@@ -501,7 +499,6 @@ return [
             'two_factor_disable' => \Xul\AuthKit\Http\Controllers\Api\App\Settings\DisableTwoFactorController::class,
             'two_factor_recovery_regenerate' => \Xul\AuthKit\Http\Controllers\Api\App\Settings\RegenerateTwoFactorRecoveryCodesController::class,
 
-            'sessions_logout_other' => \Xul\AuthKit\Http\Controllers\Api\App\Settings\LogoutOtherSessionsController::class,
 
             /**
              * Authenticated confirmation action controllers.
@@ -585,11 +582,9 @@ return [
              *   without editing package code when forms are introduced or expanded.
              */
             'password_update' => null,
-            'two_factor_enable' => null,
             'two_factor_confirm' => null,
             'two_factor_disable' => null,
             'two_factor_recovery_regenerate' => null,
-            'sessions_logout_other' => null,
         ],
     ],
 
@@ -671,10 +666,6 @@ return [
                 'class' => null,
                 'schema' => 'password_update',
             ],
-            'two_factor_enable' => [
-                'class' => null,
-                'schema' => null,
-            ],
             'two_factor_confirm' => [
                 'class' => null,
                 'schema' => 'two_factor_confirm',
@@ -690,10 +681,6 @@ return [
             'two_factor_recovery_regenerate' => [
                 'class' => null,
                 'schema' => 'two_factor_recovery_regenerate',
-            ],
-            'sessions_logout_other' => [
-                'class' => null,
-                'schema' => null,
             ],
         ],
     ],
@@ -2716,11 +2703,9 @@ return [
              * from AuthKit's authenticated application area.
              */
             'password_update' => 'authkit.settings.password.update',
-            'two_factor_enable' => 'authkit.settings.two_factor.enable',
             'two_factor_confirm' => 'authkit.settings.two_factor.confirm',
             'two_factor_disable' => 'authkit.settings.two_factor.disable',
             'two_factor_recovery_regenerate' => 'authkit.settings.two_factor.recovery.regenerate',
-            'sessions_logout_other' => 'authkit.settings.sessions.logout_other',
         ],
 
         /**
@@ -2768,11 +2753,9 @@ return [
              * default dual-bucket strategy remains appropriate.
              */
             'password_update' => 'dual',
-            'two_factor_enable' => 'dual',
             'two_factor_confirm' => 'dual',
             'two_factor_disable' => 'dual',
             'two_factor_recovery_regenerate' => 'dual',
-            'sessions_logout_other' => 'dual',
         ],
 
         /**
@@ -2948,22 +2931,6 @@ return [
             ],
 
             /**
-             * Two-factor enable attempts.
-             *
-             * Threat model:
-             * - repeated setup abuse
-             * - resource abuse against setup endpoints
-             *
-             * Notes:
-             * - This endpoint is usually lower risk than code verification,
-             *   but should still be throttled.
-             */
-            'two_factor_enable' => [
-                'per_ip' => ['attempts' => 6, 'decay_minutes' => 1],
-                'per_identity' => ['attempts' => 3, 'decay_minutes' => 1],
-            ],
-
-            /**
              * Two-factor setup confirmation attempts.
              *
              * Threat model:
@@ -3003,21 +2970,6 @@ return [
             'two_factor_recovery_regenerate' => [
                 'per_ip' => ['attempts' => 4, 'decay_minutes' => 1],
                 'per_identity' => ['attempts' => 2, 'decay_minutes' => 1],
-            ],
-
-            /**
-             * Logout-other-sessions attempts.
-             *
-             * Threat model:
-             * - repeated state-changing abuse against session management
-             *
-             * Notes:
-             * - This endpoint is not usually brute-force sensitive, but throttling
-             *   still helps reduce unnecessary abuse and repeated session churn.
-             */
-            'sessions_logout_other' => [
-                'per_ip' => ['attempts' => 6, 'decay_minutes' => 1],
-                'per_identity' => ['attempts' => 3, 'decay_minutes' => 1],
             ],
         ],
 

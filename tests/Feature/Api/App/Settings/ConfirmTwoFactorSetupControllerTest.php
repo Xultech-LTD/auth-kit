@@ -1,16 +1,20 @@
 <?php
-// file: tests/Feature/Api/App/Settings/RegenerateTwoFactorRecoveryCodesControllerTest.php
+// file: tests/Feature/Api/App/Settings/ConfirmTwoFactorSetupControllerTest.php
 
 namespace Xul\AuthKit\Tests\Feature\Api\App\Settings;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Auth\User as BaseUser;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use Xul\AuthKit\Actions\App\Settings\ConfirmTwoFactorSetupAction;
 use Xul\AuthKit\Concerns\Model\HasAuthKitMappedPersistence;
 use Xul\AuthKit\Concerns\Model\HasAuthKitTwoFactor;
+use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Support\Mappers\AbstractPayloadMapper;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -32,8 +36,9 @@ beforeEach(function (): void {
         $table->text('two_factor_secret')->nullable();
         $table->json('two_factor_recovery_codes')->nullable();
         $table->json('two_factor_methods')->nullable();
+        $table->timestamp('two_factor_confirmed_at')->nullable();
+        $table->string('last_confirm_two_factor_setup_code')->nullable();
         $table->timestamp('email_verified_at')->nullable();
-        $table->string('last_regenerated_recovery_code_input')->nullable();
         $table->timestamps();
     });
 
@@ -44,17 +49,17 @@ beforeEach(function (): void {
     ]);
     Config::set('auth.providers.users', [
         'driver' => 'eloquent',
-        'model' => RegenerateRecoveryCodesTestUser::class,
+        'model' => ConfirmTwoFactorSetupTestUser::class,
     ]);
 
     Config::set('authkit.auth.guard', 'web');
 
     Config::set('authkit.route_names.web.two_factor_settings', 'authkit.web.settings.two_factor');
-    Config::set('authkit.route_names.api.two_factor_recovery_regenerate', 'authkit.api.settings.two_factor.recovery.regenerate');
+    Config::set('authkit.route_names.api.two_factor_confirm', 'authkit.api.settings.two_factor.confirm');
 
-    Config::set('authkit.schemas.two_factor_recovery_regenerate', [
+    Config::set('authkit.schemas.two_factor_confirm', [
         'submit' => [
-            'label' => 'Regenerate',
+            'label' => 'Confirm setup',
         ],
         'fields' => [
             'code' => [
@@ -65,10 +70,11 @@ beforeEach(function (): void {
         ],
     ]);
 
-    Config::set('authkit.validation.providers.two_factor_recovery_regenerate', null);
+    Config::set('authkit.validation.providers.two_factor_confirm', null);
 
     Config::set('authkit.two_factor.enabled', true);
     Config::set('authkit.two_factor.driver', 'totp');
+    Config::set('authkit.two_factor.methods', ['totp']);
     Config::set('authkit.two_factor.drivers', [
         'totp' => \Xul\AuthKit\Support\TwoFactor\Drivers\TotpTwoFactorDriver::class,
     ]);
@@ -77,6 +83,7 @@ beforeEach(function (): void {
     Config::set('authkit.two_factor.columns.secret', 'two_factor_secret');
     Config::set('authkit.two_factor.columns.recovery_codes', 'two_factor_recovery_codes');
     Config::set('authkit.two_factor.columns.methods', 'two_factor_methods');
+    Config::set('authkit.two_factor.columns.confirmed_at', 'two_factor_confirmed_at');
 
     Config::set('authkit.two_factor.recovery_codes.flash_key', 'authkit.two_factor.recovery_codes');
     Config::set('authkit.two_factor.recovery_codes.response_key', 'recovery_codes');
@@ -86,11 +93,11 @@ beforeEach(function (): void {
             ->name('authkit.web.settings.two_factor');
 
         Route::post(
-            '/authkit/settings/two-factor/recovery/regenerate',
-            \Xul\AuthKit\Http\Controllers\Api\App\Settings\RegenerateTwoFactorRecoveryCodesController::class
+            '/authkit/settings/two-factor/confirm',
+            \Xul\AuthKit\Http\Controllers\Api\App\Settings\ConfirmTwoFactorSetupController::class
         )
             ->middleware('auth:web')
-            ->name('authkit.api.settings.two_factor.recovery.regenerate');
+            ->name('authkit.api.settings.two_factor.confirm');
     });
 
     $this->app->bind(\Xul\AuthKit\Support\TwoFactor\Drivers\TotpTwoFactorDriver::class, function () {
@@ -142,40 +149,51 @@ beforeEach(function (): void {
     });
 });
 
-it('regenerates recovery codes and redirects for normal web request', function (): void {
-    $user = RegenerateRecoveryCodesTestUser::query()->create([
+it('confirms two-factor setup and redirects for normal web requests', function (): void {
+    $user = ConfirmTwoFactorSetupTestUser::query()->create([
         'email' => 'michael@example.com',
-        'two_factor_enabled' => true,
-        'two_factor_secret' => encrypt('JBSWY3DPEHPK3PXP'),
+        'password' => Hash::make('secret123'),
+        'two_factor_enabled' => false,
+        'two_factor_secret' => 'encrypted-secret',
+        'two_factor_methods' => [],
+        'two_factor_recovery_codes' => [],
+        'two_factor_confirmed_at' => null,
     ]);
 
     $response = $this
         ->actingAs($user, 'web')
         ->from(route('authkit.web.settings.two_factor'))
-        ->post(route('authkit.api.settings.two_factor.recovery.regenerate'), [
+        ->post(route('authkit.api.settings.two_factor.confirm'), [
             'code' => '123456',
         ]);
 
     $response
         ->assertRedirect(route('authkit.web.settings.two_factor'))
-        ->assertSessionHas('status', 'Recovery codes regenerated successfully.')
+        ->assertSessionHas('status', 'Two-factor authentication has been enabled. Save your recovery codes in a secure location.')
         ->assertSessionHas('authkit.two_factor.recovery_codes');
 
     $user->refresh();
 
-    expect($user->two_factor_recovery_codes)->not->toBeNull();
+    expect($user->two_factor_enabled)->toBeTrue()
+        ->and($user->two_factor_methods)->toBe(['totp'])
+        ->and($user->two_factor_confirmed_at)->not->toBeNull()
+        ->and($user->two_factor_recovery_codes)->toBeArray();
 });
 
-it('returns standardized json response when regeneration succeeds', function (): void {
-    $user = RegenerateRecoveryCodesTestUser::query()->create([
+it('returns standardized json response when setup confirmation succeeds', function (): void {
+    $user = ConfirmTwoFactorSetupTestUser::query()->create([
         'email' => 'michael@example.com',
-        'two_factor_enabled' => true,
-        'two_factor_secret' => encrypt('JBSWY3DPEHPK3PXP'),
+        'password' => Hash::make('secret123'),
+        'two_factor_enabled' => false,
+        'two_factor_secret' => 'encrypted-secret',
+        'two_factor_methods' => [],
+        'two_factor_recovery_codes' => [],
+        'two_factor_confirmed_at' => null,
     ]);
 
     $response = $this
         ->actingAs($user, 'web')
-        ->postJson(route('authkit.api.settings.two_factor.recovery.regenerate'), [
+        ->postJson(route('authkit.api.settings.two_factor.confirm'), [
             'code' => '123456',
         ]);
 
@@ -184,24 +202,65 @@ it('returns standardized json response when regeneration succeeds', function ():
         ->assertJson([
             'ok' => true,
             'status' => 200,
-            'message' => 'Recovery codes regenerated successfully.',
+            'message' => 'Two-factor authentication has been enabled. Save your recovery codes in a secure location.',
         ])
         ->assertJsonPath('flow.name', 'completed')
-        ->assertJsonPath('payload.regenerated', true);
+        ->assertJsonPath('payload.confirmed', true)
+        ->assertJsonPath('payload.methods.0', 'totp');
 
-    expect($response->json('payload.recovery_codes'))->toBeArray()
-        ->and(count($response->json('payload.recovery_codes')))->toBe(8);
+    expect($response->json('payload.recovery_codes'))->toBeArray();
+
+    $user->refresh();
+
+    expect($user->two_factor_enabled)->toBeTrue()
+        ->and($user->two_factor_methods)->toBe(['totp'])
+        ->and($user->two_factor_confirmed_at)->not->toBeNull();
 });
 
-it('returns validation error when code is missing', function (): void {
-    $user = RegenerateRecoveryCodesTestUser::query()->create([
+it('returns standardized action result for valid confirm-two-factor-setup flow', function (): void {
+    $user = ConfirmTwoFactorSetupTestUser::query()->create([
         'email' => 'michael@example.com',
-        'two_factor_enabled' => true,
+        'password' => Hash::make('secret123'),
+        'two_factor_enabled' => false,
+        'two_factor_secret' => 'encrypted-secret',
+        'two_factor_methods' => [],
+        'two_factor_recovery_codes' => [],
+        'two_factor_confirmed_at' => null,
+    ]);
+
+    /** @var ConfirmTwoFactorSetupAction $action */
+    $action = app(ConfirmTwoFactorSetupAction::class);
+
+    $result = $action->handle(
+        user: $user,
+        data: MappedPayloadBuilder::build('two_factor_confirm', [
+            'code' => '123456',
+        ])
+    );
+
+    expect($result)->toBeInstanceOf(AuthKitActionResult::class)
+        ->and($result->ok)->toBeTrue()
+        ->and($result->status)->toBe(200)
+        ->and($result->flow?->is('completed'))->toBeTrue()
+        ->and($result->payload?->get('confirmed'))->toBeTrue()
+        ->and($result->payload?->get('methods'))->toBe(['totp'])
+        ->and($result->payload?->get('recovery_codes'))->toBeArray();
+
+    $user->refresh();
+
+    expect($user->two_factor_enabled)->toBeTrue();
+});
+
+it('returns validation failure when code is missing', function (): void {
+    $user = ConfirmTwoFactorSetupTestUser::query()->create([
+        'email' => 'michael@example.com',
+        'password' => Hash::make('secret123'),
+        'two_factor_secret' => 'encrypted-secret',
     ]);
 
     $response = $this
         ->actingAs($user, 'web')
-        ->postJson(route('authkit.api.settings.two_factor.recovery.regenerate'), []);
+        ->postJson(route('authkit.api.settings.two_factor.confirm'), []);
 
     $response
         ->assertStatus(422)
@@ -209,21 +268,23 @@ it('returns validation error when code is missing', function (): void {
             'ok' => false,
             'status' => 422,
             'message' => 'The given data was invalid.',
-        ]);
+        ])
+        ->assertJsonPath('flow.name', 'failed');
 
     expect($response->json('payload.fields.code.0'))->toBeString();
 });
 
-it('fails when two-factor is not enabled', function (): void {
-    $user = RegenerateRecoveryCodesTestUser::query()->create([
+it('returns failure when authentication code is invalid', function (): void {
+    $user = ConfirmTwoFactorSetupTestUser::query()->create([
         'email' => 'michael@example.com',
-        'two_factor_enabled' => false,
+        'password' => Hash::make('secret123'),
+        'two_factor_secret' => 'encrypted-secret',
     ]);
 
     $response = $this
         ->actingAs($user, 'web')
-        ->postJson(route('authkit.api.settings.two_factor.recovery.regenerate'), [
-            'code' => '123456',
+        ->postJson(route('authkit.api.settings.two_factor.confirm'), [
+            'code' => '000000',
         ]);
 
     $response
@@ -231,45 +292,29 @@ it('fails when two-factor is not enabled', function (): void {
         ->assertJson([
             'ok' => false,
             'status' => 422,
-            'message' => 'Two-factor authentication is not enabled for this account.',
+            'message' => 'The provided authentication code is invalid.',
         ])
-        ->assertJsonPath('errors.0.code', 'two_factor_not_enabled');
+        ->assertJsonPath('flow.name', 'failed')
+        ->assertJsonPath('errors.0.field', 'code')
+        ->assertJsonPath('errors.0.code', 'invalid_two_factor_code');
 });
 
-it('persists newly generated recovery codes', function (): void {
-    $user = RegenerateRecoveryCodesTestUser::query()->create([
+it('persists mapper-approved setup-confirmation attributes when the model supports mapped persistence', function (): void {
+    Config::set('authkit.mappers.contexts.two_factor_confirm.class', PersistingConfirmTwoFactorSetupMapper::class);
+
+    $user = ConfirmTwoFactorSetupTestUser::query()->create([
         'email' => 'michael@example.com',
-        'two_factor_enabled' => true,
-        'two_factor_secret' => encrypt('JBSWY3DPEHPK3PXP'),
-    ]);
-
-    $this
-        ->actingAs($user, 'web')
-        ->postJson(route('authkit.api.settings.two_factor.recovery.regenerate'), [
-            'code' => '123456',
-        ])
-        ->assertOk();
-
-    $user->refresh();
-
-    expect($user->two_factor_recovery_codes)->not->toBeNull();
-});
-
-it('persists mapper-approved regeneration attributes when the model supports mapped persistence', function (): void {
-    Config::set(
-        'authkit.mappers.contexts.two_factor_recovery_regenerate.class',
-        PersistingRegenerateTwoFactorRecoveryCodesMapper::class
-    );
-
-    $user = RegenerateRecoveryCodesTestUser::query()->create([
-        'email' => 'michael@example.com',
-        'two_factor_enabled' => true,
-        'two_factor_secret' => encrypt('JBSWY3DPEHPK3PXP'),
+        'password' => Hash::make('secret123'),
+        'two_factor_enabled' => false,
+        'two_factor_secret' => 'encrypted-secret',
+        'two_factor_methods' => [],
+        'two_factor_recovery_codes' => [],
+        'two_factor_confirmed_at' => null,
     ]);
 
     $response = $this
         ->actingAs($user, 'web')
-        ->postJson(route('authkit.api.settings.two_factor.recovery.regenerate'), [
+        ->postJson(route('authkit.api.settings.two_factor.confirm'), [
             'code' => ' 123456 ',
         ]);
 
@@ -277,10 +322,15 @@ it('persists mapper-approved regeneration attributes when the model supports map
 
     $user->refresh();
 
-    expect($user->last_regenerated_recovery_code_input)->toBe('123456');
+    expect($user->last_confirm_two_factor_setup_code)->toBe('123456');
 });
 
-final class RegenerateRecoveryCodesTestUser extends BaseUser
+/**
+ * ConfirmTwoFactorSetupTestUser
+ *
+ * Minimal user model used for authenticated two-factor setup confirmation tests.
+ */
+final class ConfirmTwoFactorSetupTestUser extends BaseUser
 {
     use HasAuthKitTwoFactor;
     use HasAuthKitMappedPersistence;
@@ -289,23 +339,27 @@ final class RegenerateRecoveryCodesTestUser extends BaseUser
 
     protected $guarded = [];
 
+    protected $hidden = ['password', 'remember_token'];
+
     protected $casts = [
         'two_factor_enabled' => 'bool',
         'two_factor_recovery_codes' => 'array',
         'two_factor_methods' => 'array',
+        'two_factor_confirmed_at' => 'datetime',
+        'email_verified_at' => 'datetime',
     ];
 }
 
 /**
- * PersistingRegenerateTwoFactorRecoveryCodesMapper
+ * PersistingConfirmTwoFactorSetupMapper
  *
- * Test-only mapper that marks regeneration attributes as persistable.
+ * Test-only mapper that marks confirm-two-factor-setup attributes as persistable.
  */
-final class PersistingRegenerateTwoFactorRecoveryCodesMapper extends AbstractPayloadMapper
+final class PersistingConfirmTwoFactorSetupMapper extends AbstractPayloadMapper
 {
     public function context(): string
     {
-        return 'two_factor_recovery_regenerate';
+        return 'two_factor_confirm';
     }
 
     public function mode(): string
@@ -318,7 +372,7 @@ final class PersistingRegenerateTwoFactorRecoveryCodesMapper extends AbstractPay
         return [
             'code_persist' => [
                 'source' => 'code',
-                'target' => 'last_regenerated_recovery_code_input',
+                'target' => 'last_confirm_two_factor_setup_code',
                 'bucket' => 'attributes',
                 'include' => true,
                 'persist' => true,

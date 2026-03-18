@@ -9,6 +9,7 @@ use Xul\AuthKit\Concerns\Http\ApiRespondsJson;
 use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\App\Settings\DisableTwoFactorRequest;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
 /**
@@ -19,6 +20,7 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Responsibilities:
  * - Validate the incoming request through DisableTwoFactorRequest.
+ * - Build the normalized mapped payload for the disable-two-factor context.
  * - Delegate two-factor disable business logic to DisableTwoFactorAction.
  * - Return JSON responses for API or AJAX consumers.
  * - Return redirect responses with flash messages for standard web consumers.
@@ -26,7 +28,8 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  * Notes:
  * - This controller is intentionally thin.
  * - The action is responsible for verifying either the authenticator code or
- *   recovery code, disabling two-factor, and clearing related state.
+ *   recovery code, disabling two-factor, persisting supported mapped fields,
+ *   and clearing related state.
  */
 final class DisableTwoFactorController
 {
@@ -47,9 +50,14 @@ final class DisableTwoFactorController
         $guard = (string) config('authkit.auth.guard', 'web');
         $user = $request->user($guard);
 
+        $payload = MappedPayloadBuilder::build(
+            'two_factor_disable',
+            $request->validated()
+        );
+
         $result = $action->handle(
             user: $user,
-            data: $request->validated()
+            data: $payload
         );
 
         if (ResponseResolver::expectsJson($request)) {
