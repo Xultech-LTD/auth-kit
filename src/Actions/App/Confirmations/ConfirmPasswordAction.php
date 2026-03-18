@@ -4,6 +4,8 @@ namespace Xul\AuthKit\Actions\App\Confirmations;
 
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Support\Facades\Hash;
+use Throwable;
+use Xul\AuthKit\Concerns\Actions\InteractsWithMappedPayload;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitError;
 use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitFlowStep;
@@ -18,8 +20,11 @@ use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitRedirect;
  *
  * Responsibilities:
  * - Ensure a valid authenticated user object is present.
+ * - Read normalized confirm-password data from the mapped attributes bucket.
  * - Ensure the user exposes a retrievable password hash.
  * - Verify the submitted current password against the stored hash.
+ * - Persist mapper-approved attributes when the user model supports
+ *   AuthKit mapped persistence.
  * - Persist a fresh password-confirmation timestamp into session on success.
  * - Clear transient confirmation navigation metadata after success.
  * - Resolve the appropriate post-confirmation redirect target.
@@ -30,9 +35,14 @@ use Xul\AuthKit\DataTransferObjects\Actions\Support\AuthKitRedirect;
  *   self-contained and reusable even when consumers swap controllers.
  * - Redirect intent is resolved from the stored intended URL when present,
  *   otherwise the configured fallback route is used.
+ * - Password confirmation does not persist fields by default because the
+ *   packaged mapper marks them as non-persistable. This action remains
+ *   persistence-aware so consumer-defined mappers can opt in to persistence.
  */
 final class ConfirmPasswordAction
 {
+    use InteractsWithMappedPayload;
+
     /**
      * Handle the password confirmation attempt.
      *
@@ -40,6 +50,7 @@ final class ConfirmPasswordAction
      * @param  array<string, mixed>  $data
      * @param  Session  $session
      * @return AuthKitActionResult
+     * @throws Throwable
      */
     public function handle(mixed $user, array $data, Session $session): AuthKitActionResult
     {
@@ -55,7 +66,9 @@ final class ConfirmPasswordAction
             );
         }
 
-        $password = trim((string) ($data['password'] ?? ''));
+        $attributes = $this->payloadAttributes($data);
+
+        $password = trim((string) ($attributes['password'] ?? ''));
 
         if ($password === '') {
             return AuthKitActionResult::validationFailure(
@@ -95,11 +108,25 @@ final class ConfirmPasswordAction
                 status: 422,
                 flow: AuthKitFlowStep::failed(),
                 errors: [
-                    AuthKitError::validation('password', 'The provided password is incorrect.', 'invalid_password'),
+                    AuthKitError::validation(
+                        'password',
+                        'The provided password is incorrect.',
+                        'invalid_password'
+                    ),
                 ],
                 redirect: $this->confirmPasswordRedirect()
             );
         }
+
+        /**
+         * Intentionally persistence-aware.
+         *
+         * Confirm-password does not persist fields by default because the packaged
+         * mapper marks all fields as non-persistable. This call remains here so the
+         * action continues to work correctly if a consumer extends the mapper and
+         * marks additional attributes as persistable.
+         */
+        $this->persistMappedAttributesIfSupported($user, 'confirm_password', $data);
 
         $redirect = $this->successRedirect($session);
 

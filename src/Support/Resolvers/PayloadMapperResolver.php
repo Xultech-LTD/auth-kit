@@ -4,6 +4,8 @@ namespace Xul\AuthKit\Support\Resolvers;
 
 use InvalidArgumentException;
 use Xul\AuthKit\Contracts\Mappers\PayloadMapperContract;
+use Xul\AuthKit\Support\Mappers\App\Confirmations\ConfirmPasswordPayloadMapper;
+use Xul\AuthKit\Support\Mappers\App\Confirmations\ConfirmTwoFactorPayloadMapper;
 use Xul\AuthKit\Support\Mappers\Auth\LoginPayloadMapper;
 use Xul\AuthKit\Support\Mappers\Auth\RegisterPayloadMapper;
 use Xul\AuthKit\Support\Mappers\Auth\TwoFactorChallengePayloadMapper;
@@ -197,6 +199,8 @@ final class PayloadMapperResolver
             'password_forgot' => ForgotPasswordPayloadMapper::class,
             'password_reset' => ResetPasswordPayloadMapper::class,
             'password_reset_token' => VerifyPasswordResetTokenPayloadMapper::class,
+            'confirm_password' => ConfirmPasswordPayloadMapper::class,
+            'confirm_two_factor' => ConfirmTwoFactorPayloadMapper::class,
             default => null,
         };
     }

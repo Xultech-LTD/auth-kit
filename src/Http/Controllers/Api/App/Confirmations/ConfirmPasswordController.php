@@ -9,6 +9,7 @@ use Xul\AuthKit\Concerns\Http\ApiRespondsJson;
 use Xul\AuthKit\Concerns\Http\WebRespondsRedirects;
 use Xul\AuthKit\DataTransferObjects\Actions\AuthKitActionResult;
 use Xul\AuthKit\Http\Requests\App\Confirmations\ConfirmPasswordRequest;
+use Xul\AuthKit\Support\Mappers\MappedPayloadBuilder;
 use Xul\AuthKit\Support\Resolvers\ResponseResolver;
 
 /**
@@ -19,6 +20,7 @@ use Xul\AuthKit\Support\Resolvers\ResponseResolver;
  *
  * Responsibilities:
  * - Validate the incoming request through ConfirmPasswordRequest.
+ * - Build the normalized mapped payload for the confirm-password context.
  * - Delegate password confirmation verification to ConfirmPasswordAction.
  * - Return JSON responses for API or AJAX consumers.
  * - Return redirect responses with flash messages for standard web consumers.
@@ -48,9 +50,11 @@ final class ConfirmPasswordController
         $guard = (string) config('authkit.auth.guard', 'web');
         $user = $request->user($guard);
 
+        $payload = MappedPayloadBuilder::build('confirm_password', $request->validated());
+
         $result = $action->handle(
             user: $user,
-            data: $request->validated(),
+            data: $payload,
             session: $request->session(),
         );
 

@@ -234,7 +234,7 @@ trait HasAuthKitTwoFactor
             foreach ($stored as $i => $hash) {
                 if (is_string($hash) && $hash !== '' && Hash::driver($driver)->check($code, $hash)) {
                     unset($stored[$i]);
-                    $this->setTwoFactorRecoveryCodes(array_values($stored));
+                    $this->persistStoredTwoFactorRecoveryCodes(array_values($stored));
 
                     return true;
                 }
@@ -251,9 +251,36 @@ trait HasAuthKitTwoFactor
 
         unset($stored[$idx]);
 
-        $this->setTwoFactorRecoveryCodes(array_values($stored));
+        $this->persistStoredTwoFactorRecoveryCodes(array_values($stored));
 
         return true;
+    }
+
+    /**
+     * Persist already-normalized recovery code values as stored.
+     *
+     * Important:
+     * - This method expects values exactly as they should exist in storage.
+     * - It does not hash again.
+     *
+     * @param array<int, string> $codes
+     * @return void
+     */
+    protected function persistStoredTwoFactorRecoveryCodes(array $codes): void
+    {
+        $col = $this->authKitTwoFactorRecoveryCodesColumn();
+
+        $codes = array_values(array_filter($codes, fn ($v) => is_string($v) && trim($v) !== ''));
+
+        if (method_exists($this, 'setAttribute')) {
+            $this->setAttribute($col, $codes === [] ? null : $codes);
+        } else {
+            $this->{$col} = $codes === [] ? null : $codes;
+        }
+
+        if (method_exists($this, 'save')) {
+            $this->save();
+        }
     }
 
     /**
