@@ -1,0 +1,1 @@
+import{_ as t,o as e,c as a}from"./chunks/framework.DCmHoTxM.js";const _=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"ui/javascript-runtime.md","filePath":"ui/javascript-runtime.md"}'),r={name:"ui/javascript-runtime.md"};function i(s,c,n,o,p,m){return e(),a("div")}const d=t(r,[["render",i]]);export{_ as __pageData,d as default};

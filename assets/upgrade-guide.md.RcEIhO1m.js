@@ -1,0 +1,1 @@
+import{_ as e,o as t,c as a}from"./chunks/framework.DCmHoTxM.js";const _=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"upgrade-guide.md","filePath":"upgrade-guide.md"}'),r={name:"upgrade-guide.md"};function d(o,s,c,n,p,i){return t(),a("div")}const m=e(r,[["render",d]]);export{_ as __pageData,m as default};

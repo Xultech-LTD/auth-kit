@@ -1,0 +1,1 @@
+import{_ as e,o as t,c as r}from"./chunks/framework.DCmHoTxM.js";const v=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"extending/overview.md","filePath":"extending/overview.md"}'),n={name:"extending/overview.md"};function o(a,i,s,c,d,p){return t(),r("div")}const m=e(n,[["render",o]]);export{v as __pageData,m as default};

@@ -1,0 +1,1 @@
+import{_ as e,o as t,c as n}from"./chunks/framework.DCmHoTxM.js";const _=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"extending/notifiers.md","filePath":"extending/notifiers.md"}'),r={name:"extending/notifiers.md"};function i(o,a,s,c,d,f){return t(),n("div")}const m=e(r,[["render",i]]);export{_ as __pageData,m as default};

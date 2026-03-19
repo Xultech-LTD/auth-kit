@@ -1,0 +1,1 @@
+import{_ as t,o as e,c as a}from"./chunks/framework.DCmHoTxM.js";const d=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"auth/login.md","filePath":"auth/login.md"}'),o={name:"auth/login.md"};function n(r,s,c,i,l,p){return e(),a("div")}const m=t(o,[["render",n]]);export{d as __pageData,m as default};

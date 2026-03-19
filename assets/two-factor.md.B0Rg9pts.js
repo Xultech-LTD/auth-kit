@@ -1,1 +1,0 @@
-import{_ as t,o as e,c as o}from"./chunks/framework.DCmHoTxM.js";const i=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"two-factor.md","filePath":"two-factor.md"}'),a={name:"two-factor.md"};function r(c,s,n,f,p,_){return e(),o("div")}const m=t(a,[["render",r]]);export{i as __pageData,m as default};
