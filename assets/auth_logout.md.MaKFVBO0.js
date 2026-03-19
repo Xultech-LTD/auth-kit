@@ -1,0 +1,1 @@
+import{_ as t,o as e,c as o}from"./chunks/framework.CmIi9huC.js";const d=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"auth/logout.md","filePath":"auth/logout.md"}'),a={name:"auth/logout.md"};function r(s,c,n,l,p,u){return e(),o("div")}const i=t(a,[["render",r]]);export{d as __pageData,i as default};

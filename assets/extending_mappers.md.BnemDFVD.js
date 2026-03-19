@@ -1,0 +1,1 @@
+import{_ as e,o as t,c as a}from"./chunks/framework.CmIi9huC.js";const _=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"extending/mappers.md","filePath":"extending/mappers.md"}'),r={name:"extending/mappers.md"};function n(s,p,o,c,d,i){return t(),a("div")}const f=e(r,[["render",n]]);export{_ as __pageData,f as default};

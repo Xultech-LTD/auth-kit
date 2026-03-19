@@ -1,0 +1,1 @@
+import{_ as e,o as t,c as s}from"./chunks/framework.CmIi9huC.js";const m=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"security/password-reset.md","filePath":"security/password-reset.md"}'),r={name:"security/password-reset.md"};function a(o,c,n,p,d,i){return t(),s("div")}const f=e(r,[["render",a]]);export{m as __pageData,f as default};

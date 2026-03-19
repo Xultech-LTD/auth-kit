@@ -1,1 +1,0 @@
-import{_ as e,o as t,c as r}from"./chunks/framework.DCmHoTxM.js";const m=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"auth/register.md","filePath":"auth/register.md"}'),a={name:"auth/register.md"};function s(o,c,n,i,p,_){return t(),r("div")}const f=e(a,[["render",s]]);export{m as __pageData,f as default};

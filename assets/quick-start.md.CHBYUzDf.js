@@ -1,1 +1,0 @@
-import{_ as t,o as e,c as a}from"./chunks/framework.DCmHoTxM.js";const m=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"quick-start.md","filePath":"quick-start.md"}'),r={name:"quick-start.md"};function c(s,o,n,i,p,_){return e(),a("div")}const f=t(r,[["render",c]]);export{m as __pageData,f as default};

@@ -1,1 +1,0 @@
-import{_ as e,o as s,c as t}from"./chunks/framework.DCmHoTxM.js";const _=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"ui/css-and-themes.md","filePath":"ui/css-and-themes.md"}'),a={name:"ui/css-and-themes.md"};function c(n,r,o,d,i,m){return s(),t("div")}const f=e(a,[["render",c]]);export{_ as __pageData,f as default};
