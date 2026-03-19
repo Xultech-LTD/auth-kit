@@ -1,0 +1,1 @@
+import{_ as t,o as e,c as r}from"./chunks/framework.deupg0Vv.js";const d=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"architecture/http-layer.md","filePath":"architecture/http-layer.md"}'),a={name:"architecture/http-layer.md"};function c(o,s,n,p,i,h){return e(),r("div")}const l=t(a,[["render",c]]);export{d as __pageData,l as default};

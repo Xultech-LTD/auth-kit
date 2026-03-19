@@ -1,0 +1,1 @@
+import{_ as t,o as e,c as o}from"./chunks/framework.deupg0Vv.js";const d=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"security/two-factor.md","filePath":"security/two-factor.md"}'),r={name:"security/two-factor.md"};function a(c,s,n,i,f,p){return e(),o("div")}const m=t(r,[["render",a]]);export{d as __pageData,m as default};

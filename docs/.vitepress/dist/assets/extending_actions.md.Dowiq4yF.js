@@ -1,0 +1,1 @@
+import{_ as e,o as t,c as n}from"./chunks/framework.deupg0Vv.js";const m=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"extending/actions.md","filePath":"extending/actions.md"}'),a={name:"extending/actions.md"};function o(s,c,r,i,d,p){return t(),n("div")}const f=e(a,[["render",o]]);export{m as __pageData,f as default};
