@@ -2,7 +2,11 @@
 
 namespace Xul\AuthKit\Http\Requests\Auth;
 
+use Illuminate\Contracts\Auth\Factory as AuthFactory;
+use Illuminate\Contracts\Auth\UserProvider;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Xul\AuthKit\Contracts\Forms\FormSchemaResolverContract;
 use Xul\AuthKit\Http\Requests\AuthKitFormRequest;
@@ -101,6 +105,8 @@ final class RegisterRequest extends AuthKitFormRequest
     }
 
     /**
+     * Resolve the canonical register form schema.
+     *
      * @return array<string, mixed>
      */
     protected function schema(): array
@@ -109,7 +115,7 @@ final class RegisterRequest extends AuthKitFormRequest
     }
 
     /**
-     * Build default attribute names from schema.
+     * Build default attribute names from schema labels.
      *
      * @param  array<string, mixed>  $schema
      * @return array<string, string>
@@ -135,7 +141,15 @@ final class RegisterRequest extends AuthKitFormRequest
     }
 
     /**
-     * Build sensible default rules based on schema fields.
+     * Build the default validation rules for registration.
+     *
+     * Design notes:
+     * - Rules remain schema-aware so consumers may remove fields from the register
+     *   schema without causing irrelevant validation requirements.
+     * - The primary identity field may receive a configurable unique rule when
+     *   registration uniqueness enforcement is enabled.
+     * - Consumers may still replace these defaults entirely through a custom
+     *   rules provider configured at authkit.validation.providers.register.
      *
      * @param  array<int, string>  $fields
      * @return array<string, mixed>
@@ -143,6 +157,7 @@ final class RegisterRequest extends AuthKitFormRequest
     protected function defaultRules(array $fields): array
     {
         $rules = [];
+        $identityField = $this->identityField();
 
         if (in_array('name', $fields, true)) {
             $rules['name'] = ['required', 'string', 'max:255'];
@@ -150,6 +165,20 @@ final class RegisterRequest extends AuthKitFormRequest
 
         if (in_array('email', $fields, true)) {
             $rules['email'] = ['required', 'string', 'email', 'max:255'];
+        }
+
+        if (
+            in_array($identityField, $fields, true)
+            && $this->shouldEnforceUniqueIdentity()
+        ) {
+            $uniqueRule = $this->buildIdentityUniqueRule($identityField);
+
+            if ($uniqueRule !== null) {
+                $rules[$identityField] = array_values([
+                    ...($rules[$identityField] ?? ['required', 'string', 'max:255']),
+                    $uniqueRule,
+                ]);
+            }
         }
 
         if (in_array('password', $fields, true)) {
@@ -161,5 +190,134 @@ final class RegisterRequest extends AuthKitFormRequest
         }
 
         return $rules;
+    }
+
+    /**
+     * Resolve the configured primary identity field used by AuthKit.
+     *
+     * Examples:
+     * - email
+     * - username
+     * - phone
+     */
+    protected function identityField(): string
+    {
+        return (string) config('authkit.identity.login.field', 'email');
+    }
+
+    /**
+     * Determine whether AuthKit should apply its default uniqueness rule
+     * to the primary registration identity.
+     */
+    protected function shouldEnforceUniqueIdentity(): bool
+    {
+        return (bool) config('authkit.registration.enforce_unique_identity', true);
+    }
+
+    /**
+     * Build the default unique rule for the configured registration identity field.
+     *
+     * Resolution order:
+     * 1. authkit.registration.unique_identity.table / column
+     * 2. configured auth provider model table + identity field
+     *
+     * Returns null when the target table cannot be resolved safely.
+     *
+     * @param  string  $identityField
+     * @return \Illuminate\Validation\Rules\Unique|null
+     */
+    protected function buildIdentityUniqueRule(string $identityField): ?\Illuminate\Validation\Rules\Unique
+    {
+        $table = $this->registrationUniqueTable();
+        $column = $this->registrationUniqueColumn($identityField);
+
+        if (!is_string($table) || trim($table) === '') {
+            return null;
+        }
+
+        return Rule::unique($table, $column);
+    }
+
+    /**
+     * Resolve the database table used for the default registration unique rule.
+     *
+     * Resolution order:
+     * 1. authkit.registration.unique_identity.table
+     * 2. configured auth provider model table
+     *
+     * @return string|null
+     */
+    protected function registrationUniqueTable(): ?string
+    {
+        $configured = config('authkit.registration.unique_identity.table');
+
+        if (is_string($configured) && trim($configured) !== '') {
+            return trim($configured);
+        }
+
+        $modelClass = $this->authProviderModelClass();
+
+        if (!is_string($modelClass) || $modelClass === '' || !is_subclass_of($modelClass, Model::class)) {
+            return null;
+        }
+
+        /** @var Model $model */
+        $model = new $modelClass();
+
+        return $model->getTable();
+    }
+
+    /**
+     * Resolve the database column used for the default registration unique rule.
+     *
+     * Resolution order:
+     * 1. authkit.registration.unique_identity.column
+     * 2. configured identity field
+     *
+     * @param  string  $identityField
+     * @return string
+     */
+    protected function registrationUniqueColumn(string $identityField): string
+    {
+        $configured = config('authkit.registration.unique_identity.column');
+
+        if (is_string($configured) && trim($configured) !== '') {
+            return trim($configured);
+        }
+
+        return $identityField;
+    }
+
+    /**
+     * Resolve the Eloquent model class from the configured AuthKit guard provider.
+     *
+     * This allows AuthKit to infer the users table automatically for the default
+     * registration unique rule without forcing consumers to duplicate that table
+     * name in configuration.
+     *
+     * Returns null when:
+     * - the configured guard cannot be resolved
+     * - the provider is not available
+     * - the provider does not expose a model() method
+     *
+     * @return class-string<Model>|null
+     */
+    protected function authProviderModelClass(): ?string
+    {
+        $guard = (string) config('authkit.auth.guard', 'web');
+
+        /** @var \Illuminate\Contracts\Auth\Factory $auth */
+        $auth = app(AuthFactory::class);
+
+        $provider = $auth->guard($guard)->getProvider();
+
+        if (!$provider instanceof UserProvider || !method_exists($provider, 'getModel')) {
+            return null;
+        }
+
+        /** @var mixed $model */
+        $model = $provider->getModel();
+
+        return is_string($model) && $model !== '' ? $model : null;
     }
 }

@@ -86,6 +86,65 @@ return [
         ],
     ],
 
+     /* Registration configuration.
+     *
+     * This section controls package-level registration behavior that should remain
+     * configurable without requiring consumers to publish or replace form requests.
+     *
+     * Initial responsibilities:
+     * - control whether the primary registration identity must be unique
+     * - allow consumers to override the table/column used by the default uniqueness rule
+     *
+     * Notes:
+     * - These settings affect only AuthKit's built-in default registration rules.
+     * - A custom rules provider may still fully replace or reshape validation behavior.
+     * - When uniqueness is disabled here, AuthKit will not add a default unique rule.
+     */
+    'registration' => [
+
+        /**
+         * Identity uniqueness enforcement.
+         *
+         * When enabled:
+         * - AuthKit adds a default unique rule for the configured registration/login
+         *   identity field when that field exists in the resolved register schema.
+         *
+         * When disabled:
+         * - AuthKit does not apply a default unique rule.
+         * - Consumers may still enforce uniqueness through a custom rules provider
+         *   or at the database level.
+         *
+         * Recommended:
+         * - Keep enabled for most applications.
+         */
+        'enforce_unique_identity' => true,
+
+        /**
+         * Identity uniqueness target.
+         *
+         * These values control the database table and column used by AuthKit's
+         * default registration unique rule.
+         *
+         * Resolution behavior:
+         * - table:
+         *   - null: attempt to resolve automatically from the configured auth provider model
+         *   - string: use the provided table name directly
+         *
+         * - column:
+         *   - null: use the configured identity field name
+         *   - string: use the provided column name directly
+         *
+         * Example use cases:
+         * - custom users table name
+         * - registering by username while authenticating through a renamed DB column
+         * - integrating with legacy schemas
+         */
+        'unique_identity' => [
+            'table' => null,
+            'column' => null,
+        ],
+    ],
+
     /**
      * Routing configuration for AuthKit.
      *

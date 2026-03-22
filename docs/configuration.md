@@ -276,7 +276,6 @@ For example:
 
 Custom normalization logic can be introduced later through actions or extension points.
 
----
 
 ### What this affects
 
@@ -300,8 +299,6 @@ AuthKit uses the **schema system** to define:
 
 If you want to change how the login field appears in the UI, you should modify the relevant schema configuration instead.
 
----
-
 ### Important note
 
 Changing the identity configuration does **not** modify your database schema automatically.
@@ -311,8 +308,6 @@ If you switch from `email` to another field such as `username`, you must ensure:
 - your users table contains the corresponding column
 - your user provider can resolve users using that field
 - your authentication flow is aligned with the chosen identity
-
----
 
 ### Example: username-based authentication
 
@@ -339,6 +334,228 @@ If you switch from `email` to another field such as `username`, you must ensure:
     ],
 ],
 ```
+## Registration Configuration
+The `registration` section controls package-level behavior related to account creation.
+
+At the moment, this section is primarily responsible for AuthKit’s default identity uniqueness behavior during registration.
+
+This allows AuthKit to provide a safe default for common registration flows while still giving consumers full control when they need custom validation behavior.
+
+#### Overview
+````php
+'registration' => [
+    'enforce_unique_identity' => true,
+    'unique_identity' => [
+        'table' => null,
+        'column' => null,
+    ],
+],
+````
+### Why this section exists
+In most applications, the primary registration identity should be unique.
+For example:
+
+- an email address should usually not be reused across multiple accounts
+- a username should usually be unique
+- a phone-based identity may also need uniqueness depending on the application
+
+AuthKit therefore adds a default unique validation rule for the configured identity field during registration.
+However, because not every application has the same schema or requirements, this behavior is configurable.
+
+#### `registration.enforce_unique_identity`
+
+```php
+'enforce_unique_identity' => true,
+```
+Controls whether AuthKit should automatically apply a default unique rule to the configured registration identity field.
+
+**Behavior**
+
+When set to true:
+
+- AuthKit checks the configured identity field from authkit.identity.login.field
+- if that field exists in the resolved register schema
+- AuthKit adds a default unique validation rule for that field
+
+When set to false:
+
+- AuthKit does not apply its default identity uniqueness rule
+- consumers may still enforce uniqueness through:
+- a custom validation provider
+- database constraints
+- custom controller or action logic
+
+**Recommended usage**
+
+For most applications, this should remain enabled.
+
+Disabling it is mainly useful when:
+
+- your application handles uniqueness in a custom validation provider
+- your registration flow needs non-standard identity behavior
+- you are integrating AuthKit into a legacy schema or workflow
+
+#### `registration.unique_identity.table`
+```php
+'table' => null,
+```
+
+Defines the database table AuthKit should use when building the default unique rule for the registration identity.
+
+**Resolution behavior**
+
+When set to `null`:
+
+-AuthKit attempts to resolve the table automatically from the configured auth provider model
+
+When set to a `string`:
+
+- AuthKit uses that table name directly
+
+**Example**
+
+```php
+'registration' => [
+    'unique_identity' => [
+        'table' => 'users',
+    ],
+],
+```
+
+This is useful when:
+
+- your user data lives in a custom table
+- you want to avoid relying on automatic provider-based resolution
+- your application uses a legacy schema
+
+#### `registration.unique_identity.column`
+```php
+'column' => null,
+```
+
+Defines the database column AuthKit should use for the default registration identity uniqueness rule.
+
+**Resolution behavior**
+
+When set to `null`:
+
+- AuthKit uses the configured identity field from authkit.identity.login.field
+
+When set to a `string`:
+
+- AuthKit uses that column name directly
+
+**Example**
+```php
+
+'registration' => [
+    'unique_identity' => [
+        'column' => 'email_address',
+    ],
+],
+```
+This is useful when:
+
+- your registration identity field maps to a differently named database column
+- your application uses a legacy schema
+- your UI field naming and persistence column naming are intentionally different
+
+### How this works with identity configuration
+
+The registration uniqueness logic builds on top of the identity configuration.
+
+For example, if you set:
+
+```php
+'identity' => [
+    'login' => [
+        'field' => 'username',
+    ],
+],
+````
+then AuthKit will treat username as the canonical identity field for registration uniqueness, unless you explicitly override the column in:
+
+`registration.unique_identity.column`
+This means: `identity.login.field` defines the canonical identity key registration controls whether and how uniqueness is enforced for that identity during registration
+
+## Important note
+
+This configuration affects only AuthKit’s built-in default registration validation behavior.
+
+It does not prevent you from replacing or extending registration validation through a custom validation provider.
+
+If a custom provider is configured for the register context, you remain fully in control of the final validation rules used by your application.
+
+**Example: default email-based uniqueness**
+
+```php
+'identity' => [
+    'login' => [
+        'field' => 'email',
+    ],
+],
+
+'registration' => [
+    'enforce_unique_identity' => true,
+    'unique_identity' => [
+        'table' => null,
+        'column' => null,
+    ],
+],
+```
+With this configuration:
+
+- AuthKit uses email as the primary identity field
+- AuthKit attempts to resolve the user table automatically
+- AuthKit applies a default unique rule to the email field during registration
+
+**Example: username-based registration**
+
+```php
+'identity' => [
+    'login' => [
+        'field' => 'username',
+        'label' => 'Username',
+        'input_type' => 'text',
+        'autocomplete' => 'username',
+        'normalize' => 'trim',
+    ],
+],
+
+'registration' => [
+    'enforce_unique_identity' => true,
+    'unique_identity' => [
+        'table' => 'users',
+        'column' => 'username',
+    ],
+],
+```
+With this configuration:
+
+- AuthKit uses username as the canonical identity
+- registration applies uniqueness against users.username
+
+**Example: disable default uniqueness**
+
+```php
+'registration' => [
+    'enforce_unique_identity' => false,
+],
+```
+With this configuration:
+
+- AuthKit does not apply its built-in unique rule
+- you are responsible for uniqueness behavior elsewhere
+
+This can be appropriate when uniqueness is enforced through a custom register validation provider or another application-specific rule layer.
+
+### Best practice
+
+- keep identity uniqueness enabled in most production applications
+- override the table or column only when your schema requires it
+- use a custom validation provider when your registration rules go beyond AuthKit defaults
+- keep database-level unique indexes aligned with your validation behavior
+
 ## Routes Configuration
 
 The routes configuration controls the top-level structure used when AuthKit registers its routes.
