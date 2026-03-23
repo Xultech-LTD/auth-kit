@@ -49,23 +49,6 @@ export default defineConfig({
                     { text: 'Blade Views', link: '/ui/blade-views' },
                     { text: 'CSS and Themes', link: '/ui/css-and-themes' }
                 ]
-            },
-            {
-                text: 'Extending AuthKit',
-                items: [
-                    { text: 'Overview', link: '/extending/overview' },
-                    { text: 'Mappers', link: '/extending/mappers' },
-                    { text: 'Notifiers', link: '/extending/notifiers' }
-                ]
-            },
-            {
-                text: 'Architecture',
-                items: [
-                    { text: 'Overview', link: '/architecture/overview' },
-                    { text: 'HTTP Layer', link: '/architecture/http-layer' },
-                    { text: 'Support Layer', link: '/architecture/support-layer' },
-                    { text: 'DTOs and Contracts', link: '/architecture/dtos-and-contracts' }
-                ]
             }
         ],
 

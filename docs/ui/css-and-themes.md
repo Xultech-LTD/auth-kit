@@ -682,3 +682,66 @@ This approach is useful when:
 - you prefer to treat AuthKit as a semantic Blade/rendering layer only
 
 In that case, you should still preserve semantic AuthKit classes or data hooks where needed, so your custom stylesheet has reliable targets.
+
+### Example Configurations
+
+**Tailwind theme**
+
+```php
+'ui' => [
+    'engine' => 'tailwind',
+    'theme' => 'slate-gold',
+    'mode' => 'light',
+    'load_stylesheet' => true,
+],
+```
+**Bootstrap theme**
+
+```php
+'ui' => [
+    'engine' => 'tailwind',
+    'theme' => 'slate-gold',
+    'mode' => 'light',
+    'load_stylesheet' => true,
+],
+```
+
+**System mode + persistence**
+
+```php
+'ui' => [
+    'mode' => 'system',
+    'persistence' => [
+        'enabled' => true,
+        'storage_key' => 'authkit.ui.mode',
+    ],
+    'toggle' => [
+        'enabled' => true,
+        'allow_system' => true,
+    ],
+],
+```
+
+**Theme with overrides**
+
+```php
+'ui' => [
+    'extensions' => [
+        'extra_css' => [
+            'css/authkit-overrides.css',
+        ],
+        'extra_js' => [
+            'js/authkit-overrides.js',
+        ],
+    ],
+],
+```
+
+**Full control**
+
+```php
+'ui' => [
+    'load_stylesheet' => false,
+    'load_script' => false,
+],
+```
