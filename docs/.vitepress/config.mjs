@@ -39,22 +39,21 @@ export default defineConfig({
                     { text: 'Email Verification', link: '/security/email-verification' },
                     { text: 'Two-Factor Authentication', link: '/security/two-factor' },
                     { text: 'Password Reset', link: '/security/password-reset' },
-                    { text: 'Rate Limiting', link: '/security/rate-limiting' }
+                    { text: 'Rate Limiting', link: '/security/rate-limiting' },
+                    { text: 'Two-Factor Confirmation', link: '/security/confirm-two-factor' }
                 ]
             },
             {
                 text: 'UI and Frontend',
                 items: [
                     { text: 'Blade Views', link: '/ui/blade-views' },
-                    { text: 'CSS and Themes', link: '/ui/css-and-themes' },
-                    { text: 'JavaScript Runtime', link: '/ui/javascript-runtime' }
+                    { text: 'CSS and Themes', link: '/ui/css-and-themes' }
                 ]
             },
             {
                 text: 'Extending AuthKit',
                 items: [
                     { text: 'Overview', link: '/extending/overview' },
-                    { text: 'Actions', link: '/extending/actions' },
                     { text: 'Mappers', link: '/extending/mappers' },
                     { text: 'Notifiers', link: '/extending/notifiers' }
                 ]

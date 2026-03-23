@@ -1,5 +1,5 @@
 ---
-title: AuthKit
+title: Introduction
 outline: deep
 ---
 
