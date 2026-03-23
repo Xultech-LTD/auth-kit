@@ -9,7 +9,6 @@ export default defineConfig({
         nav: [
             { text: 'Home', link: '/' },
             { text: 'Installation', link: '/installation' },
-            { text: 'Architecture', link: '/architecture/overview' },
             { text: 'GitHub', link: 'https://github.com/Xultech-LTD/auth-kit' }
         ],
 
